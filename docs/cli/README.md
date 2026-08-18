@@ -5,7 +5,7 @@ judgment half lives in the [skills](../skills.md).
 
 | Command | Phase | What it is for | Writes |
 | --- | --- | --- | --- |
-| [`install`](install.md) | setup | add ebpy and its Claude Code skills to a uv project | `pyproject.toml`, `uv.lock`, `.claude/skills` |
+| [`install`](install.md) | setup | add ebpy and its matching Claude Code skills | dependency metadata, lockfile, `.claude/skills` |
 | [`skills install`](skills-install.md) | setup | install the current ebpy package's bundled skills | `.claude/skills` |
 | [`diagnose`](diagnose.md) | P0 | survey the repository and name every gap | only with `--write` |
 | [`bootstrap`](bootstrap.md) | P1 | install the missing tooling, generate the configs | configs, workflows |

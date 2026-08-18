@@ -27,15 +27,15 @@ ESLint はこれを **bulk suppressions** で本体解決しました。Ruff に
 ## インストール
 
 パッケージインデックスには公開していません。次の1コマンドはGit上のebpyをbootstrapとして実行し、
-そのコマンド自身のリリースバージョンをカレントプロジェクトのdev dependencyに追加して、同じ
-バージョンのClaude Codeスキルを `.claude/skills` に配置します。
+検出したproject managerでebpyを追加して、対応するClaude Codeスキルを `.claude/skills` に
+配置します。
 
 ```bash
 uvx --from "git+https://github.com/yoshum/ebpy" ebpy install
 ```
 
-特定のリリースは正確なバージョンを `install` に渡します。コミットまたはブランチは `--ref` で
-指定します。
+対象を指定しない場合は、`main` の `ebpy.__version__` から対応するリリースタグを選びます。特定の
+リリースは正確なバージョンを渡し、コミットまたはブランチは `--ref` で指定します。
 
 ```bash
 uvx --from "git+https://github.com/yoshum/ebpy" ebpy install <version>
@@ -43,10 +43,12 @@ uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --ref <commit-or-br
 ```
 
 受け付けるリリースバージョンは完全一致だけで、範囲指定にはまだ対応していません。
+`skills install` を含まないv0.3.0未満は、projectを変更する前に拒否します。bootstrapの `--from`
+URL自体にGit refがあり、CLI側で対象を指定していない場合は、そのrefを引き継ぎます。CLIの
+`VERSION` または `--ref` を明示した場合は、常にそちらが優先です。
 
-Python 3.11 以降。ワンライナーのインストーラにはuvが必要です。ebpy自体はuv / poetry / pdm /
-pipenv / pip に対応し、パッケージマネージャはlockfileから検出されます。生成されるCIワークフローも
-検出したものを使います。
+Python 3.11以降。ワンライナーのbootstrapにはuvが必要です。projectからuv / Poetry / PDM /
+Pipenv / pipを検出し、dependency追加と `skills install` の実行の両方に同じmanagerを使います。
 
 ## 使い方
 

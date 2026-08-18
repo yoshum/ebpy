@@ -26,15 +26,15 @@ It is not a linter. It runs *your* Ruff, with *your* config, from *your* virtual
 
 ## Install
 
-Not published to a package index. One command bootstraps from Git, installs the bootstrap command's
-release version as a development dependency, and puts that version's Claude Code skills in
-`.claude/skills`:
+Not published to a package index. One command bootstraps from Git, adds ebpy with the project's
+detected package manager, and puts the matching Claude Code skills in `.claude/skills`:
 
 ```bash
 uvx --from "git+https://github.com/yoshum/ebpy" ebpy install
 ```
 
-To require a particular release, pass its exact version to `install`. To use a commit or branch,
+With no target specified, `install` reads `ebpy.__version__` from `main` and selects the matching
+release tag. To require a particular release, pass its exact version. To use a commit or branch,
 pass it with `--ref`:
 
 ```bash
@@ -43,10 +43,12 @@ uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --ref <commit-or-br
 ```
 
 Only exact release versions are accepted; version ranges are not yet supported.
+Releases before v0.3.0 do not contain `skills install` and are rejected before the project changes.
+If the bootstrap `--from` URL itself has a Git ref and the CLI has no target, that ref is preserved.
+An explicit CLI `VERSION` or `--ref` always takes precedence.
 
-Python 3.11 or later; the one-line installer requires uv. ebpy itself supports uv, poetry, pdm,
-pipenv and pip — the package manager is detected from the lockfile, and the generated CI workflow
-uses whichever one it found.
+Python 3.11 or later; the one-line bootstrap requires uv. ebpy detects uv, Poetry, PDM, Pipenv or pip
+from the project and uses that manager both to add the dependency and to run `skills install`.
 
 ## Usage
 
