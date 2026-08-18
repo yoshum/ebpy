@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import zipfile
 from importlib import metadata as importlib_metadata
@@ -105,6 +106,47 @@ def test_unedited_skills_are_updated_from_the_previous_manifest(
     assert result.ok
     installed = project / ".claude" / "skills" / "ebpy-guide" / "SKILL.md"
     assert installed.read_bytes() == updated.read_bytes()
+
+
+def test_a_removed_bundled_skill_is_removed_from_the_project(
+    project: Path,
+    skill_bundle: Path,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    removed = project / ".claude" / "skills" / "ebpy-guide"
+    unrelated = project / ".claude" / "skills" / "team-skill" / "SKILL.md"
+    unrelated.parent.mkdir()
+    unrelated.write_text("keep me\n", encoding="utf-8")
+    shutil.rmtree(skill_bundle / "ebpy-guide")
+
+    result = run_skills_install(project, force=False)
+
+    assert result.ok
+    assert not removed.exists()
+    assert unrelated.read_text(encoding="utf-8") == "keep me\n"
+    manifest = json.loads(
+        (project / ".claude" / "skills" / ".ebpy-manifest.json").read_text(encoding="utf-8")
+    )
+    assert "ebpy-guide/SKILL.md" not in manifest["files"]
+
+
+def test_a_locally_edited_removed_skill_requires_force(
+    project: Path,
+    skill_bundle: Path,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    removed = project / ".claude" / "skills" / "ebpy-guide"
+    (removed / "SKILL.md").write_text("locally edited\n", encoding="utf-8")
+    shutil.rmtree(skill_bundle / "ebpy-guide")
+
+    refused = run_skills_install(project, force=False)
+    replaced = run_skills_install(project, force=True)
+
+    assert not refused.ok
+    assert "ebpy-guide" in refused.message
+    assert "--force" in refused.message
+    assert replaced.ok
+    assert not removed.exists()
 
 
 def test_a_staging_failure_leaves_the_installed_bundle_unchanged(

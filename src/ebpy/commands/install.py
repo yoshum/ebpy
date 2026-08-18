@@ -169,10 +169,27 @@ def _matches_manifest(actual: dict[Path, bytes] | None, hashes: dict[Path, str])
     )
 
 
-def _conflicts(destination: Path, bundle: Bundle) -> list[str]:
+def _manifest_roots(hashes: dict[Path, str]) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            {
+                relative.parts[0]
+                for relative in hashes
+                if not relative.is_absolute()
+                and len(relative.parts) > 1
+                and relative.parts[0] not in {".", "..", MANIFEST_NAME}
+            }
+        )
+    )
+
+
+def _managed_roots(bundle: Bundle, manifest_hashes: dict[Path, str]) -> tuple[str, ...]:
+    return tuple(sorted(set(bundle.managed_roots) | set(_manifest_roots(manifest_hashes))))
+
+
+def _conflicts(destination: Path, bundle: Bundle, manifest_hashes: dict[Path, str]) -> list[str]:
     conflicts: list[str] = []
-    manifest_hashes = _manifest_hashes(destination)
-    for root_name in bundle.managed_roots:
+    for root_name in _managed_roots(bundle, manifest_hashes):
         target = destination / root_name
         actual = _files_below(target)
         if actual == {}:
@@ -259,11 +276,16 @@ def _rollback_bundle(
 
 
 def _swap_staged_bundle(destination: Path, stage: Path, backup: Path, bundle: Bundle) -> None:
+    manifest_hashes = _manifest_hashes(destination)
+    managed_entries = (
+        *(Path(root) for root in _managed_roots(bundle, manifest_hashes)),
+        Path(MANIFEST_NAME),
+    )
     backup.mkdir()
     moved_old: list[Path] = []
     installed: list[Path] = []
     try:
-        for relative in _bundle_entries(bundle):
+        for relative in managed_entries:
             target = destination / relative
             if _path_exists(target):
                 _replace_path(target, backup / relative)
@@ -316,7 +338,7 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
         return InstallResult(False, str(error))
 
     destination = cwd / ".claude" / "skills"
-    conflicts = _conflicts(destination, bundle)
+    conflicts = _conflicts(destination, bundle, _manifest_hashes(destination))
     if conflicts and not force:
         names = ", ".join(conflicts)
         return InstallResult(
