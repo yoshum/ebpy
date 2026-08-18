@@ -5,6 +5,8 @@ judgment half lives in the [skills](../skills.md).
 
 | Command | Phase | What it is for | Writes |
 | --- | --- | --- | --- |
+| [`install`](install.md) | setup | add ebpy and its Claude Code skills to a uv project | `pyproject.toml`, `uv.lock`, `.claude/skills` |
+| [`skills install`](skills-install.md) | setup | install the current ebpy package's bundled skills | `.claude/skills` |
 | [`diagnose`](diagnose.md) | P0 | survey the repository and name every gap | only with `--write` |
 | [`bootstrap`](bootstrap.md) | P1 | install the missing tooling, generate the configs | configs, workflows |
 | [`freeze`](freeze.md) | P2 | pin today's violations as the ceiling | baseline, ledger, `QUALITY.md` |
@@ -28,14 +30,15 @@ them.
 | `--json` | machine-readable output, on the commands that support it |
 
 `--json` is honoured by `diagnose`, `status`, `next` and `report`. The commands that only ever emit
-prose — `bootstrap`, `freeze`, `prune`, `secrets`, `catalog`, `log` — accept the flag and ignore it.
+prose — `install`, `skills install`, `bootstrap`, `freeze`, `prune`, `secrets`, `catalog`, `log` —
+accept the flag and ignore it.
 
 ## Exit codes
 
 | Code | Meaning | Which commands |
 | --- | --- | --- |
 | 0 | success | all |
-| 1 | the gate failed, or the command could not do its job | `check`, `log` (bad `--kind` or empty text), `secrets` (scan could not run), any command when Ruff is missing or fails |
+| 1 | the gate failed, or the command could not do its job | `install`, `skills install`, `check`, `log` (bad `--kind` or empty text), `secrets` (scan could not run), any command when Ruff is missing or fails |
 | 2 | secrets found | `secrets` only |
 
 Only `check` and `secrets` are gates. Everything else returns 0 whenever it ran, including
@@ -48,12 +51,13 @@ ebpy runs *your* Ruff, with *your* config, from *your* virtualenv, so the invoca
 ```bash
 uv run ebpy check      # inside the project's environment — what CI does
 
-# a repository that does not have ebpy yet; <tag> is a version from the Releases page
-uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy diagnose
+# a repository that does not have ebpy yet
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install
 ```
 
 ebpy is [not published to a package index](../../README.md#install), so a bare `uvx ebpy` resolves
-nothing — it is installed from a released tag, or added to the repository as a dev dependency.
+nothing — invoke the bootstrap command from its Git source, then let `install` add an exact release
+or Git ref to the project.
 
 `diagnose` and `bootstrap` read configs rather than run tools, so the throwaway `uvx` form is enough
 for them. `freeze`, `check`, `prune`, `next` and `report` need the repository's own Ruff and mypy on

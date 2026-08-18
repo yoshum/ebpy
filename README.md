@@ -26,15 +26,27 @@ It is not a linter. It runs *your* Ruff, with *your* config, from *your* virtual
 
 ## Install
 
-Not published to a package index — install from a released tag (`<tag>` is a version from the
-[Releases](https://github.com/yoshum/ebpy/releases) page, e.g. `v0.1.0`):
+Not published to a package index. One command bootstraps from Git, installs the bootstrap command's
+release version as a development dependency, and puts that version's Claude Code skills in
+`.claude/skills`:
 
 ```bash
-uv add --dev "ebpy @ git+https://github.com/yoshum/ebpy@<tag>"    # or: pipx install "git+https://github.com/yoshum/ebpy@<tag>"
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install
 ```
 
-Python 3.11 or later. Works with uv, poetry, pdm, pipenv and pip — the package manager is detected
-from the lockfile, and the generated CI workflow uses whichever one it found.
+To require a particular release, pass its exact version to `install`. To use a commit or branch,
+pass it with `--ref`:
+
+```bash
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install <version>
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --ref <commit-or-branch>
+```
+
+Only exact release versions are accepted; version ranges are not yet supported.
+
+Python 3.11 or later; the one-line installer requires uv. ebpy itself supports uv, poetry, pdm,
+pipenv and pip — the package manager is detected from the lockfile, and the generated CI workflow
+uses whichever one it found.
 
 ## Usage
 
@@ -45,10 +57,9 @@ is to let a skill drive it, and to reach for the CLI yourself when you want one 
 
 ### Give the skills to Claude Code
 
-```bash
-mkdir -p .claude/skills
-cp -r path/to/ebpy/skills/* .claude/skills/
-```
+`ebpy install` delegates to the newly added dependency's `ebpy skills install` command. It has
+therefore already put the five skills and their shared instructions in `.claude/skills`, from the
+exact same release or Git ref as the development dependency.
 
 Then say what you want, in plain words. Skills are selected from what you say rather than from a
 command you type, so there is no name to remember:
@@ -152,6 +163,8 @@ Every command works standalone, in any repository, with or without the skills:
 
 | Command | What it is for |
 | --- | --- |
+| [`install`](docs/cli/install.md) | add ebpy and its matching Claude Code skills to a uv project |
+| [`skills install`](docs/cli/skills-install.md) | copy the installed ebpy package's skills into `.claude/skills` |
 | [`diagnose`](docs/cli/diagnose.md) | read-only: what is missing, and what each gap costs |
 | [`bootstrap`](docs/cli/bootstrap.md) | install it, generate the configs |
 | [`freeze`](docs/cli/freeze.md) | pin today's violations as the ceiling |
