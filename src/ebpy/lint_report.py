@@ -51,6 +51,7 @@ class LintReport:
     # Why no lint ran, when none did — the report then covers the ratchet file and
     # nothing else, and a reader has to be able to tell "no debt" from "nobody looked".
     lint_failure: str | None
+    mypy_failure: str | None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -72,6 +73,7 @@ class LintReport:
                 for section in self.sections
             ],
             "lintFailure": self.lint_failure,
+            "mypyFailure": self.mypy_failure,
         }
 
 
@@ -128,4 +130,5 @@ def build_lint_report(
         new_rules=new_rules,
         sections=tuple(_section_of("Backlog — grandfathered, drains rule by rule", backlog_matrix)),
         lint_failure=lint_failure,
+        mypy_failure=None,
     )
