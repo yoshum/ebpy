@@ -7,11 +7,11 @@ from pathlib import Path
 from ..baseline import prune_cells, rule_totals, write_cells
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
+from ..models import MYPY_COUNTER
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
 from ..ruff_runner import run_ruff_check
 from ..state import (
-    MYPY_COUNTER,
     apply_rule_counts,
     set_counter,
     total_violations,

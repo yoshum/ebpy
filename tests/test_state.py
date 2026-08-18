@@ -4,9 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.models import Counter, RuleBaseline
+from ebpy.models import MYPY_COUNTER, Counter, RuleBaseline
 from ebpy.state import (
-    MYPY_COUNTER,
     Ledger,
     append_log,
     apply_rule_counts,

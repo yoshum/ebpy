@@ -7,11 +7,11 @@ from pathlib import Path
 
 from ..baseline import split_against_baseline
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..models import MYPY_COUNTER
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
 from ..ruff_runner import run_ruff_check
 from ..state import (
-    MYPY_COUNTER,
     apply_rule_counts,
     find_regressions,
     set_counter,
