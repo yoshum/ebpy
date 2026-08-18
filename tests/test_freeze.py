@@ -136,7 +136,7 @@ def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> Non
                 tool="ruff",
                 value=LintMeasurement(cells={"src/a.py": {"F401": 2}}),
             ),
-            counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
+            counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed.")},
         ),
         "freeze",
         "2026-08-19T00:00:00Z",
@@ -147,3 +147,4 @@ def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> Non
     assert decision.state.rules["F401"].baseline == 2
     assert MYPY_COUNTER not in decision.state.counters
     assert "mypy did not run: mypy is not installed" in decision.message
+    assert "installed.." not in decision.message

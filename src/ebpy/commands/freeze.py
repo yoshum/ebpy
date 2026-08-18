@@ -105,7 +105,8 @@ def freeze_measurement(
             f"{mypy.value} mypy errors are ratcheted as a counter — they have no per-file suppression."
         )
     else:
-        mypy_line = f"mypy did not run: {mypy.detail}. No type-error ceiling was recorded."
+        detail = mypy.detail.rstrip(".")
+        mypy_line = f"mypy did not run: {detail}. No type-error ceiling was recorded."
     state.frozen_at = frozen_at
     state = with_phase(state, "drain")
 
