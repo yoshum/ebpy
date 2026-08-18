@@ -1,4 +1,5 @@
 ---
+name: ebpy-drain
 description: Work a frozen Python backlog down one rule at a time — fix the violations, extract the pure function that makes a fix testable, write the test, prune the ceiling, commit. Automates everything it can and opens an issue only for a refactor that genuinely needs the owner's judgment. Use after `ebpy freeze`, or when the user says "backlog を潰して", "リファクタリングして", "drain the baseline", "テストを増やして", "warning を減らして".
 ---
 
@@ -9,6 +10,10 @@ is where the number comes down and the bugs come out.
 
 **Automate by default.** The only things that stop and ask are the ones where a wrong guess costs
 the owner real work — see "What becomes an issue". Everything else you fix, test and commit.
+
+Before the first command, follow the shared
+[ebpy command step](../_shared/ebpy-command.md). Every `ebpy` below means the invocation selected
+there.
 
 ## The loop
 
@@ -21,7 +26,7 @@ the code you just wrote.
 ### 1. Pick the rule
 
 ```bash
-uv run ebpy next
+ebpy next
 ```
 
 It ranks the backlog by what the work costs rather than by how big the number is: the files one or
@@ -85,7 +90,7 @@ If a rule is genuinely wrong for this repository, that is a config decision — 
 ### 5. Prune, and commit the reclaimed ceiling with the fix
 
 ```bash
-uv run ebpy prune
+ebpy prune
 ```
 
 This is the only way the ceiling comes down. Commit `.ebpy/baseline.json` in the same commit as the
@@ -94,7 +99,7 @@ fix, so a reviewer sees the violation removed and the ceiling lowered as one cha
 ### 6. Log what happened
 
 ```bash
-uv run ebpy log --kind drained --rule C901 "6 violations; 1 was a real bug — unreachable branch in retry()"
+ebpy log --kind drained --rule C901 "6 violations; 1 was a real bug — unreachable branch in retry()"
 ```
 
 The counts are recorded by `prune`; the *reason* exists only if you write it. One entry per commit
@@ -103,7 +108,7 @@ as you make it — a batch at the end stamps them all with the wrong commit.
 ### 7. Verify before opening the PR
 
 ```bash
-uv run ruff check . && uv run mypy . && uv run pytest && uv run ebpy check
+uv run ruff check . && uv run mypy . && uv run pytest && ebpy check
 ```
 
 All four. `ebpy check` is the one that proves nothing rose.

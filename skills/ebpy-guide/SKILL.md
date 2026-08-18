@@ -1,4 +1,5 @@
 ---
+name: ebpy-guide
 description: Diagnose a Python repository's quality tooling and route to the right phase, one at a time, explaining what each one buys. Use when the user asks "what would ebpy do here", "where do I start with this codebase", "この repo の品質どうなってる", or wants to understand the process before running it rather than handing the whole thing over.
 ---
 
@@ -9,10 +10,9 @@ or wants one phase rather than all of them.
 
 Start by looking, not by installing:
 
-**Running it.** ebpy is not on a package index, so a bare `uvx ebpy` resolves nothing. Use
-`uv run ebpy` when the repository already has it as a dev dependency, and
-`uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it does not — `<tag>` is a
-version from [Releases](https://github.com/yoshum/ebpy/releases). Written as `ebpy` below.
+Before the first command, follow the shared
+[ebpy command step](../_shared/ebpy-command.md). Every `ebpy` below means the invocation selected
+there.
 
 ```bash
 ebpy diagnose
@@ -61,5 +61,6 @@ Never name a skill to the user. Route silently and say what you are doing in pla
 
 ## What this skill does not do
 
-It does not install. If the user wants the work done rather than described, route to
-`ebpy-bootstrap` or `ebpy-run` and say so once.
+Apart from resolving the `ebpy` command through the shared prerequisite, it does not install or
+configure the repository's quality tools. If the user wants that work done rather than described,
+route to `ebpy-bootstrap` or `ebpy-run` and say so once.

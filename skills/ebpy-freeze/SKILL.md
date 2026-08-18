@@ -1,4 +1,5 @@
 ---
+name: ebpy-freeze
 description: Pin a Python repository's current violations as a ceiling so every rule can be an error from today without changing a line, and gate CI on it. Use after bootstrap, or when the user says "ベースラインを固定して", "freeze the baseline", "既存の違反は見逃して新しいのだけ止めて", "grandfather the existing violations".
 ---
 
@@ -6,8 +7,12 @@ description: Pin a Python repository's current violations as a ceiling so every 
 
 P2. One command, run once, and it is the commit the whole approach hangs off.
 
+Before the first command, follow the shared
+[ebpy command step](../_shared/ebpy-command.md). Every `ebpy` below means the invocation selected
+there.
+
 ```bash
-uv run ebpy freeze
+ebpy freeze
 ```
 
 It runs Ruff, writes today's per-file per-rule counts to `.ebpy/baseline.json`, records the mypy

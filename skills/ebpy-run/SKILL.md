@@ -1,4 +1,5 @@
 ---
+name: ebpy-run
 description: Run the whole ebpy process on a Python repository unattended — diagnose, install, freeze, then drain the backlog rule by rule until it is empty. Opens issues for the decisions it must not make alone and keeps going. Use when the user hands over a repo with "きれいにして", "全部やっておいて", "品質上げといて", "clean this repo up", "run ebpy on this", or asks for the process to run without supervision.
 ---
 
@@ -23,6 +24,10 @@ merge conflict they can resolve — it is their diff rewritten underneath them.
 
 An untracked file whose purpose you think you can see is not an exception. Ask.
 
+Before the first ebpy command, follow the shared
+[ebpy command step](../_shared/ebpy-command.md). Every `ebpy` below means the invocation selected
+there.
+
 ## The checklist and the log are in the repo, not in your head
 
 `QUALITY.md` carries three sections this mode depends on, all rendered from `.ebpy/state.json`:
@@ -35,10 +40,10 @@ An untracked file whose purpose you think you can see is not an exception. Ask.
 Record as you go, not at the end:
 
 ```bash
-uv run ebpy log --kind drained  --rule C901 "6 violations, 1 real bug (unreachable retry branch)"
-uv run ebpy log --kind deferred --rule PLR0915 "api/router.py is 1400 lines; splitting is its own project"
-uv run ebpy log --kind issue    --rule B008 "opened #42 — mutable default, product decision"
-uv run ebpy log --kind note "enabled mypy strict before freezing; the ceiling is from the strict run"
+ebpy log --kind drained  --rule C901 "6 violations, 1 real bug (unreachable retry branch)"
+ebpy log --kind deferred --rule PLR0915 "api/router.py is 1400 lines; splitting is its own project"
+ebpy log --kind issue    --rule B008 "opened #42 — mutable default, product decision"
+ebpy log --kind note "enabled mypy strict before freezing; the ceiling is from the strict run"
 ```
 
 The commit stamp is the point. A note saying "router.py needs splitting" is useless six months and
@@ -51,11 +56,6 @@ duplication you chose not to extract. This table is the first thing the owner re
 back to a stack of pull requests.
 
 ## The sequence
-
-**Running it.** ebpy is not on a package index, so a bare `uvx ebpy` resolves nothing. Use
-`uv run ebpy` when the repository already has it as a dev dependency, and
-`uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it does not — `<tag>` is a
-version from [Releases](https://github.com/yoshum/ebpy/releases). Written as `ebpy` below.
 
 ```bash
 ebpy diagnose --write         # P0: the gap list, stamped with the commit
@@ -108,7 +108,7 @@ A stale checklist that nobody prunes is how the list stops being read at all.
   one contentious fix blocks the three uncontentious ones.
 - Never force-push a branch the owner may have read.
 - Never commit to the default branch.
-- Every PR must leave `uv run ebpy check` passing. A red gate on a PR that was supposed to *lower*
+- Every PR must leave `ebpy check` passing. A red gate on a PR that was supposed to *lower*
   the ceiling is the one failure mode that discredits the whole exercise.
 
 ## When to stop and wait

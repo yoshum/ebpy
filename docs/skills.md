@@ -18,10 +18,12 @@ Then talk to Claude Code normally. Skills are selected from what you say, not fr
 type, so "lint を入れて" and "set up linting here" reach the same one. **Never ask for a skill by
 name** — say what you want done.
 
-The skills call `ebpy` through the project's own runner (`uv run ebpy`) when the repository has it
-as a dev dependency, and through `uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it
-does not — so the package does not have to be a dependency of the repository being cleaned up. ebpy
-is [not published to a package index](../README.md#install): a bare `uvx ebpy` resolves nothing.
+All five skills use one shared command-resolution step. It uses the project's own runner when
+`ebpy` is already installed there. Otherwise it asks to add `ebpy` to the project's development
+dependencies, so the command version is recorded alongside the skills that drive it. If the user
+refuses that install, it falls back to
+`uvx --from "git+https://github.com/yoshum/ebpy" ebpy`. Individual skill files write only `ebpy`;
+the shared step supplies the concrete invocation.
 
 ## Which one runs
 
@@ -63,8 +65,9 @@ is involved and an unattended run would be presumptuous.
 - **Secret scanning has no baseline.** If that gap is open it is the one thing worth doing before
   anything else on the list — a committed key is already public.
 
-**What it does not do:** install anything. If you want the work done rather than described, it
-routes to `ebpy-bootstrap` or `ebpy-run` and says so once.
+**What it does not do:** install or configure the repository's quality tools. Resolving the `ebpy`
+command itself is the shared prerequisite; if you want the quality work done rather than described,
+it routes to `ebpy-bootstrap` or `ebpy-run` and says so once.
 
 Drives: [`diagnose`](cli/diagnose.md), [`status`](cli/status.md).
 

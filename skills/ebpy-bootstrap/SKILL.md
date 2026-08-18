@@ -1,4 +1,5 @@
 ---
+name: ebpy-bootstrap
 description: Install Ruff, mypy, pytest and the CI gate into a Python repository that has none of them, and generate the configs. Use when the user says "lint を入れて", "set up linting here", "型チェック入れて", "add CI", "この repo に品質ツールを入れて", or when a diagnosis reported bootstrap-phase gaps.
 ---
 
@@ -9,10 +10,9 @@ generates the configs; it does not fix a single violation, and it must not try t
 
 ## Order
 
-**Running it.** ebpy is not on a package index, so a bare `uvx ebpy` resolves nothing. Use
-`uv run ebpy` when the repository already has it as a dev dependency, and
-`uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it does not — `<tag>` is a
-version from [Releases](https://github.com/yoshum/ebpy/releases). Written as `ebpy` below.
+Before the first command, follow the shared
+[ebpy command step](../_shared/ebpy-command.md). Every `ebpy` below means the invocation selected
+there.
 
 ```bash
 ebpy diagnose            # read what is missing
