@@ -9,7 +9,7 @@ from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import MYPY_COUNTER, Counter, LintMeasurement
-from ebpy.state import apply_rule_counts, empty_state, write_state
+from ebpy.state import apply_rule_counts, empty_state, set_counter, write_state
 
 
 def frozen_state(cwd: Path) -> None:
@@ -44,10 +44,11 @@ def test_check_updates_only_measured_counters() -> None:
 
     decision = check_measurement(previous, {"src/a.py": {"F401": 1}}, measurement)
 
-    assert decision.result.ok
+    # The gate refuses — a ceiling this ledger holds went unmeasured — but the counter it
+    # could not measure is carried through untouched rather than rewritten or dropped.
+    assert not decision.result.ok
     assert decision.state is not None
     assert decision.state.counters[MYPY_COUNTER] == Counter(baseline=4, current=4)
-    assert previous.rules["F401"].current == 1
 
 
 def test_check_rejects_cells_beyond_the_ceiling() -> None:
@@ -84,3 +85,64 @@ def test_check_shell_does_not_write_after_lint_failure(
 
     assert not result.ok
     assert writes == []
+
+
+def test_an_unmeasured_mypy_ceiling_cannot_be_reported_as_held() -> None:
+    previous = set_counter(apply_rule_counts(empty_state(), {}, "freeze"), MYPY_COUNTER, 4, "freeze")
+    measurement = Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters={
+            MYPY_COUNTER: Failed(
+                tool="mypy",
+                failure_kind="execution-failed",
+                detail="mypy failed (exit 2): mypy.ini: [mypy]: Unrecognized option",
+            )
+        },
+    )
+
+    decision = check_measurement(previous, {}, measurement)
+
+    assert decision.result.ok is False
+    assert "went unverified" in decision.result.message
+    assert "Unrecognized option" in decision.result.message
+    # The ledger's ceiling stands: a run that could not measure must not rewrite it.
+    assert decision.state is not None
+    assert decision.state.counters[MYPY_COUNTER].baseline == 4
+
+
+def test_mypy_with_no_ceiling_passes_but_is_never_silent() -> None:
+    measurement = Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed here")},
+    )
+
+    decision = check_measurement(empty_state(), {}, measurement)
+
+    assert decision.result.ok is True
+    assert "was not measured" in decision.result.message
+    assert "mypy is not installed here" in decision.result.message
+
+
+def test_a_measured_mypy_leaves_the_clean_message_unadorned() -> None:
+    measurement = Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
+    )
+
+    decision = check_measurement(empty_state(), {}, measurement)
+
+    assert decision.result.ok is True
+    assert decision.result.message == "Clean. 0 grandfathered violations left to drain."
+
+
+def test_check_does_not_mutate_the_ledger_it_was_given() -> None:
+    previous = apply_rule_counts(empty_state(), {"F401": 3}, "freeze")
+    measurement = Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={"src/a.py": {"F401": 1}})),
+        counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
+    )
+
+    check_measurement(previous, {"src/a.py": {"F401": 3}}, measurement)
+
+    assert previous.rules["F401"].current == 3
+    assert previous.counters == {}

@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
 from ..baseline import split_against_baseline
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..measurement import Measured, Measurement, measure_repository
+from ..measurement import Measured, Measurement, Observation, measure_repository
 from ..models import MYPY_COUNTER, CellCounts, State
 from ..quality_file import write_quality_file
 from ..state import (
     apply_rule_counts,
+    copy_state,
     find_regressions,
     set_counter,
     total_violations,
@@ -39,6 +39,33 @@ def _worst(counts: dict[str, int]) -> list[str]:
     return [f"  {count}  {rule}" for rule, count in ranked]
 
 
+def _unverified_ceiling(previous: State, mypy: Observation[int]) -> str | None:
+    """Why the gate cannot pass: a ceiling this ledger holds went unmeasured.
+
+    A counter nobody could measure is not a counter that held. Passing here would let a
+    broken mypy — a bad config, a missing stubs package — silently retire the type-error
+    ratchet, which is exactly the accumulation the ceiling exists to stop.
+    """
+    if isinstance(mypy, Measured) or MYPY_COUNTER not in previous.counters:
+        return None
+    ceiling = previous.counters[MYPY_COUNTER].baseline
+    return "\n".join(
+        [
+            f"{MYPY_COUNTER} could not be measured, so its ceiling of {ceiling} went unverified:",
+            f"  {mypy.detail}",
+            "A counter nobody measured cannot be reported as held. Fix the tool, or drop the",
+            "counter with `ebpy freeze --force` if it is genuinely gone.",
+        ]
+    )
+
+
+def _unmeasured_note(mypy: Observation[int]) -> list[str]:
+    """Green, but say what was not looked at — "no errors" must not read like "nobody ran"."""
+    if isinstance(mypy, Measured):
+        return []
+    return [f"{MYPY_COUNTER} was not measured and has no ceiling here: {mypy.detail}"]
+
+
 def check_measurement(previous: State, baseline: CellCounts, measurement: Measurement) -> CheckDecision:
     """Apply one repository measurement without reading tools or writing artifacts."""
     lint = measurement.lint
@@ -48,7 +75,7 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
     result = lint.value
     new_by_rule, grandfathered = split_against_baseline(result.cells, baseline)
 
-    state = apply_rule_counts(deepcopy(previous), grandfathered, "observe")
+    state = apply_rule_counts(copy_state(previous), grandfathered, "observe")
     mypy = measurement.counters[MYPY_COUNTER]
     if isinstance(mypy, Measured):
         state = set_counter(state, MYPY_COUNTER, mypy.value, "observe")
@@ -110,10 +137,19 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
             state,
         )
 
+    unverified = _unverified_ceiling(previous, mypy)
+    if unverified is not None:
+        return CheckDecision(CheckResult(ok=False, message=unverified), state)
+
     return CheckDecision(
         CheckResult(
             ok=True,
-            message=f"Clean. {total_violations(state)} grandfathered violations left to drain.",
+            message="\n".join(
+                [
+                    f"Clean. {total_violations(state)} grandfathered violations left to drain.",
+                    *_unmeasured_note(mypy),
+                ]
+            ),
         ),
         state,
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Literal, TypeAlias, TypeVar
@@ -23,7 +24,6 @@ FailureKind = Literal["execution-failed", "invalid-output"]
 class Measured(Generic[T]):
     tool: str
     value: T
-    version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,6 @@ class Failed:
     tool: str
     failure_kind: FailureKind
     detail: str
-    version: str | None = None
 
 
 Observation: TypeAlias = Measured[T] | Unavailable | Failed
@@ -46,7 +45,9 @@ Observation: TypeAlias = Measured[T] | Unavailable | Failed
 @dataclass(frozen=True)
 class Measurement:
     lint: Observation[LintMeasurement]
-    counters: dict[str, Observation[int]]
+    # Mapping, not dict: a frozen dataclass holding a mutable dict is frozen in name only,
+    # and a measurement edited after the fact is no longer a record of what was measured.
+    counters: Mapping[str, Observation[int]]
 
     def __post_init__(self) -> None:
         if MYPY_COUNTER not in self.counters:
@@ -54,6 +55,11 @@ class Measurement:
 
 
 def _detail(error: BaseException) -> str:
+    """One line, because that is what a report line and a sentence can carry.
+
+    Runners must therefore put the reason on the first line; anything below it is lost
+    here rather than at the point somebody would notice.
+    """
     lines = str(error).splitlines()
     return lines[0] if lines else type(error).__name__
 

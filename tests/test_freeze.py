@@ -12,14 +12,14 @@ from pathlib import Path
 import pytest
 
 from ebpy.baseline import BASELINE_FILE, baseline_path, write_cells
-from ebpy.ceiling_artifacts import read_ceiling_artifacts
+from ebpy.ceiling_artifacts import CeilingArtifacts, read_ceiling_artifacts
 from ebpy.cli import main
 from ebpy.commands import freeze
 from ebpy.commands.freeze import freeze_measurement, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import MYPY_COUNTER, LintMeasurement
-from ebpy.state import empty_state, state_path
+from ebpy.state import Ledger, apply_rule_counts, empty_state, set_counter, state_path
 
 
 def clean_measurement() -> Measurement:
@@ -148,3 +148,38 @@ def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> Non
     assert MYPY_COUNTER not in decision.state.counters
     assert "mypy did not run: mypy is not installed" in decision.message
     assert "installed.." not in decision.message
+
+
+@pytest.mark.parametrize(
+    "detail",
+    ["mypy is not installed.", "mypy failed (exit 2): bad config:", "mypy could not run,"],
+)
+def test_a_tool_detail_is_punctuated_once_inside_our_sentence(detail: str) -> None:
+    """Runners end a message however reads best alone; the sentence around it owns the stop."""
+    decision = freeze_measurement(
+        empty_state(),
+        Measurement(
+            lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+            counters={MYPY_COUNTER: Failed(tool="mypy", failure_kind="execution-failed", detail=detail)},
+        ),
+        "freeze",
+        "2026-08-19T00:00:00Z",
+    )
+
+    line = next(line for line in decision.message.splitlines() if line.startswith("mypy did not run"))
+    assert line.endswith(". No type-error ceiling was recorded.")
+    for stutter in ("..", ":.", ",."):
+        assert stutter not in line
+
+
+def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
+    """`--force` clears rules and counters to pin a new contract — on its own copy."""
+    on_disk = set_counter(apply_rule_counts(empty_state(), {"F401": 2}, "freeze"), MYPY_COUNTER, 5, "freeze")
+    artifacts = CeilingArtifacts(kind="frozen", cells={}, ledger=Ledger(exists=True, state=on_disk))
+
+    previous = freeze._previous_state(artifacts, force=True)
+
+    assert previous.rules == {}
+    assert previous.counters == {}
+    assert on_disk.rules["F401"].baseline == 2
+    assert on_disk.counters[MYPY_COUNTER].baseline == 5

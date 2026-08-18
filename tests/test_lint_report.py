@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.lint_report import area_of, build_lint_report, matrix_from_cells
+from ebpy.lint_report import Unmeasured, area_of, build_lint_report, matrix_from_cells
 from ebpy.render.lint_report import render_lint_report
 
 
@@ -20,7 +20,7 @@ def test_areas_are_ordered_by_weight_so_the_shape_is_visible() -> None:
         backlog_matrix={"small": {"E501": 1}, "big": {"E501": 30}},
         mypy_errors=0,
         files_with_findings=2,
-        lint_failure=None,
+        unmeasured=Unmeasured(),
     )
     assert report.sections[0].areas == ("big", "small")
 
@@ -31,7 +31,7 @@ def test_new_violations_get_their_own_section() -> None:
         backlog_matrix={},
         mypy_errors=None,
         files_with_findings=1,
-        lint_failure=None,
+        unmeasured=Unmeasured(),
     )
     rendered = render_lint_report(report)
     assert "## New violations" in rendered
@@ -41,7 +41,11 @@ def test_new_violations_get_their_own_section() -> None:
 def test_nobody_looked_reads_differently_from_no_debt() -> None:
     looked = render_lint_report(
         build_lint_report(
-            new_by_rule={}, backlog_matrix={}, mypy_errors=0, files_with_findings=4, lint_failure=None
+            new_by_rule={},
+            backlog_matrix={},
+            mypy_errors=0,
+            files_with_findings=4,
+            unmeasured=Unmeasured(),
         )
     )
     did_not = render_lint_report(
@@ -50,7 +54,7 @@ def test_nobody_looked_reads_differently_from_no_debt() -> None:
             backlog_matrix={},
             mypy_errors=None,
             files_with_findings=0,
-            lint_failure="ruff is not installed here",
+            unmeasured=Unmeasured(lint="ruff is not installed here"),
         )
     )
     assert "Ruff did not run" in did_not
@@ -61,7 +65,11 @@ def test_nobody_looked_reads_differently_from_no_debt() -> None:
 def test_unmeasured_mypy_is_not_reported_as_zero() -> None:
     rendered = render_lint_report(
         build_lint_report(
-            new_by_rule={}, backlog_matrix={}, mypy_errors=None, files_with_findings=1, lint_failure=None
+            new_by_rule={},
+            backlog_matrix={},
+            mypy_errors=None,
+            files_with_findings=1,
+            unmeasured=Unmeasured(),
         )
     )
     assert "mypy errors: **not measured**" in rendered
@@ -73,7 +81,7 @@ def test_the_report_serialises_for_json() -> None:
         backlog_matrix={"src": {"F401": 2}},
         mypy_errors=7,
         files_with_findings=3,
-        lint_failure=None,
+        unmeasured=Unmeasured(),
     )
     payload = report.to_dict()
     assert payload["newTotal"] == 1

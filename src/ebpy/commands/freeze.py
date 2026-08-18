@@ -6,7 +6,6 @@ since, which is the one thing the baseline exists to prevent.
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,6 +19,7 @@ from ..quality_file import write_quality_file
 from ..state import (
     BaselineMode,
     apply_rule_counts,
+    copy_state,
     empty_state,
     set_counter,
     with_phase,
@@ -34,6 +34,15 @@ class FreezeDecision:
     cells: CellCounts
     state: State
     message: str
+
+
+def _as_clause(detail: str) -> str:
+    """A tool's message set inside a sentence of ours, without its own end punctuation.
+
+    Runners end a detail however reads best alone — "…is not installed." or "mypy failed
+    (exit 2): …" — and both produced "…installed.." or "…(exit 2):." once embedded.
+    """
+    return detail.rstrip(" .:;,")
 
 
 def _unattributed_report(result: LintMeasurement) -> list[str]:
@@ -75,7 +84,9 @@ def _previous_state(artifacts: CeilingArtifacts, force: bool) -> State:
     """Choose metadata to preserve; a forced recovery trusts no invalid artifact."""
     if artifacts.kind == "invalid":
         return empty_state()
-    state = deepcopy(artifacts.ledger.state) if artifacts.ledger.state is not None else empty_state()
+    # Copied because the branch below rewrites it: `artifacts` is the ledger as read from
+    # disk, and a caller that re-reads it must not find the fields --force cleared.
+    state = copy_state(artifacts.ledger.state) if artifacts.ledger.state else empty_state()
     if force:
         # `--force` pins a complete new contract. Keeping an unmeasured old counter or
         # rule would make the result depend on the contract it claims to replace.
@@ -97,7 +108,7 @@ def freeze_measurement(
 
     result = lint.value
     counts = rule_totals(result.cells)
-    state = apply_rule_counts(deepcopy(previous), counts, mode)
+    state = apply_rule_counts(copy_state(previous), counts, mode)
     mypy = measurement.counters[MYPY_COUNTER]
     if isinstance(mypy, Measured):
         state = set_counter(state, MYPY_COUNTER, mypy.value, mode)
@@ -105,8 +116,7 @@ def freeze_measurement(
             f"{mypy.value} mypy errors are ratcheted as a counter — they have no per-file suppression."
         )
     else:
-        detail = mypy.detail.rstrip(".")
-        mypy_line = f"mypy did not run: {detail}. No type-error ceiling was recorded."
+        mypy_line = f"mypy did not run: {_as_clause(mypy.detail)}. No type-error ceiling was recorded."
     state.frozen_at = frozen_at
     state = with_phase(state, "drain")
 

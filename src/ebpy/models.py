@@ -23,6 +23,9 @@ LogKind = Literal["drained", "deferred", "issue", "note"]
 
 LOG_KINDS: tuple[LogKind, ...] = ("drained", "deferred", "issue", "note")
 
+# Ruff violations ratchet per file per rule through the baseline file. mypy has no
+# suppression mechanism at all, so its errors would be free to accumulate — their
+# total gets the same ratchet through a plain counter.
 MYPY_COUNTER = "mypy:errors"
 
 CellCounts = dict[str, dict[str, int]]

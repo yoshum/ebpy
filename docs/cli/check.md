@@ -15,6 +15,8 @@ Exit 0 when nothing rose; exit 1 with the reason when something did.
 | --- | --- |
 | a file holds more violations of a rule than its cell allows | the count beyond the ceiling, plus the five worst rules |
 | a ratcheted counter grew (`mypy:errors`) | `name: baseline -> current` |
+| a ratcheted counter could not be measured at all | which ceiling went unverified, and what the tool said |
+| Ruff could not run | why, and `ebpy bootstrap` as the fix |
 | Ruff could not parse a file | the syntax errors, named |
 | there is no baseline at all | run `ebpy freeze` and commit the result |
 | the baseline and ledger are incomplete, malformed or inconsistent | restore the matching pair, or deliberately replace it with `ebpy freeze --force` |
@@ -29,6 +31,19 @@ not carry its grandfathering with it.
 
 A file that does not parse is invisible to every rule, so it has nothing to compare against a
 ceiling. Check refuses rather than reading that silence as clean.
+
+## A ceiling nobody measured is not a ceiling that held
+
+If the ledger carries a `mypy:errors` ceiling and mypy cannot run — a bad config, a missing stubs
+package, mypy uninstalled — the gate fails. It has no number to compare, and passing would let a
+broken tool quietly retire the type-error ratchet while every other check stayed green.
+
+Where the ledger holds no such ceiling there is nothing to verify, so the gate passes. It still says
+which capability went unmeasured: "no type errors" and "nobody type-checked" are different facts and
+must not print the same.
+
+Either way the counter is left exactly as the ledger had it. A run that did not measure never writes
+a number.
 
 ## What it writes
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from ..models import MYPY_COUNTER, CellCounts, State
 from ..quality_file import write_quality_file
 from ..state import (
     apply_rule_counts,
+    copy_state,
     set_counter,
     total_violations,
     write_state,
@@ -48,7 +48,7 @@ def prune_measurement(
     pruned = prune_cells(baseline, lint.value.cells)
     after = sum(count for rules in pruned.values() for count in rules.values())
 
-    state = apply_rule_counts(deepcopy(previous), rule_totals(pruned), "freeze")
+    state = apply_rule_counts(copy_state(previous), rule_totals(pruned), "freeze")
     mypy = measurement.counters[MYPY_COUNTER]
     if isinstance(mypy, Measured):
         state = set_counter(state, MYPY_COUNTER, mypy.value, "freeze")
