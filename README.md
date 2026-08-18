@@ -36,196 +36,135 @@ uv add --dev "ebpy @ git+https://github.com/yoshum/ebpy@<tag>"    # or: pipx ins
 Python 3.11 or later. Works with uv, poetry, pdm, pipenv and pip — the package manager is detected
 from the lockfile, and the generated CI workflow uses whichever one it found.
 
-## Drive it yourself
+## Usage
+
+The skills in [`skills/`](skills) are the other half of this tool. The CLI does what is deterministic
+— detect, install, count, render, gate — and the skills do what needs judgment: is this violation a
+real bug, what deserves an issue rather than a fix, when to stop and ask. The normal way to use ebpy
+is to let a skill drive it, and to reach for the CLI yourself when you want one number.
+
+### Give the skills to Claude Code
 
 ```bash
-ebpy diagnose     # read-only: what is missing, and what each gap costs
-ebpy bootstrap    # install it, generate the configs
-ebpy freeze       # pin today's violations as the ceiling
-ebpy check        # CI gate: fail if anything rose
-ebpy next         # what to drain first, and what each fix enforces
-ebpy report       # where the findings are, as markdown (for a CI job summary)
-ebpy secrets      # scan the whole history for committed credentials
-ebpy prune        # after a fix: reclaim the ceiling you earned
-ebpy catalog      # list the helpers that already exist, so nobody writes a sixth
-ebpy log          # record what happened, stamped with the current commit
+mkdir -p .claude/skills
+cp -r path/to/ebpy/skills/* .claude/skills/
 ```
 
-## Hand a repository to Claude Code
+Then say what you want, in plain words. Skills are selected from what you say rather than from a
+command you type, so there is no name to remember:
 
-The skills in [`skills/`](skills) are the other half: the CLI does what is deterministic, and the
-skills do what needs judgment — is this violation a real bug, what deserves an issue rather than a
-fix, when to stop and ask. Copy them into a project's `.claude/skills/`, then say:
+| What you say | What runs | What you get |
+| --- | --- | --- |
+| "run ebpy on this repo", "clean this repo up" | [`ebpy-run`](docs/skills.md#ebpy-run) | the whole process, unattended — a stack of pull requests |
+| "what would ebpy do here" | [`ebpy-guide`](docs/skills.md#ebpy-guide) | a diagnosis, and one phase at a time |
+| "set up linting here", "lint を入れて" | [`ebpy-bootstrap`](docs/skills.md#ebpy-bootstrap) | tooling installed, configs and CI written |
+| "freeze the baseline" | [`ebpy-freeze`](docs/skills.md#ebpy-freeze) | the ceiling pinned, CI gating on it |
+| "drain the backlog", "リファクタリングして" | [`ebpy-drain`](docs/skills.md#ebpy-drain) | one pull request per rule, with tests |
+
+What each one does, insists on, and refuses to do: **[Skill reference](docs/skills.md)**.
+
+### Day one: an untouched repository
 
 ```
 run ebpy on this repo
 ```
 
-| What you say | What runs |
-| --- | --- |
-| "run ebpy on this repo", "clean this repo up" | the whole process, unattended — `ebpy-run` |
-| "what would ebpy do here" | diagnose and route one phase at a time — `ebpy-guide` |
-| "set up linting here", "lint を入れて" | `ebpy-bootstrap` |
-| "freeze the baseline" | `ebpy-freeze` |
-| "drain the backlog", "リファクタリングして" | `ebpy-drain` |
+That hands the whole sequence over. If you would rather see it before it happens, ask *"what would
+ebpy do here"* — same phases, one at a time, nothing written until you say so.
 
-## What each command does
+Either way the first day produces four commits, in this order, and the order is not negotiable:
 
-### `diagnose`
+| | What happens | Command behind it | What to look at |
+| --- | --- | --- | --- |
+| 1 | survey — every gap named, with the phase that closes it | [`diagnose`](docs/cli/diagnose.md) | what `select` actually contains, before believing a clean bill of health |
+| 2 | formatting, alone, in its own commit | `ruff format .` | nothing — it is unreviewable and harmless, which is exactly why it is separate |
+| 3 | install the tooling, write the configs and CI | [`bootstrap`](docs/cli/bootstrap.md) | the `--dry-run` output, then that `ruff check .` fails with *violations* rather than a config error |
+| 4 | pin today's violations as the ceiling | [`freeze`](docs/cli/freeze.md) | the number it prints, and that all three artifacts are in one commit |
 
-Read-only survey. Reports the package manager, the declared Python version, the framework, which of
-Ruff / a formatter / mypy / pytest / vulture / pre-commit / secret scanning are configured, what CI
-runs and on which platforms, whether every workflow `uses:` is pinned to a commit SHA, how many
-files exceed the size limit, and a gap list with the phase that closes each one.
+Formatting lands before linting because otherwise the first drain pull request is a whitespace diff
+nobody can review. Freezing lands last because a ceiling taken before formatting drops for no reason
+anybody can reconstruct later.
 
-Pass `--write` to persist `QUALITY.md` and `.ebpy/state.json`. Pass `--json` for the raw diagnosis.
+**The freeze is where stopping is free.** From that commit CI rejects any new violation, so the run
+reports there — the number, and that draining from here is optional — before it opens the first
+drain pull request. Everything after step 4 can stop at any pull request without leaving the
+repository worse than it was.
 
-Detection reads **configs, not installs**: a tool installed but never configured enforces nothing,
-and a config with no install behind it fails loudly on the first run.
+Everything bootstrap writes — every selected rule tier, every pinned action, every threshold — is
+listed in **[Default configuration](docs/defaults.md)**. It never overwrites a config that already
+exists.
 
-### `bootstrap`
+After the freeze, the repository is one that can only get better: old code is grandfathered, new
+code is held to the whole rule set, and CI rejects anything that rises.
 
-Installs the missing dev dependencies with the repo's own package manager and generates the layers
-the approach depends on, each covering what the others cannot see:
+### Every day after: draining
 
-| Layer | Tool | What it sees |
-| --- | --- | --- |
-| function size and complexity | Ruff `C90`, `PL` | long functions, deep nesting, too many branches |
-| bug patterns | Ruff `F`, `B`, `SIM` | mutable defaults, loop variables captured late, undefined names |
-| types | mypy `strict` | the errors no lint rule can reach |
-| style | `ruff format` | settled once, so no diff ever argues about it |
-| dead code | vulture | functions and classes nobody calls |
-
-Plus a three-platform quality workflow, a secret-scan workflow, `dependabot.yml`, and
-`.gitattributes`. Every action in those workflows is pinned to a full commit SHA with the release
-as a trailing comment, and the gitleaks download is checked against a digest — a tag can be moved
-onto new code by whoever owns it, and a release asset can be replaced in place. Dependabot is what
-keeps those pins from going stale after ebpy has stopped looking.
-
-It **never overwrites a config that already exists** — the exceptions in it have reasons that are
-not in the file. `--dry-run` prints the plan and touches nothing.
-
-### `freeze`
-
-Runs Ruff, writes today's per-file per-rule counts to `.ebpy/baseline.json`, records the mypy error
-total as a ratcheted counter, and renders `QUALITY.md`. Commit all three together.
-
-Running it a second time is refused: that would grandfather everything added since. Use `prune` to
-lower the ceiling, or `--force` if a rule was genuinely reconfigured.
-
-**Syntax errors are reported, not frozen.** A file that does not parse is invisible to every rule,
-so recording a count for it would be a lie — freeze names the files instead and asks you to fix them.
-
-### `check`
-
-The CI gate. Fails when any file holds more violations of a rule than its cell allows, or when the
-mypy counter rose. Add it to the workflow after lint.
-
-The ratchet is **per file and per rule**, which is stricter than a repo-wide total: a new file has
-no cell of its own, so its first violation fails even when the rule's repo-wide count is unchanged.
-
-### `next`
-
-```bash
-ebpy next
-ebpy next --json
-ebpy next --fan-in
+```
+drain the backlog
 ```
 
-The drain order, computed rather than guessed. Since the ratchet works per file per rule, the useful
-question is not "which rule is smallest" but "which edit enforces the most", and `next` answers it
-in four lists:
-
-| Section | What it is for |
-| --- | --- |
-| take these first | files one or two violations from clean — one edit each, and that rule is enforced there for good |
-| rules by files to touch | 40 violations in 3 files and 38 across 31 are the same size in `status` and ten times apart in work |
-| the last files carrying a rule in their directory | the tail of a directory nobody finished |
-| leave these until last | files whose count is a redesign rather than a backlog |
-
-It reports the last files still *carrying* a rule, which is not the same claim as "the rest of that
-directory is clean": a file Ruff never looks at has no cell either, and no arithmetic over the
-baseline can tell the two apart.
-
-`--fan-in` adds one number to those rows — how many files import each one — because the other half
-of "how hard is this" is how far the fix reaches. It is a flag rather than the default because it
-parses **every source file** in the repository. It deliberately **reorders nothing**: fan-in makes a
-*type* fix expensive and says nothing about `C901`, where the fix is local however many files import
-the module.
-
-### `report`
-
-Markdown: the backlog as a **rule x area** table, so the shape of the debt is visible rather than
-just its size. Written to stdout and **appended to `$GITHUB_STEP_SUMMARY`** when that is set, which
-is what makes it a CI report without anyone editing a workflow. The generated workflow runs it after
-`check` with `if: always()` — the run where the gate has just failed is the run where the backlog is
-worth most.
-
-**It is never a gate.** It cannot change an exit code, and it does not fail when the summary file
-cannot be written. If Ruff cannot run at all, it falls back to `.ebpy/baseline.json` and says so —
-"no debt" and "nobody looked for debt" must not render the same way.
-
-### `secrets`
-
-Runs `gitleaks` over the **history and the working tree** and fails on any finding.
-
-Both scans, because either alone passes a repository that is holding a secret: the history scan
-misses the key you pasted an hour ago and have not committed, and a working-tree scan misses the key
-that was committed and then deleted — which is still in every clone.
-
-**This is the one thing here with no baseline, and that is the point.** Every other rule records
-what exists and holds the line. A committed key is already public, so there is nothing to
-grandfather and the fix is rotation, not a commit.
-
-Three answers, not two, because gitleaks reports a finding and its own failure with the same exit
-code unless asked otherwise:
-
-| | |
-| --- | --- |
-| clean | exit 0 |
-| secrets found | exit **2**, and the finding, redacted |
-| **the scan could not run** | exit **1**, saying so — not a clean result |
-
-That last row matters more than it looks. Outside a git work tree `gitleaks git` logs an error,
-scans **zero commits**, and exits 0 with "no leaks found" — a clean bill of health for a scan that
-read nothing. This refuses instead.
-
-### `prune`
-
-After you fix a grandfathered violation, its cell is stale. `prune` lowers every cell to what still
-exists, reclaiming exactly what you fixed. It can only ever take away, which makes it safe to run at
-any point — and it is the only way the ceiling comes down.
-
-### `log`
+One rule per pull request — not one violation, not all of them. The skill picks the rule with
+[`next`](docs/cli/next.md), which ranks by what the work costs rather than by how big the number is,
+writes a test that pins today's behaviour *before* touching the code, fixes, then lowers the ceiling
+by exactly what it earned:
 
 ```bash
-ebpy log --kind drained  --rule C901 "6 violations, 1 real bug"
-ebpy log --kind deferred --rule PLR0915 "router.py is 1400 lines; its own project"
-ebpy log --kind issue    --rule B008 "opened #42 — product decision"
+ebpy next                                   # which edit enforces the most
+ebpy prune                                  # commit this with the fix
+ebpy log --kind drained --rule C901 "..."   # the reason; nothing else records it
+ebpy check                                  # nothing rose
 ```
 
-Records what happened against the current commit, and it is the only thing that writes the **Work
-log** in `QUALITY.md` — every other command records counts, never why. `deferred` is the one that
-earns its keep: it renders into a **Carried over** checklist with the commit it was seen at, because
-"router.py needs splitting" is useless four hundred commits later unless a reader can tell when it
-was true.
+It automates by default and opens an issue only for the four decisions that are genuinely the
+owner's — ambiguous behaviour, a public API change, a refactor big enough to be its own project, a
+rule that may be wrong for this repository. The full loop is in
+[`ebpy-drain`](docs/skills.md#ebpy-drain).
 
-### `catalog`
+### In CI
 
-Writes `docs/shared-helpers.md`: every public function, grouped by directory, with the first
-sentence of its docstring. Point your CLAUDE.md at it.
+The generated workflow already carries the gate; if you wire it yourself, two lines matter:
 
-It fills the gap between the two scans. A linter sees inside one file; duplication detection only
-notices copies once they are textually similar, and two independent implementations of the same idea
-rarely are. Nothing else reports the same function written a sixth time under a sixth name.
+```yaml
+      - run: ebpy check              # fails when a count rose above its ceiling
+      - run: ebpy report             # the backlog as a rule × area table
+        if: always()
+```
 
-### `status`
+[`check`](docs/cli/check.md) is what makes the baseline a ratchet rather than a note.
+[`report`](docs/cli/report.md) is never a gate — it appends to the job summary and cannot change an
+exit code. [`secrets`](docs/cli/secrets.md) is the one check with no baseline: a committed key is
+already public, so it gates from the first run.
 
-Prints the current phase, the backlog, and the rules with the smallest remaining counts. It leads
-with a `STALE` line when the diagnosis is more than thirty days old, fifty commits behind, or was
-taken on a commit no longer in this history (a rebase or force-push). The ratchet itself never goes
-stale — Ruff maintains it against the current tree — but the gap list, the file sizes and every
-deferred note do.
+### Coming back after a while
+
+```bash
+ebpy status                # leads with STALE when the diagnosis describes code that has moved
+ebpy diagnose --write      # re-survey, stamped with the current commit
+```
+
+The ratchet itself never goes stale — Ruff maintains it against the current tree. It is the
+*diagnosis* that ages: the gap list, the file sizes, and every deferred note in **Carried over**.
+Re-read that checklist after re-diagnosing and drop what no longer describes anything.
+
+### Driving it yourself
+
+Every command works standalone, in any repository, with or without the skills:
+
+| Command | What it is for |
+| --- | --- |
+| [`diagnose`](docs/cli/diagnose.md) | read-only: what is missing, and what each gap costs |
+| [`bootstrap`](docs/cli/bootstrap.md) | install it, generate the configs |
+| [`freeze`](docs/cli/freeze.md) | pin today's violations as the ceiling |
+| [`check`](docs/cli/check.md) | CI gate: fail if anything rose |
+| [`next`](docs/cli/next.md) | what to drain first, and what each fix enforces |
+| [`prune`](docs/cli/prune.md) | after a fix: reclaim the ceiling you earned |
+| [`status`](docs/cli/status.md) | the current phase, the backlog, and whether it is stale |
+| [`report`](docs/cli/report.md) | where the findings are, as markdown (for a CI job summary) |
+| [`secrets`](docs/cli/secrets.md) | scan the whole history for committed credentials |
+| [`catalog`](docs/cli/catalog.md) | list the helpers that already exist, so nobody writes a sixth |
+| [`log`](docs/cli/log.md) | record what happened, stamped with the current commit |
+
+Flags, exit codes and the shared options: **[CLI reference](docs/cli/README.md)**.
 
 ## Artifacts
 
@@ -254,6 +193,16 @@ between the `<!-- ebpy:notes:start -->` markers survives.
 P3 and P5 are where the value is, and they **automate by default**: a fix, an extracted function, a
 new test, a deleted orphan — done, not asked about. Only a refactor needing the owner's judgment
 becomes a GitHub issue, and that issue says what the options are and which one the agent would pick.
+
+## Documentation
+
+| | |
+| --- | --- |
+| [Skill reference](docs/skills.md) | what each skill does, what it insists on, and what it refuses to do |
+| [CLI reference](docs/cli/README.md) | one page per command, plus flags and exit codes |
+| [Default configuration](docs/defaults.md) | every value `bootstrap` writes, and why it is that value |
+| [Releasing](docs/release.md) | what a merge into `main` ships, and what decides the version |
+| [Shared helpers](docs/shared-helpers.md) | generated by `ebpy catalog` from this repository's own source |
 
 ## Differences from ever-better
 
