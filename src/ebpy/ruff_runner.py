@@ -9,33 +9,15 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .baseline import CellCounts
+from .models import CellCounts, LintMeasurement, UnattributedFinding
 from .util import run
 
-
-@dataclass(frozen=True)
-class Unattributed:
-    file: str
-    line: int
-    message: str
-
-
-@dataclass(frozen=True)
-class RuffResult:
-    """Today's violations, per file per rule — the shape the ratchet compares."""
-
-    cells: CellCounts
-    # Diagnostics Ruff could not attribute to a rule — syntax errors. The baseline
-    # cannot grandfather these: a file that does not parse is invisible to every rule,
-    # so its "count" would be a lie.
-    unattributed: list[Unattributed] = field(default_factory=list)
-    # Files Ruff reported something about — NOT the number it linted, which its JSON
-    # output does not carry. A clean repository reports zero here.
-    files_with_findings: int = 0
+# Compatibility names while commands move behind the Measurement seam.
+RuffResult = LintMeasurement
+Unattributed = UnattributedFinding
 
 
 class RuffNotFoundError(RuntimeError):
@@ -43,6 +25,10 @@ class RuffNotFoundError(RuntimeError):
 
 
 class RuffFailedError(RuntimeError):
+    pass
+
+
+class RuffInvalidOutputError(RuffFailedError):
     pass
 
 
@@ -64,12 +50,12 @@ def _relative_posix(filename: str, cwd: Path) -> str:
     return str(PurePosixPath(*rel.parts))
 
 
-def parse_ruff_json(stdout: str, cwd: Path) -> RuffResult:
+def parse_ruff_json(stdout: str, cwd: Path) -> LintMeasurement:
     raw: Any = json.loads(stdout or "[]")
     if not isinstance(raw, list):
-        raise RuffFailedError("ruff produced JSON of an unexpected shape")
+        raise RuffInvalidOutputError("ruff produced JSON of an unexpected shape")
     cells: CellCounts = {}
-    unattributed: list[Unattributed] = []
+    unattributed: list[UnattributedFinding] = []
     seen_files: set[str] = set()
     for item in raw:
         if not isinstance(item, dict):
@@ -80,16 +66,20 @@ def parse_ruff_json(stdout: str, cwd: Path) -> RuffResult:
         if not code or code == "invalid-syntax":
             location = item.get("location") or {}
             unattributed.append(
-                Unattributed(
+                UnattributedFinding(
                     file=file, line=int(location.get("row") or 0), message=str(item.get("message", ""))
                 )
             )
             continue
         cells.setdefault(file, {})[str(code)] = cells.get(file, {}).get(str(code), 0) + 1
-    return RuffResult(cells=cells, unattributed=unattributed, files_with_findings=len(seen_files))
+    return LintMeasurement(
+        cells=cells,
+        unattributed=tuple(unattributed),
+        files_with_findings=len(seen_files),
+    )
 
 
-def run_ruff_check(cwd: Path) -> RuffResult:
+def run_ruff_check(cwd: Path) -> LintMeasurement:
     argv = find_ruff(cwd)
     if not argv:
         raise RuffNotFoundError(
@@ -103,4 +93,4 @@ def run_ruff_check(cwd: Path) -> RuffResult:
     try:
         return parse_ruff_json(result.stdout, cwd)
     except json.JSONDecodeError as error:
-        raise RuffFailedError(f"ruff produced unparseable output: {error}") from error
+        raise RuffInvalidOutputError(f"ruff produced unparseable output: {error}") from error

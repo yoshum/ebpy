@@ -20,6 +20,14 @@ _ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 _FATAL_EXIT = 2
 
 
+class MypyNotFoundError(RuntimeError):
+    pass
+
+
+class MypyFailedError(RuntimeError):
+    pass
+
+
 def find_mypy(cwd: Path) -> list[str] | None:
     for venv in (".venv", "venv"):
         for bindir, exe in (("bin", "mypy"), ("Scripts", "mypy.exe")):
@@ -34,21 +42,29 @@ def count_errors(output: str) -> int:
     return len(_ERROR_LINE.findall(output))
 
 
-def run_mypy_error_count(cwd: Path) -> int | None:
-    """Today's mypy error total, or None when it could not be measured.
-
-    None and 0 must stay distinct: a counter written from a run that never happened
-    would ratchet the number to a value nobody measured.
-    """
+def run_mypy_check(cwd: Path) -> int:
+    """Today's mypy error total, raising when no number was measured."""
     argv = find_mypy(cwd)
     if not argv:
-        return None
+        raise MypyNotFoundError(
+            "mypy is not installed here (looked in .venv, venv and PATH). Run `ebpy bootstrap` first."
+        )
     try:
         result = run([*argv, ".", "--no-error-summary"], cwd)
-    except OSError:
-        return None
+    except OSError as error:
+        raise MypyFailedError(f"mypy could not run: {error}") from error
     # 0 = clean, 1 = errors found; both mean mypy actually ran. 2 is mypy itself failing
     # (bad config, missing stubs package aborting the run) — not a number.
     if result.code >= _FATAL_EXIT:
-        return None
+        detail = (result.stderr or result.stdout).strip()
+        suffix = f":\n{detail[:4000]}" if detail else ""
+        raise MypyFailedError(f"mypy failed (exit {result.code}){suffix}")
     return count_errors(result.stdout)
+
+
+def run_mypy_error_count(cwd: Path) -> int | None:
+    """Compatibility wrapper for callers not yet moved behind Measurement."""
+    try:
+        return run_mypy_check(cwd)
+    except (MypyNotFoundError, MypyFailedError):
+        return None

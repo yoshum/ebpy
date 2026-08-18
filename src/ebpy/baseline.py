@@ -14,10 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .models import CellCounts
+
 BASELINE_FILE = ".ebpy/baseline.json"
-
-CellCounts = dict[str, dict[str, int]]
-
 
 def _to_posix(file: str) -> str:
     """Paths are recorded with `/` whatever platform froze the baseline, so a repository

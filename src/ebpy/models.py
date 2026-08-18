@@ -23,11 +23,34 @@ LogKind = Literal["drained", "deferred", "issue", "note"]
 
 LOG_KINDS: tuple[LogKind, ...] = ("drained", "deferred", "issue", "note")
 
+MYPY_COUNTER = "mypy:errors"
+
+CellCounts = dict[str, dict[str, int]]
+
 
 @dataclass(frozen=True)
 class SourceFile:
     path: str
     lines: int
+
+
+@dataclass(frozen=True)
+class UnattributedFinding:
+    file: str
+    line: int
+    message: str
+
+
+@dataclass(frozen=True)
+class LintMeasurement:
+    """Today's per-file per-rule findings, in the shape the ratchet compares."""
+
+    cells: CellCounts
+    # Syntax errors cannot be grandfathered: a file that does not parse is invisible
+    # to every rule, so recording a rule count for it would be a lie.
+    unattributed: tuple[UnattributedFinding, ...] = ()
+    # Files with findings, not files inspected. Clean output therefore reports zero.
+    files_with_findings: int = 0
 
 
 @dataclass(frozen=True)

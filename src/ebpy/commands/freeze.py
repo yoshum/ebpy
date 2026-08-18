@@ -12,12 +12,11 @@ from pathlib import Path
 from ..baseline import rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
-from ..models import State
+from ..models import MYPY_COUNTER, State
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
 from ..ruff_runner import RuffResult, run_ruff_check
 from ..state import (
-    MYPY_COUNTER,
     BaselineMode,
     apply_rule_counts,
     empty_state,

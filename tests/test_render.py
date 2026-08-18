@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from ebpy.drain_order import build_drain_plan
 from ebpy.freshness import Freshness
-from ebpy.models import Counter, RuleBaseline, Suppression
+from ebpy.models import MYPY_COUNTER, Counter, RuleBaseline, Suppression
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.worklist import build_worklist, render_worklist
-from ebpy.state import MYPY_COUNTER, append_log, empty_state
+from ebpy.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")
 STALE = Freshness(stale=True, reason="42 commits since the diagnosis")

@@ -28,11 +28,6 @@ from .models import (
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
 
-# Ruff violations ratchet per file per rule through the baseline file. mypy has no
-# suppression mechanism at all, so its errors would be free to accumulate — their
-# total gets the same ratchet through a plain counter.
-MYPY_COUNTER = "mypy:errors"
-
 # `observe` records today's number without touching the ceiling — what `diagnose` and
 # `check` do. `freeze` lowers the ceiling to today's number if it improved, and never
 # raises it: running `freeze` twice after a bad week must not legalise the damage.
