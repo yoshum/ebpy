@@ -3,7 +3,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from ebpy.detect.ci import detect_ci, missing_runners
+from ebpy.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.detect.package_manager import detect_package_manager
 from ebpy.detect.sizes import summarize_sizes
 from ebpy.detect.tooling import detect_framework, detect_tooling, mypy_strict_configured
@@ -94,6 +94,39 @@ def test_thorough_ci_without_the_gate_enforces_nothing() -> None:
     coverage = detect_ci((WorkflowFile(path="ci.yml", content="- run: pytest\n"),))
     assert coverage.runs_test
     assert not coverage.runs_ebpy_check
+
+
+def test_a_tag_is_not_a_pin() -> None:
+    content = "steps:\n  - uses: actions/checkout@v4\n  - uses: astral-sh/setup-uv@main\n"
+    coverage = detect_ci((WorkflowFile(path="ci.yml", content=content),))
+    assert coverage.unpinned_actions == ("actions/checkout@v4", "astral-sh/setup-uv@main")
+
+
+def test_a_commit_pin_survives_the_version_comment_beside_it() -> None:
+    content = f"  - uses: actions/checkout@{'1' * 40} # v4.4.0\n"
+    assert unpinned_actions((WorkflowFile(path="ci.yml", content=content),)) == ()
+
+
+def test_local_and_container_steps_are_not_counted_as_unpinned() -> None:
+    # Neither resolves through a moveable git ref, so neither is a pin anybody can tighten.
+    content = "  - uses: ./.github/actions/setup\n  - uses: docker://alpine:3.19\n"
+    assert unpinned_actions((WorkflowFile(path="ci.yml", content=content),)) == ()
+
+
+def test_a_repo_without_workflows_reports_no_pins_rather_than_clean_ones() -> None:
+    # Empty here means "nothing was looked at", and `present` is what tells them apart.
+    coverage = detect_ci(())
+    assert coverage.unpinned_actions == ()
+    assert not coverage.present
+
+
+def test_unpinned_actions_are_reported_as_a_gap(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text("  - uses: actions/checkout@v4\n", encoding="utf-8")
+    diagnosis = diagnose(gather_facts(tmp_path))
+    gap = next(gap for gap in diagnosis.gaps if gap.id == "ci-action-pins")
+    assert "actions/checkout@v4" in gap.detail
 
 
 def test_missing_runners_names_the_platforms_never_exercised() -> None:

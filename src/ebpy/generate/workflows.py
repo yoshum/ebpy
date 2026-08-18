@@ -1,7 +1,9 @@
 """The GitHub Actions workflows bootstrap writes.
 
-Action versions are pinned constants so dependabot can bump them after ebpy has
-stopped looking, and so every generated repository starts from the same place.
+Actions are pinned to commit SHAs so dependabot can bump them after ebpy has stopped
+looking, and so every generated repository starts from the same place. A tag is not a
+pin: whoever owns the action can move `v4` onto new code, and the repository would run
+it without a diff.
 """
 
 from __future__ import annotations
@@ -12,13 +14,36 @@ from ..models import PackageManager
 
 DEFAULT_PYTHON_VERSION = "3.12"
 
-CHECKOUT_ACTION = "actions/checkout@v4"
-SETUP_PYTHON_ACTION = "actions/setup-python@v5"
-SETUP_UV_ACTION = "astral-sh/setup-uv@v5"
 
-# Pinned gitleaks release, downloaded checksum-verified in the workflow below. The MIT
-# CLI rather than gitleaks-action, which needs a licence key under a GitHub Organization.
+@dataclass(frozen=True)
+class PinnedAction:
+    """An action pinned to one commit, carrying the release that commit is.
+
+    The version is a trailing comment, not the pin. Dependabot reads it to learn which
+    release a SHA stands for and rewrites the two together, so they must not drift.
+    """
+
+    repository: str
+    commit: str
+    version: str
+
+    @property
+    def uses(self) -> str:
+        return f"{self.repository}@{self.commit} # {self.version}"
+
+
+CHECKOUT_ACTION = PinnedAction("actions/checkout", "11d5960a326750d5838078e36cf38b85af677262", "v4.4.0")
+SETUP_PYTHON_ACTION = PinnedAction(
+    "actions/setup-python", "a26af69be951a213d495a4c3e4e4022e16d87065", "v5.6.0"
+)
+SETUP_UV_ACTION = PinnedAction("astral-sh/setup-uv", "d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86", "v5.4.2")
+
+# The MIT CLI rather than gitleaks-action, which needs a licence key under a GitHub
+# Organization. Verified against a digest below, because a release asset can be replaced
+# in place under the same tag — and it is this binary that decides whether a leaked
+# credential gets reported.
 GITLEAKS_VERSION = "8.30.1"
+GITLEAKS_SHA256 = "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
 
 
 @dataclass(frozen=True)
@@ -30,14 +55,14 @@ class _ManagerSteps:
 
 def _steps_for(manager: PackageManager, python_version: str) -> _ManagerSteps:
     setup_python = [
-        f"      - uses: {SETUP_PYTHON_ACTION}",
+        f"      - uses: {SETUP_PYTHON_ACTION.uses}",
         "        with:",
         f'          python-version: "{python_version}"',
     ]
     if manager == "uv":
         return _ManagerSteps(
             setup=[
-                f"      - uses: {SETUP_UV_ACTION}",
+                f"      - uses: {SETUP_UV_ACTION.uses}",
                 "        with:",
                 f'          python-version: "{python_version}"',
             ],
@@ -95,7 +120,7 @@ def gate_workflow(manager: PackageManager, python_version: str = DEFAULT_PYTHON_
         "        os: [ubuntu-latest, macos-latest, windows-latest]",
         "    runs-on: ${{ matrix.os }}",
         "    steps:",
-        f"      - uses: {CHECKOUT_ACTION}",
+        f"      - uses: {CHECKOUT_ACTION.uses}",
         *steps.setup,
         "      - name: Install",
         f"        run: {steps.install}",
@@ -120,7 +145,7 @@ def gate_workflow(manager: PackageManager, python_version: str = DEFAULT_PYTHON_
 def secret_scan_workflow() -> str:
     """fetch-depth: 0 because a shallow clone misses the commit that leaked, and
     --redact so the secret does not land in a public log."""
-    return f"""\
+    head = f"""\
 name: secret-scan
 
 on:
@@ -135,13 +160,23 @@ jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: {CHECKOUT_ACTION}
+      - uses: {CHECKOUT_ACTION.uses}
         with:
           fetch-depth: 0
       - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "{GITLEAKS_VERSION}"
+          GITLEAKS_SHA256: "{GITLEAKS_SHA256}"
+"""
+    # Not an f-string: every ${...} below is expanded by bash on the runner, and an
+    # f-string would eat them here instead. set -euo pipefail rather than trusting the
+    # runner's default flags, so the digest check cannot be lost inside a pipeline.
+    install = """\
         run: |
+          set -euo pipefail
           curl -sSfL -o gitleaks.tar.gz \\
-            "https://github.com/gitleaks/gitleaks/releases/download/v{GITLEAKS_VERSION}/gitleaks_{GITLEAKS_VERSION}_linux_x64.tar.gz"
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
           tar -xzf gitleaks.tar.gz gitleaks
           install -m 0755 gitleaks /usr/local/bin/gitleaks
       - name: Scan history
@@ -149,3 +184,4 @@ jobs:
       - name: Scan working tree
         run: gitleaks dir . --redact --exit-code 2
 """
+    return head + install
