@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "tool": "ebpy",
+  "phase": "drain",
+  "updatedAt": "2026-08-18T00:09:37Z",
+  "frozenAt": "2026-08-18T00:07:45Z",
+  "diagnosedAt": "2026-08-18T00:08:49Z",
+  "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
+  "diagnosis": {
+    "packageManager": "uv",
+    "requiresPython": ">=3.11",
+    "framework": "none",
+    "tooling": {
+      "ruff": true,
+      "formatter": true,
+      "mypy": true,
+      "mypyStrict": true,
+      "pytest": true,
+      "vulture": false,
+      "preCommit": false,
+      "secretScanning": true,
+      "agentInstructions": [
+        "CLAUDE.md"
+      ]
+    },
+    "ci": {
+      "present": true,
+      "runners": [
+        "macos-latest",
+        "ubuntu-latest",
+        "windows-latest"
+      ],
+      "runsLint": true,
+      "runsTypecheck": true,
+      "runsTest": true,
+      "runsEbpyCheck": true
+    },
+    "sizes": {
+      "total": 58,
+      "overFileLimit": 0,
+      "largest": []
+    },
+    "gaps": [
+      {
+        "id": "vulture",
+        "title": "No dead-code detection",
+        "detail": "vulture reports unused functions, classes and variables. Report-only at first; a counter later.",
+        "phase": "tighten"
+      }
+    ]
+  },
+  "rules": {},
+  "counters": {
+    "mypy:errors": {
+      "baseline": 0,
+      "current": 0
+    }
+  },
+  "log": [
+    {
+      "at": "2026-08-18T00:08:49Z",
+      "commit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
+      "kind": "note",
+      "text": "ported ever-better to Python: ratchet, diagnose, freeze, drain"
+    }
+  ]
+}
