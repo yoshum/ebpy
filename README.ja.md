@@ -26,15 +26,31 @@ ESLint はこれを **bulk suppressions** で本体解決しました。Ruff に
 
 ## インストール
 
-パッケージインデックスには公開していません。リリース済みのタグからインストールしてください
-(`<tag>` は [Releases](https://github.com/yoshum/ebpy/releases) にあるバージョン、例: `v0.1.0`):
+パッケージインデックスには公開していません。次の1コマンドはGit上のebpyをbootstrapとして実行し、
+検出したproject managerでebpyを追加して、対応するClaude Codeスキルを `.claude/skills` に
+配置します。
 
 ```bash
-uv add --dev "ebpy @ git+https://github.com/yoshum/ebpy@<tag>"    # または pipx install "git+https://github.com/yoshum/ebpy@<tag>"
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install
 ```
 
-Python 3.11 以降。uv / poetry / pdm / pipenv / pip に対応し、パッケージマネージャは lockfile から
-検出されます。生成される CI ワークフローも検出したものを使います。
+対象を指定しない場合は、`main` の `ebpy.__version__` から対応するリリースタグを選びます。特定の
+リリースは正確なバージョンを渡し、コミットまたはブランチは `--ref` で指定します。
+
+```bash
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install <version>
+uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --ref <commit-or-branch>
+```
+
+受け付けるリリースバージョンは完全一致だけで、範囲指定にはまだ対応していません。
+`skills install` を含まないv0.3.0未満は、projectを変更する前に拒否します。bootstrapの `--from`
+URL自体にGit refがあり、CLI側で対象を指定していない場合は、そのrefを引き継ぎます。CLIの
+`VERSION` または `--ref` を明示した場合は、常にそちらが優先です。
+
+Python 3.11以降。ワンライナーのbootstrapにはuvが必要です。`ebpy install` はuv / Poetry / PDM /
+Pipenvのprojectに対応し、dependency追加と `skills install` の実行の両方に同じmanagerを使います。
+pipにはprojectレベルのdev dependencyを永続化する標準的な方法がないため、bare pipへのfallbackは
+拒否します。
 
 ## 使い方
 
@@ -45,10 +61,9 @@ Python 3.11 以降。uv / poetry / pdm / pipenv / pip に対応し、パッケ�
 
 ### スキルを Claude Code に渡す
 
-```bash
-mkdir -p .claude/skills
-cp -r path/to/ebpy/skills/* .claude/skills/
-```
+`ebpy install` は、追加したdev dependency側の `ebpy skills install` に処理を移譲します。そのため、
+5つのスキルと共有手順はdev dependencyとまったく同じリリースまたはGit refから
+`.claude/skills` に配置済みです。
 
 あとは普通の言葉で頼むだけです。スキルはコマンド名ではなく発話内容から選ばれるので、覚えるべき
 名前はありません。
@@ -148,6 +163,8 @@ ebpy diagnose --write      # 現在のコミット付きで取り直す
 
 | コマンド | 用途 |
 | --- | --- |
+| [`install`](docs/cli/install.md) | uvプロジェクトにebpyと同じrefのClaude Codeスキルを追加 |
+| [`skills install`](docs/cli/skills-install.md) | インストール済みebpyのスキルを `.claude/skills` に配置 |
 | [`diagnose`](docs/cli/diagnose.md) | 読み取り専用: 何が足りないか、その不足が何を意味するか |
 | [`bootstrap`](docs/cli/bootstrap.md) | 導入して設定ファイルを生成 |
 | [`freeze`](docs/cli/freeze.md) | 今日の違反を天井として固定 |

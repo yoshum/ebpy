@@ -20,7 +20,8 @@ from .generate.configs import (
     ruff_toml_content,
 )
 from .generate.workflows import gate_workflow, secret_scan_workflow
-from .models import Diagnosis, PackageManager
+from .models import Diagnosis
+from .package_manager import DEV_INSTALL_PREFIXES
 
 
 @dataclass(frozen=True)
@@ -43,15 +44,6 @@ class BootstrapPlan:
     install: InstallAction | None
     files: tuple[FileAction, ...]
     skipped: tuple[str, ...]
-
-
-_INSTALL_COMMANDS: dict[PackageManager, tuple[str, ...]] = {
-    "uv": ("uv", "add", "--dev"),
-    "poetry": ("poetry", "add", "--group", "dev"),
-    "pdm": ("pdm", "add", "-d"),
-    "pipenv": ("pipenv", "install", "--dev"),
-    "pip": ("pip", "install"),
-}
 
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
@@ -117,7 +109,7 @@ def build_plan(
     has_pyproject = "pyproject.toml" in root_entries
     packages = _missing_dev_packages(diagnosis)
     install = (
-        InstallAction(packages=packages, argv=(*_INSTALL_COMMANDS[diagnosis.package_manager], *packages))
+        InstallAction(packages=packages, argv=(*DEV_INSTALL_PREFIXES[diagnosis.package_manager], *packages))
         if packages
         else None
     )
