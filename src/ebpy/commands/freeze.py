@@ -102,8 +102,7 @@ def freeze_measurement(
     if isinstance(mypy, Measured):
         state = set_counter(state, MYPY_COUNTER, mypy.value, mode)
         mypy_line = (
-            f"{mypy.value} mypy errors are ratcheted as a counter — "
-            "they have no per-file suppression."
+            f"{mypy.value} mypy errors are ratcheted as a counter — they have no per-file suppression."
         )
     else:
         mypy_line = f"mypy did not run: {mypy.detail}. No type-error ceiling was recorded."

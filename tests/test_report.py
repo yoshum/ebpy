@@ -55,9 +55,7 @@ def test_report_compares_measured_lint_with_the_ceiling() -> None:
     assert report.mypy_failure == "bad config"
 
 
-def test_report_shell_gathers_once_then_renders(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[Path] = []
     measurement = Measurement(
         lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
