@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.3.1 (2026-08-18)
+
+### Bug Fixes
+
+- **ceiling**: Fail closed on invalid artifact pairs
+  ([`fe71555`](https://github.com/yoshum/ebpy/commit/fe71555cd35e59cb8aaada3561994a9b5ae02661))
+
+- **ceiling**: Reject artifact symlinks
+  ([`6772094`](https://github.com/yoshum/ebpy/commit/677209447cddd121797fec8b4011a2ae65e1f09a))
+
+### Refactoring
+
+- **ceiling**: Simplify artifact handling
+  ([`ec45111`](https://github.com/yoshum/ebpy/commit/ec45111bef5f68413ccdc1af7173b263befc035b))
+
+
 ## v0.3.0 (2026-08-18)
 
 ### Bug Fixes
