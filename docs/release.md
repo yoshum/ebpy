@@ -55,10 +55,13 @@ Triggered by `pull_request: [closed]` on `main`, and skipped unless the pull req
    `chore(release): vX.Y.Z`, tags, pushes, and opens the GitHub Release. When the commits warrant no
    version it exits cleanly having done nothing.
 
-`uv.lock` is stamped by `build_command`, which runs `uv lock --upgrade-package ebpy` and stages the
-result: the lockfile records the project's own version, so `uv sync --locked` starts failing the
+`uv.lock` is stamped by `build_command`, which runs `uv lock --upgrade-package ebpy && git add
+uv.lock`: the lockfile records the project's own version, so `uv sync --locked` starts failing the
 moment `pyproject.toml` moves without it. `--upgrade-package` restamps that one entry and nothing
-else — a release is the wrong moment to also take whatever landed upstream today.
+else — a release is the wrong moment to also take whatever landed upstream today. The two commands
+are chained with `&&` deliberately: semantic-release reports a multi-line build command as
+successful when only its last line succeeded, so written on two lines a failed `uv lock` is
+swallowed and the release is tagged with a lockfile still naming the previous version.
 
 ## What the repository has to provide
 
