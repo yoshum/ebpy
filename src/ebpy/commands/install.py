@@ -439,6 +439,12 @@ def run_install(cwd: Path, version: str | None, ref: str | None, force: bool) ->
         return InstallResult(False, target)
 
     manager = _project_manager(cwd)
+    if manager == "pip":
+        return InstallResult(
+            False,
+            "Could not detect a supported project package manager. `ebpy install` requires "
+            "uv, Poetry, PDM, or Pipenv so it can persist ebpy as a development dependency.",
+        )
     requirement = _requirement(manager, target)
     install_argv = [*DEV_INSTALL_PREFIXES[manager]]
     if manager == "pipenv":

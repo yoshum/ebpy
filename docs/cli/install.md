@@ -61,11 +61,10 @@ The lockfile or `pyproject.toml` configuration selects both commands:
 | Poetry | `poetry add --group dev ...` | `poetry run ebpy skills install` |
 | PDM | `pdm add -d ...` | `pdm run ebpy skills install` |
 | Pipenv | `pipenv install --dev --editable ...` | `pipenv run ebpy skills install` |
-| pip fallback | `pip install ...` | `ebpy skills install` |
 
-The first four persist the dependency in project metadata and a lockfile. The pip fallback installs
-into the active environment because pip has no standard project-level development dependency
-declaration.
+If none of these managers can be detected, `install` exits before changing the project. It does not
+fall back to pip because pip has no standard project-level development dependency declaration or a
+project-specific command runner that can guarantee delegation to the dependency just installed.
 
 ## Existing skills
 
@@ -97,4 +96,4 @@ The skill command itself protects the previously installed managed files as desc
 | Code | Meaning |
 | --- | --- |
 | `0` | dependency and skills installed |
-| `1` | invalid or unsupported target, no project root, dependency failure, or delegated skill installation failure |
+| `1` | invalid or unsupported target, no project root or supported package manager, dependency failure, or delegated skill installation failure |

@@ -17,5 +17,4 @@ RUN_PREFIXES: dict[PackageManager, tuple[str, ...]] = {
     "poetry": ("poetry", "run"),
     "pdm": ("pdm", "run"),
     "pipenv": ("pipenv", "run"),
-    "pip": (),
 }

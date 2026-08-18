@@ -47,8 +47,9 @@ Releases before v0.3.0 do not contain `skills install` and are rejected before t
 If the bootstrap `--from` URL itself has a Git ref and the CLI has no target, that ref is preserved.
 An explicit CLI `VERSION` or `--ref` always takes precedence.
 
-Python 3.11 or later; the one-line bootstrap requires uv. ebpy detects uv, Poetry, PDM, Pipenv or pip
-from the project and uses that manager both to add the dependency and to run `skills install`.
+Python 3.11 or later; the one-line bootstrap requires uv. `ebpy install` supports projects using uv,
+Poetry, PDM or Pipenv and uses that manager both to add the dependency and to run `skills install`.
+It rejects the bare pip fallback because pip cannot persist a project-level development dependency.
 
 ## Usage
 

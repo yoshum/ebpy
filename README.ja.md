@@ -47,8 +47,10 @@ uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --ref <commit-or-br
 URL自体にGit refがあり、CLI側で対象を指定していない場合は、そのrefを引き継ぎます。CLIの
 `VERSION` または `--ref` を明示した場合は、常にそちらが優先です。
 
-Python 3.11以降。ワンライナーのbootstrapにはuvが必要です。projectからuv / Poetry / PDM /
-Pipenv / pipを検出し、dependency追加と `skills install` の実行の両方に同じmanagerを使います。
+Python 3.11以降。ワンライナーのbootstrapにはuvが必要です。`ebpy install` はuv / Poetry / PDM /
+Pipenvのprojectに対応し、dependency追加と `skills install` の実行の両方に同じmanagerを使います。
+pipにはprojectレベルのdev dependencyを永続化する標準的な方法がないため、bare pipへのfallbackは
+拒否します。
 
 ## 使い方
 

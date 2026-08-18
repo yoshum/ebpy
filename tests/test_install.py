@@ -427,7 +427,6 @@ def test_install_rejects_version_and_ref_together(
         ("poetry", ["poetry", "add", "--group", "dev"], ["poetry", "run"]),
         ("pdm", ["pdm", "add", "-d"], ["pdm", "run"]),
         ("pipenv", ["pipenv", "install", "--dev", "--editable"], ["pipenv", "run"]),
-        ("pip", ["pip", "install"], []),
     ],
 )
 def test_install_follows_the_detected_project_manager(
@@ -451,6 +450,20 @@ def test_install_follows_the_detected_project_manager(
         [*install_prefix, expected_requirement],
         [*run_prefix, "ebpy", "skills", "install"],
     ]
+
+
+def test_install_rejects_the_pip_fallback_before_dependency_changes(
+    project: Path,
+    successful_calls: list[list[str]],
+) -> None:
+    _select_manager(project, "pip")
+
+    result = run_install(project, version="1.2.3", ref=None, force=False)
+
+    assert not result.ok
+    assert "requires uv, Poetry, PDM, or Pipenv" in result.message
+    assert "development dependency" in result.message
+    assert successful_calls == []
 
 
 def test_install_passes_force_only_to_skills_install(
