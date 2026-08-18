@@ -1,0 +1,99 @@
+from __future__ import annotations
+
+import tomllib
+from pathlib import Path
+
+from ebpy.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.diagnose import diagnose
+from ebpy.facts import gather_facts
+from ebpy.generate.configs import python_version_from_requires, ruff_pyproject_section, ruff_toml_content
+from ebpy.generate.workflows import gate_workflow, secret_scan_workflow
+
+
+def plan_for(tmp_path: Path) -> BootstrapPlan:
+    facts = gather_facts(tmp_path)
+    return build_plan(diagnose(facts), facts.root_entries, facts.all_files, "3.12")
+
+
+def test_the_target_version_follows_requires_python() -> None:
+    assert python_version_from_requires(">=3.12") == "py312"
+    assert python_version_from_requires(">=3.9,<4") == "py39"
+    assert python_version_from_requires(None) == "py311"
+    assert python_version_from_requires("nonsense") == "py311"
+
+
+def test_the_generated_ruff_config_parses_as_toml() -> None:
+    parsed = tomllib.loads(ruff_pyproject_section("py312"))
+    assert parsed["tool"]["ruff"]["target-version"] == "py312"
+    assert "C90" in parsed["tool"]["ruff"]["lint"]["select"]
+    assert parsed["tool"]["ruff"]["lint"]["mccabe"]["max-complexity"] == 10
+
+
+def test_a_standalone_ruff_toml_carries_no_tool_prefix() -> None:
+    parsed = tomllib.loads(ruff_toml_content("py311"))
+    assert "tool" not in parsed
+    assert parsed["lint"]["mccabe"]["max-complexity"] == 10
+
+
+def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
+    workflow = gate_workflow("uv")
+    assert "ubuntu-latest, macos-latest, windows-latest" in workflow
+    assert "uv run ebpy check" in workflow
+    # The run where the gate has just failed is the run where the backlog is worth most.
+    assert "if: always()" in workflow
+
+
+def test_the_workflow_follows_the_repositorys_own_package_manager() -> None:
+    assert "poetry run ebpy check" in gate_workflow("poetry")
+    assert "pdm run pytest" in gate_workflow("pdm")
+
+
+def test_the_secret_workflow_scans_history_and_working_tree() -> None:
+    workflow = secret_scan_workflow()
+    # A shallow clone misses the commit that leaked.
+    assert "fetch-depth: 0" in workflow
+    assert "gitleaks git ." in workflow
+    assert "gitleaks dir ." in workflow
+    # The secret must not land in a public log.
+    assert "--redact" in workflow
+
+
+def test_a_bare_repository_gets_configs_and_a_dev_install(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    assert plan.install is not None
+    assert set(plan.install.packages) == {"ruff", "mypy", "pytest", "vulture"}
+    written = {action.path for action in plan.files}
+    assert written == {
+        "ruff.toml",
+        "mypy.ini",
+        ".github/workflows/quality.yml",
+        ".github/workflows/secret-scan.yml",
+        ".github/dependabot.yml",
+        ".gitattributes",
+    }
+
+
+def test_configs_are_appended_to_an_existing_pyproject_rather_than_a_new_file(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "app"\n', encoding="utf-8")
+    plan = plan_for(tmp_path)
+    appends = [action for action in plan.files if action.mode == "append"]
+    assert {action.path for action in appends} == {"pyproject.toml"}
+    assert "ruff.toml" not in {action.path for action in plan.files}
+
+
+def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
+    workflow = tmp_path / ".github" / "workflows" / "quality.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("name: ours\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    assert ".github/workflows/quality.yml" not in {a.path for a in plan.files}
+    assert any("quality.yml" in note for note in plan.skipped)
+
+
+def test_a_dry_run_says_what_it_would_do_and_nothing_else(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    rendered = render_plan(plan_for(tmp_path), dry_run=True)
+    assert "would run:" in rendered
+    assert "would write" in rendered
+    assert "Next:" not in rendered

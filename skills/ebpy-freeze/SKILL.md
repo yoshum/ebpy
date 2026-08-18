@@ -1,0 +1,59 @@
+---
+description: Pin a Python repository's current violations as a ceiling so every rule can be an error from today without changing a line, and gate CI on it. Use after bootstrap, or when the user says "ベースラインを固定して", "freeze the baseline", "既存の違反は見逃して新しいのだけ止めて", "grandfather the existing violations".
+---
+
+# ebpy freeze
+
+P2. One command, run once, and it is the commit the whole approach hangs off.
+
+```bash
+uv run ebpy freeze
+```
+
+It runs Ruff, writes today's per-file per-rule counts to `.ebpy/baseline.json`, records the mypy
+error total as a ratcheted counter, and renders `QUALITY.md`.
+
+## Check three things before you run it
+
+1. **Is the formatting commit in?** Freezing before formatting bakes format-related violations into
+   the ceiling, and the formatting commit then drops them all at once — a ceiling that fell for no
+   reason anybody can reconstruct later.
+2. **Does the rule set look right?** The ceiling is taken against whatever `select` currently says.
+   Adding a rule tier afterwards is fine (it drains like any other), but *removing* one afterwards
+   leaves cells nothing will ever prune.
+3. **Does Ruff run clean of syntax errors?** Freeze reports them and refuses to count them. Fix
+   them first — a file that does not parse is invisible to every rule, so it would enter the
+   baseline as "clean" and quietly stay unlinted.
+
+## Commit all three artifacts together
+
+```
+.ebpy/baseline.json   the ceiling itself
+.ebpy/state.json      the ledger
+QUALITY.md            the human view
+```
+
+Separately they contradict each other, and a reviewer reading one without the others cannot tell
+what happened.
+
+## Then wire the gate
+
+CI must run `ebpy check` after lint. Without it the baseline is a note, not a ratchet — a repository
+with thorough CI that never runs the gate enforces nothing and looks identical from the outside.
+`ebpy bootstrap` writes the workflow; confirm the step is actually there.
+
+## Do not freeze twice
+
+The second freeze grandfathers everything added since, which is the one thing the baseline exists to
+prevent — so ebpy refuses it. Two legitimate ways forward:
+
+- **`ebpy prune`** — after fixing violations, reclaims exactly what was fixed and lowers the
+  ceiling. This is the normal path and can be run any time.
+- **`ebpy freeze --force`** — only when a rule was genuinely reconfigured (a tier added, a rule's
+  settings changed) and its old ceiling no longer describes the same measurement. Say in the commit
+  message which rule changed and why, because this is the only operation that can move a ceiling up.
+
+## What to tell the user afterwards
+
+The number. "4,312 violations across 47 rules are now grandfathered; new code is held to all of
+them." Then the next step: `ebpy next` ranks what to drain first, and `ebpy-drain` does the work.

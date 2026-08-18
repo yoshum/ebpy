@@ -1,0 +1,95 @@
+"""P2: pin today's violations as the ceiling.
+
+Running it a second time is refused: that would grandfather everything added
+since, which is the one thing the baseline exists to prevent.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+from ..baseline import write_cells
+from ..models import State
+from ..mypy_runner import run_mypy_error_count
+from ..quality_file import write_quality_file
+from ..ruff_runner import RuffResult, rule_totals, run_ruff_check
+from ..state import (
+    MYPY_COUNTER,
+    BaselineMode,
+    apply_rule_counts,
+    empty_state,
+    read_state,
+    set_counter,
+    with_phase,
+    write_state,
+)
+
+_UNATTRIBUTED_SHOWN = 5
+
+
+def _unattributed_report(result: RuffResult) -> list[str]:
+    """Syntax errors are not rule violations the baseline can grandfather: a file that
+    does not parse is invisible to every rule, so recording a count for it would be a
+    lie. Naming the files turns a mystery into a task."""
+    if not result.unattributed:
+        return []
+    files = sorted({item.file for item in result.unattributed})
+    samples = [
+        f"  {item.file}:{item.line}  {item.message}" for item in result.unattributed[:_UNATTRIBUTED_SHOWN]
+    ]
+    more = len(result.unattributed) - len(samples)
+    return [
+        "",
+        f"WARNING: {len(result.unattributed)} syntax error(s) in {len(files)} file(s) — "
+        "Ruff could not lint them:",
+        *samples,
+        *([f"  + {more} more"] if more > 0 else []),
+        "These cannot be grandfathered: a file that does not parse has no violations to count.",
+        "Fix them, then re-run freeze so those files enter the baseline.",
+    ]
+
+
+def run_freeze(cwd: Path, force: bool) -> str:
+    previous = read_state(cwd) or empty_state()
+    if previous.frozen_at and not force:
+        return "\n".join(
+            [
+                f"Already frozen at {previous.frozen_at}.",
+                "Freezing again would grandfather everything added since, which is the one thing the",
+                "baseline exists to prevent. To reclaim cells you have fixed, run `ebpy prune`.",
+                "If a rule was genuinely reconfigured, re-run with --force.",
+            ]
+        )
+
+    result = run_ruff_check(cwd)
+    write_cells(cwd, result.cells)
+
+    mode: BaselineMode = "rebaseline" if force else "freeze"
+    counts = rule_totals(result.cells)
+    state: State = apply_rule_counts(previous, counts, mode)
+    mypy_errors = run_mypy_error_count(cwd)
+    if mypy_errors is not None:
+        state = set_counter(state, MYPY_COUNTER, mypy_errors, mode)
+    state.frozen_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    state = with_phase(state, "drain")
+    write_state(cwd, state)
+    write_quality_file(cwd, state)
+
+    backlog = sum(counts.values())
+    mypy_line = (
+        f"{mypy_errors} mypy errors are ratcheted as a counter — they have no per-file suppression."
+        if mypy_errors is not None
+        else "mypy did not run, so no type-error ceiling was recorded."
+    )
+    return "\n".join(
+        [
+            f"Baseline pinned: {backlog} violations across {len(counts)} rules are now grandfathered.",
+            mypy_line,
+            "New code is held to the full rule set from here.",
+            *_unattributed_report(result),
+            "",
+            "Commit .ebpy/baseline.json, .ebpy/state.json and QUALITY.md.",
+            "Next: `ebpy next` ranks what to drain first.",
+        ]
+    )
