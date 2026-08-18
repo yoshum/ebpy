@@ -7,13 +7,14 @@ from ..lint_report import LintReport, ReportSection
 
 def _headline(report: LintReport) -> list[str]:
     mypy = "not measured" if report.mypy_errors is None else str(report.mypy_errors)
+    mypy_detail = f" — {report.mypy_failure}" if report.mypy_failure is not None else ""
     return [
         f"- Files with findings: **{report.files_with_findings}**"
         if report.lint_failure is None
         else "- Lint did not run",
         f"- New violations beyond the ceiling: **{report.new_total}**",
         f"- Grandfathered backlog: **{report.backlog_total}**",
-        f"- mypy errors: **{mypy}**",
+        f"- mypy errors: **{mypy}**{mypy_detail}",
         "",
     ]
 
