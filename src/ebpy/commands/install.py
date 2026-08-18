@@ -275,8 +275,9 @@ def _rollback_bundle(
     return errors
 
 
-def _swap_staged_bundle(destination: Path, stage: Path, backup: Path, bundle: Bundle) -> None:
-    manifest_hashes = _manifest_hashes(destination)
+def _swap_staged_bundle(
+    destination: Path, stage: Path, backup: Path, bundle: Bundle, manifest_hashes: dict[Path, str]
+) -> None:
     managed_entries = (
         *(Path(root) for root in _managed_roots(bundle, manifest_hashes)),
         Path(MANIFEST_NAME),
@@ -307,7 +308,7 @@ def _swap_staged_bundle(destination: Path, stage: Path, backup: Path, bundle: Bu
         ) from error
 
 
-def _write_bundle(cwd: Path, destination: Path, bundle: Bundle) -> None:
+def _write_bundle(cwd: Path, destination: Path, bundle: Bundle, manifest_hashes: dict[Path, str]) -> None:
     temporary_root: Path | None = None
     preserve_temporary = False
     try:
@@ -315,7 +316,7 @@ def _write_bundle(cwd: Path, destination: Path, bundle: Bundle) -> None:
         stage = temporary_root / "stage"
         _stage_bundle(stage, bundle)
         destination.mkdir(parents=True, exist_ok=True)
-        _swap_staged_bundle(destination, stage, temporary_root / "backup", bundle)
+        _swap_staged_bundle(destination, stage, temporary_root / "backup", bundle, manifest_hashes)
     except _BundleInstallError as error:
         preserve_temporary = error.preserve_temporary
         raise
@@ -339,7 +340,8 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
 
     destination = cwd / ".claude" / "skills"
     try:
-        conflicts = _conflicts(destination, bundle, _manifest_hashes(destination))
+        manifest_hashes = _manifest_hashes(destination)
+        conflicts = _conflicts(destination, bundle, manifest_hashes)
     except OSError as error:
         return InstallResult(
             False,
@@ -355,7 +357,7 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
         )
 
     try:
-        _write_bundle(cwd, destination, bundle)
+        _write_bundle(cwd, destination, bundle, manifest_hashes)
     except _BundleInstallError as error:
         return InstallResult(False, str(error))
     replaced = " Replaced the previous managed copies." if conflicts else ""
