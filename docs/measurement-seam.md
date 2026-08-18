@@ -25,9 +25,14 @@ There is no parallel status array. A value cannot simultaneously say that lint f
 successful lint result. `Measured(0)` is distinct from `Unavailable` and `Failed`, so a run that did
 not happen can never ratchet a counter to zero.
 
-The variants carry the producing tool's name. `Measured` and `Failed` have a place for a tool
-version, but the initial implementation leaves it unset rather than spawning an extra `--version`
-process for every command.
+The variants carry the producing tool's name. They do not carry a tool version: a field that is
+always `None` cannot say whether the version was unprobed or absent, and the seam exists precisely
+to keep those two apart. It gets added when something actually probes for one.
+
+A failure detail is one line. `Measured` alone can be read for a number, so every other variant has
+to explain itself inside a report line or a sentence, and `_detail` keeps only the first line of the
+exception. Runners therefore put the reason on that line — a second line is discarded here rather
+than at the point somebody would notice it missing.
 
 ## Stable vocabulary
 
@@ -109,3 +114,23 @@ migration and is not necessary to establish the seam.
 
 Atomic replacement of the baseline and ledger, and making `QUALITY.md` failure fully recoverable,
 are also separate persistence changes. Measurement owns today's facts, not the ceiling transaction.
+
+## What a failure does to each command
+
+The seam reports; it does not decide. Each command applies its own policy to the same value.
+
+| | `report` | `check` | `freeze` / `prune` |
+| --- | --- | --- | --- |
+| lint failed | renders the ratchet file and says why | refuses, persists nothing | refuses, writes nothing |
+| mypy failed, ceiling exists | names it beside `not measured` | refuses — the ceiling went unverified | records no new counter |
+| mypy failed, no ceiling | names it beside `not measured` | passes, and says what was not measured | records no counter, and says so |
+
+`check` refuses on an unverified ceiling because a counter nobody could measure is not a counter
+that held: a broken mypy would otherwise retire the type-error ratchet in silence, which is the
+accumulation the ceiling exists to stop. Where no such ceiling exists there is no contract to
+verify, so the gate passes — but it still names the capability it could not measure, because "no
+errors" and "nobody ran" must never read the same.
+
+A tool that cannot run is an ordinary command failure: the message goes to stdout and the exit
+status is 1, the same as every other refusal. Before the seam, a missing Ruff was written to stderr
+instead, so a script separating the two streams sees this move.

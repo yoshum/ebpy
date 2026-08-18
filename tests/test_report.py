@@ -70,3 +70,37 @@ def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pyt
 
     assert "# Lint report" in run_report(tmp_path, as_json=False)
     assert calls == [tmp_path]
+
+
+def test_a_failed_type_check_is_named_rather_than_rendered_as_zero() -> None:
+    report = report_from_measurement(
+        {},
+        Measurement(
+            lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+            counters={
+                MYPY_COUNTER: Failed(
+                    tool="mypy",
+                    failure_kind="execution-failed",
+                    detail="mypy failed (exit 2): mypy.ini: Unrecognized option",
+                )
+            },
+        ),
+    )
+
+    assert report.mypy_errors is None
+    assert report.to_dict()["mypyFailure"] == "mypy failed (exit 2): mypy.ini: Unrecognized option"
+    rendered = render_lint_report(report)
+    assert "mypy errors: **not measured** — mypy failed (exit 2): mypy.ini: Unrecognized option" in rendered
+
+
+def test_a_measured_type_check_carries_no_failure() -> None:
+    report = report_from_measurement(
+        {},
+        Measurement(
+            lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+            counters={MYPY_COUNTER: Measured(tool="mypy", value=3)},
+        ),
+    )
+
+    assert report.to_dict()["mypyFailure"] is None
+    assert "mypy errors: **3**" in render_lint_report(report)

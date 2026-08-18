@@ -3,8 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ebpy.mypy_runner import count_errors
+import pytest
+
+from ebpy import mypy_runner
+from ebpy.mypy_runner import MypyFailedError, count_errors, run_mypy_check
 from ebpy.ruff_runner import parse_ruff_json
+from ebpy.util import ExecResult
 
 
 def diagnostic(filename: str, code: str | None, row: int = 1, message: str = "boom") -> dict[str, object]:
@@ -69,3 +73,62 @@ def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:
 
 def test_clean_mypy_output_counts_zero() -> None:
     assert count_errors("") == 0
+
+
+def fatal_mypy(monkeypatch: pytest.MonkeyPatch, stderr: str, stdout: str = "") -> None:
+    monkeypatch.setattr(mypy_runner, "find_mypy", lambda _cwd: ["mypy"])
+    monkeypatch.setattr(
+        mypy_runner,
+        "run",
+        lambda _argv, _cwd: ExecResult(code=2, stdout=stdout, stderr=stderr),
+    )
+
+
+def test_a_fatal_mypy_carries_its_reason_on_the_failure_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The measurement seam keeps one line, so the reason has to survive on it."""
+    fatal_mypy(monkeypatch, "mypy.ini: [mypy]: Unrecognized option: bogus\n")
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    message = str(caught.value)
+    assert message == "mypy failed (exit 2): mypy.ini: [mypy]: Unrecognized option: bogus"
+
+
+def test_a_usage_banner_does_not_crowd_out_the_error_it_precedes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A rejected argument prints the banner first and the reason last."""
+    fatal_mypy(
+        monkeypatch,
+        "usage: mypy [-h] [-v] [-V] [more options; see below]\n"
+        "            [-m MODULE] [-p PACKAGE] [files ...]\n"
+        "mypy: error: Mypy no longer supports checking Python 2 code.\n",
+    )
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    assert str(caught.value) == (
+        "mypy failed (exit 2): mypy: error: Mypy no longer supports checking Python 2 code."
+    )
+
+
+def test_a_fatal_mypy_falls_back_to_stdout_when_stderr_is_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "", stdout="\n  cannot find implementation for module 'x'\n")
+
+    with pytest.raises(MypyFailedError, match="cannot find implementation"):
+        run_mypy_check(tmp_path)
+
+
+def test_a_fatal_mypy_without_output_claims_no_reason_it_does_not_have(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "")
+
+    with pytest.raises(MypyFailedError, match=r"^mypy failed \(exit 2\)$"):
+        run_mypy_check(tmp_path)

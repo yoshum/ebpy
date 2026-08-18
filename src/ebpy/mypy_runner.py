@@ -11,13 +11,16 @@ import re
 import shutil
 from pathlib import Path
 
-from .util import run
+from .util import ExecResult, run
 
 # "path.py:12: error: ..." — counting these rather than trusting the summary line,
 # because the summary is absent under --no-error-summary and localised under others.
 _ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 
 _FATAL_EXIT = 2
+
+# Long enough for a config error or a missing-stubs line, short enough to stay one line.
+_REASON_LIMIT = 200
 
 
 class MypyNotFoundError(RuntimeError):
@@ -42,6 +45,22 @@ def count_errors(output: str) -> int:
     return len(_ERROR_LINE.findall(output))
 
 
+def _reason(result: ExecResult) -> str:
+    """The one line of mypy's complaint worth carrying, beside the failure itself.
+
+    The measurement seam keeps only a failure's first line, so a reason on any other line
+    is discarded before anyone reads it. Which line that is depends on how mypy failed:
+    a rejected argument prints a two-line usage banner and puts ``mypy: error: ...`` last,
+    while a bad config file prints its complaint alone. Preferring the last error line and
+    falling back to the first non-empty one covers both without parsing either.
+    """
+    lines = [text for line in (result.stderr or result.stdout).splitlines() if (text := line.strip())]
+    if not lines:
+        return ""
+    errors = [line for line in lines if "error:" in line]
+    return f": {(errors[-1] if errors else lines[0])[:_REASON_LIMIT]}"
+
+
 def run_mypy_check(cwd: Path) -> int:
     """Today's mypy error total, raising when no number was measured."""
     argv = find_mypy(cwd)
@@ -56,7 +75,5 @@ def run_mypy_check(cwd: Path) -> int:
     # 0 = clean, 1 = errors found; both mean mypy actually ran. 2 is mypy itself failing
     # (bad config, missing stubs package aborting the run) — not a number.
     if result.code >= _FATAL_EXIT:
-        detail = (result.stderr or result.stdout).strip()
-        suffix = f":\n{detail[:4000]}" if detail else ""
-        raise MypyFailedError(f"mypy failed (exit {result.code}){suffix}")
+        raise MypyFailedError(f"mypy failed (exit {result.code}){_reason(result)}")
     return count_errors(result.stdout)

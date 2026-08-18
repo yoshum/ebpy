@@ -51,6 +51,8 @@ class LintReport:
     # Why no lint ran, when none did — the report then covers the ratchet file and
     # nothing else, and a reader has to be able to tell "no debt" from "nobody looked".
     lint_failure: str | None
+    # Why no type check ran, when none did — same distinction, second capability: the
+    # counter reads "not measured" and this says which tool could not say otherwise.
     mypy_failure: str | None
 
     def to_dict(self) -> dict[str, Any]:
@@ -114,12 +116,24 @@ def _section_of(title: str, matrix: Matrix) -> list[ReportSection]:
     return [ReportSection(title=title, total=total, areas=areas, rows=rows)]
 
 
+@dataclass(frozen=True)
+class Unmeasured:
+    """Why each capability could not be measured, for the ones that could not.
+
+    One value rather than a reason per parameter: capabilities are added over time, and a
+    builder that grows an argument for each is how a report ends up with five booleans.
+    """
+
+    lint: str | None = None
+    mypy: str | None = None
+
+
 def build_lint_report(
     new_by_rule: dict[str, int] | None,
     backlog_matrix: Matrix,
     mypy_errors: int | None,
     files_with_findings: int,
-    lint_failure: str | None,
+    unmeasured: Unmeasured,
 ) -> LintReport:
     new_rules = tuple(sorted((new_by_rule or {}).items(), key=lambda item: (-item[1], item[0])))
     return LintReport(
@@ -129,6 +143,6 @@ def build_lint_report(
         files_with_findings=files_with_findings,
         new_rules=new_rules,
         sections=tuple(_section_of("Backlog — grandfathered, drains rule by rule", backlog_matrix)),
-        lint_failure=lint_failure,
-        mypy_failure=None,
+        lint_failure=unmeasured.lint,
+        mypy_failure=unmeasured.mypy,
     )

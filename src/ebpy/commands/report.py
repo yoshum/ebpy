@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import replace
 from pathlib import Path
 
 from ..baseline import prune_cells, split_against_baseline
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
-from ..lint_report import LintReport, build_lint_report, matrix_from_cells
+from ..lint_report import LintReport, Unmeasured, build_lint_report, matrix_from_cells
 from ..measurement import Measured, Measurement, measure_repository
 from ..models import MYPY_COUNTER, CellCounts
 from ..render.lint_report import render_lint_report
@@ -42,15 +41,12 @@ def report_from_measurement(baseline: CellCounts, measurement: Measurement) -> L
 
     lint = measurement.lint
     if not isinstance(lint, Measured):
-        return replace(
-            build_lint_report(
-                new_by_rule=None,
-                backlog_matrix=matrix_from_cells(baseline),
-                mypy_errors=mypy_errors,
-                files_with_findings=0,
-                lint_failure=lint.detail,
-            ),
-            mypy_failure=mypy_failure,
+        return build_lint_report(
+            new_by_rule=None,
+            backlog_matrix=matrix_from_cells(baseline),
+            mypy_errors=mypy_errors,
+            files_with_findings=0,
+            unmeasured=Unmeasured(lint=lint.detail, mypy=mypy_failure),
         )
 
     result = lint.value
@@ -58,15 +54,12 @@ def report_from_measurement(baseline: CellCounts, measurement: Measurement) -> L
     # The backlog is what the ratchet still holds: the baseline lowered to what
     # still exists, not today's raw counts which include violations above it.
     held = prune_cells(baseline, result.cells)
-    return replace(
-        build_lint_report(
-            new_by_rule=new_by_rule,
-            backlog_matrix=matrix_from_cells(held),
-            mypy_errors=mypy_errors,
-            files_with_findings=result.files_with_findings,
-            lint_failure=None,
-        ),
-        mypy_failure=mypy_failure,
+    return build_lint_report(
+        new_by_rule=new_by_rule,
+        backlog_matrix=matrix_from_cells(held),
+        mypy_errors=mypy_errors,
+        files_with_findings=result.files_with_findings,
+        unmeasured=Unmeasured(mypy=mypy_failure),
     )
 
 
