@@ -92,13 +92,13 @@ notices once the copies are textually similar — and independently written ones
 | `run_check` | src/ebpy/commands/check.py:36 |  |
 | `run_diagnose` | src/ebpy/commands/diagnose.py:16 |  |
 | `run_freeze` | src/ebpy/commands/freeze.py:53 |  |
-| `run_install` | src/ebpy/commands/install.py:322 |  |
+| `run_install` | src/ebpy/commands/install.py:412 |  |
 | `run_log` | src/ebpy/commands/log.py:23 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:21 |  |
 | `run_prune` | src/ebpy/commands/prune.py:22 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:48 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
-| `run_skills_install` | src/ebpy/commands/install.py:222 |  |
+| `run_skills_install` | src/ebpy/commands/install.py:309 |  |
 | `run_status` | src/ebpy/commands/status.py:14 |  |
 
 ## src/ebpy/detect

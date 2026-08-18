@@ -107,6 +107,99 @@ def test_unedited_skills_are_updated_from_the_previous_manifest(
     assert installed.read_bytes() == updated.read_bytes()
 
 
+def test_a_staging_failure_leaves_the_installed_bundle_unchanged(
+    project: Path,
+    skill_bundle: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    destination = project / ".claude" / "skills"
+    before = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    (skill_bundle / "ebpy-guide" / "SKILL.md").write_text("updated\n", encoding="utf-8")
+
+    def fail_staging(_destination: Path, _bundle: install.Bundle) -> None:
+        raise OSError("disk full while staging")
+
+    monkeypatch.setattr(install, "_stage_bundle", fail_staging)
+    result = run_skills_install(project, force=False)
+
+    after = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    assert not result.ok
+    assert "were not changed" in result.message
+    assert after == before
+
+
+def test_a_partial_swap_restores_the_previous_bundle(
+    project: Path,
+    skill_bundle: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    destination = project / ".claude" / "skills"
+    unrelated = destination / "team-skill" / "SKILL.md"
+    unrelated.parent.mkdir()
+    unrelated.write_text("keep me\n", encoding="utf-8")
+    before = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    (skill_bundle / "ebpy-guide" / "SKILL.md").write_text("updated\n", encoding="utf-8")
+
+    original_replace = install._replace_path
+    failed = False
+
+    def fail_during_swap(source: Path, target: Path) -> None:
+        nonlocal failed
+        if not failed and source.parent.name == "stage" and source.name == "ebpy-run":
+            failed = True
+            raise OSError("disk full during swap")
+        original_replace(source, target)
+
+    monkeypatch.setattr(install, "_replace_path", fail_during_swap)
+    result = run_skills_install(project, force=False)
+
+    after = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    assert not result.ok
+    assert "previous managed skills were restored" in result.message
+    assert after == before
+    assert not list(project.glob(".ebpy-skills-*"))
+
+
+def test_an_incomplete_rollback_preserves_recovery_files(
+    project: Path,
+    skill_bundle: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    (skill_bundle / "ebpy-guide" / "SKILL.md").write_text("updated\n", encoding="utf-8")
+    original_replace = install._replace_path
+    swap_failed = False
+
+    def fail_swap_and_restore(source: Path, target: Path) -> None:
+        nonlocal swap_failed
+        if not swap_failed and source.parent.name == "stage" and source.name == "ebpy-run":
+            swap_failed = True
+            raise OSError("swap failed")
+        if swap_failed and source.parent.name == "backup" and source.name == "ebpy-guide":
+            raise OSError("restore failed")
+        original_replace(source, target)
+
+    monkeypatch.setattr(install, "_replace_path", fail_swap_and_restore)
+    result = run_skills_install(project, force=False)
+
+    recovery = list(project.glob(".ebpy-skills-*"))
+    assert not result.ok
+    assert "rollback was incomplete" in result.message
+    assert "Recovery files remain" in result.message
+    assert len(recovery) == 1
+    assert (recovery[0] / "backup" / "ebpy-guide" / "SKILL.md").is_file()
+
+
 @pytest.mark.usefixtures("skill_bundle")
 def test_a_local_skill_edit_requires_force(project: Path) -> None:
     assert run_skills_install(project, force=False).ok
@@ -349,6 +442,7 @@ def test_skills_failure_reports_that_dependency_was_added(
     project: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _select_manager(project, "poetry")
     results = iter([ExecResult(0, "", ""), ExecResult(1, "", "skill conflict")])
     monkeypatch.setattr(install, "run", lambda _argv, _cwd: next(results))
 
@@ -356,6 +450,8 @@ def test_skills_failure_reports_that_dependency_was_added(
 
     assert not result.ok
     assert "Added ebpy from Git ref feature/install" in result.message
+    assert "The dependency remains installed" in result.message
+    assert "retry `poetry run ebpy skills install`" in result.message
     assert "skill conflict" in result.message
 
 

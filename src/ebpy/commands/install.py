@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import shutil
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from importlib import metadata, resources
@@ -43,6 +44,12 @@ class Bundle:
 class InstallTarget:
     revision: str
     description: str
+
+
+class _BundleInstallError(Exception):
+    def __init__(self, message: str, *, preserve_temporary: bool = False) -> None:
+        super().__init__(message)
+        self.preserve_temporary = preserve_temporary
 
 
 def _direct_url_data() -> dict[str, object] | None:
@@ -185,20 +192,25 @@ def _conflicts(destination: Path, bundle: Bundle) -> list[str]:
     return conflicts
 
 
-def _remove_managed_roots(destination: Path, roots: tuple[str, ...]) -> None:
-    for root_name in roots:
-        target = destination / root_name
-        if target.is_symlink():
-            target.unlink()
-        elif target.is_dir():
-            shutil.rmtree(target)
-        elif target.exists():
-            target.unlink()
+def _path_exists(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
 
 
-def _write_bundle(destination: Path, bundle: Bundle) -> None:
-    destination.mkdir(parents=True, exist_ok=True)
-    _remove_managed_roots(destination, bundle.managed_roots)
+def _remove_path(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+
+
+def _replace_path(source: Path, target: Path) -> None:
+    source.replace(target)
+
+
+def _stage_bundle(destination: Path, bundle: Bundle) -> None:
+    destination.mkdir(parents=True)
     for relative, content in bundle.files.items():
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -217,6 +229,81 @@ def _write_bundle(destination: Path, bundle: Bundle) -> None:
     (destination / MANIFEST_NAME).write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+
+def _bundle_entries(bundle: Bundle) -> tuple[Path, ...]:
+    return (*(Path(root) for root in bundle.managed_roots), Path(MANIFEST_NAME))
+
+
+def _rollback_bundle(
+    destination: Path,
+    backup: Path,
+    installed: list[Path],
+    moved_old: list[Path],
+) -> list[str]:
+    errors: list[str] = []
+    for relative in reversed(installed):
+        try:
+            _remove_path(destination / relative)
+        except OSError as error:
+            errors.append(f"remove {relative}: {error}")
+    for relative in reversed(moved_old):
+        target = destination / relative
+        try:
+            if _path_exists(target):
+                _remove_path(target)
+            _replace_path(backup / relative, target)
+        except OSError as error:
+            errors.append(f"restore {relative}: {error}")
+    return errors
+
+
+def _swap_staged_bundle(destination: Path, stage: Path, backup: Path, bundle: Bundle) -> None:
+    backup.mkdir()
+    moved_old: list[Path] = []
+    installed: list[Path] = []
+    try:
+        for relative in _bundle_entries(bundle):
+            target = destination / relative
+            if _path_exists(target):
+                _replace_path(target, backup / relative)
+                moved_old.append(relative)
+        for relative in _bundle_entries(bundle):
+            _replace_path(stage / relative, destination / relative)
+            installed.append(relative)
+    except OSError as error:
+        rollback_errors = _rollback_bundle(destination, backup, installed, moved_old)
+        if rollback_errors:
+            detail = "; ".join(rollback_errors)
+            raise _BundleInstallError(
+                f"Could not replace the managed ebpy skills ({error}); rollback was incomplete: {detail}. "
+                f"Recovery files remain in {backup.parent}.",
+                preserve_temporary=True,
+            ) from error
+        raise _BundleInstallError(
+            f"Could not replace the managed ebpy skills ({error}); previous managed skills were restored."
+        ) from error
+
+
+def _write_bundle(cwd: Path, destination: Path, bundle: Bundle) -> None:
+    temporary_root: Path | None = None
+    preserve_temporary = False
+    try:
+        temporary_root = Path(tempfile.mkdtemp(prefix=".ebpy-skills-", dir=cwd))
+        stage = temporary_root / "stage"
+        _stage_bundle(stage, bundle)
+        destination.mkdir(parents=True, exist_ok=True)
+        _swap_staged_bundle(destination, stage, temporary_root / "backup", bundle)
+    except _BundleInstallError as error:
+        preserve_temporary = error.preserve_temporary
+        raise
+    except OSError as error:
+        raise _BundleInstallError(
+            f"Could not stage the ebpy skills ({error}); existing managed skills were not changed."
+        ) from error
+    finally:
+        if temporary_root is not None and not preserve_temporary:
+            shutil.rmtree(temporary_root, ignore_errors=True)
 
 
 def run_skills_install(cwd: Path, force: bool) -> InstallResult:
@@ -238,7 +325,10 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
             f"{names}. Review them, then rerun with --force to replace them.",
         )
 
-    _write_bundle(destination, bundle)
+    try:
+        _write_bundle(cwd, destination, bundle)
+    except _BundleInstallError as error:
+        return InstallResult(False, str(error))
     replaced = " Replaced the previous managed copies." if conflicts else ""
     return InstallResult(
         True,
@@ -349,7 +439,8 @@ def run_install(cwd: Path, version: str | None, ref: str | None, force: bool) ->
         return InstallResult(
             False,
             f"Added ebpy from {target.description}, but `{command}` failed "
-            f"(exit {skills.code}).{_failure_detail(skills.stdout, skills.stderr)}",
+            f"(exit {skills.code}). The dependency remains installed; after resolving the error, "
+            f"retry `{command}`.{_failure_detail(skills.stdout, skills.stderr)}",
         )
 
     skill_message = skills.stdout.strip()
