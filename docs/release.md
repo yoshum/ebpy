@@ -65,14 +65,28 @@ swallowed and the release is tagged with a lockfile still naming the previous ve
 
 ## What the repository has to provide
 
-- **The release commit must be able to reach `main`.** It is pushed with the workflow's
-  `GITHUB_TOKEN`. If `main` is protected, the token needs a bypass — otherwise the push fails after
-  the gate has already passed. A push made with `GITHUB_TOKEN` starts no further workflow runs,
-  which is also why this cannot loop.
-- **Conventional Commits on the commits, not just the pull request titles.** Merging with a merge
-  commit keeps them, which is what this repository does. Switching to squash merges would make the
-  pull request title the only subject in the range, and it would have to follow the convention
-  itself.
+**A deploy key that the ruleset lets through.** `main` is protected, and the release commit is a
+direct push to it. It cannot be pushed as `github-actions[bot]`: that is a system bot, not an app,
+and a ruleset bypass list cannot name it. A deploy key can be named, so that is what pushes.
+
+1. `ssh-keygen -t ed25519 -C "ebpy release" -N "" -f release_key`
+2. Settings → Deploy keys → Add: the contents of `release_key.pub`, **Allow write access** on.
+3. Settings → Secrets and variables → Actions → New secret: `RELEASE_SSH_KEY`, the contents of
+   `release_key` (the private half). Then delete both local files.
+4. Settings → Rules → the ruleset protecting `main` → Bypass list → Add **Deploy keys**.
+
+`actions/checkout` installs the key and points `origin` at SSH; `remote.ignore_token_for_push` tells
+semantic-release to push over that remote rather than building a token URL of its own. `GH_TOKEN` is
+still what opens the GitHub Release, which no branch rule governs. The workflow checks the secret
+exists before it does anything else, because the alternative symptom is a `GH006` rejection after
+the gate has already run.
+
+Bypassing means the release push skips that ruleset entirely, required status checks included —
+which is the other reason the workflow runs the whole gate itself before it calls semantic-release.
+
+**Conventional Commits on the commits, not just the pull request titles.** Merging with a merge
+commit keeps them, which is what this repository does. Switching to squash merges would make the
+pull request title the only subject in the range, and it would have to follow the convention itself.
 
 ## Cutting 1.0.0, and re-running a release
 

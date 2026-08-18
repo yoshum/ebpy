@@ -101,6 +101,12 @@ commit_message = "chore(release): v{version}"
 # be swallowed and the release tagged with a lockfile still naming the previous version.
 build_command = 'uv lock --upgrade-package "$PACKAGE_NAME" && git add uv.lock'
 
+[tool.semantic_release.remote]
+# Push over the deploy key actions/checkout installed, not over GITHUB_TOKEN. The release
+# commit lands on protected main, and github-actions[bot] is a system bot that cannot be
+# granted a ruleset bypass — a deploy key can. The token is still what opens the Release.
+ignore_token_for_push = true
+
 # The release surface: the command and the skills a tag delivers. A commit touching neither
 # is parsed for nothing — no version, no changelog entry. Directories match their subtrees,
 # so `src/ebpy` covers `src/ebpy/**`.

@@ -28,6 +28,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Fail here rather than after the gate, where the only symptom is a GH006 rejection.
+      - name: Check the release key is configured
+        env:
+          RELEASE_SSH_KEY: ${{ secrets.RELEASE_SSH_KEY }}
+        run: |
+          test -n "$RELEASE_SSH_KEY" && exit 0
+          echo "::error::RELEASE_SSH_KEY is unset; the release commit cannot reach protected main. See docs/release.md."
+          exit 1
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # main as a branch, not the merge commit: semantic-release refuses to release from a
@@ -35,6 +43,9 @@ jobs:
           ref: main
           # The whole history and its tags — the last tag is what the next version counts from.
           fetch-depth: 0
+          # The deploy key the ruleset lets through; GITHUB_TOKEN is not something a ruleset
+          # can be told to allow.
+          ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           python-version: "3.12"
