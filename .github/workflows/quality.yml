@@ -9,6 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  pull-request-history:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The base and head SHAs below must both be present. The default shallow checkout only
+          # contains the synthetic pull-request merge commit.
+          fetch-depth: 0
+      - name: Require a rebased pull-request branch
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          merge_commits="$(git rev-list --merges "$PR_BASE_SHA..$PR_HEAD_SHA")"
+          test -z "$merge_commits" && exit 0
+
+          echo "::error title=Rebase required::The pull-request branch contains merge commits. Rebase it onto main instead; merging main into a branch can make python-semantic-release omit changes from the next changelog."
+          for commit in $merge_commits; do
+            git show --no-patch --format='  %h %s' "$commit"
+          done
+          exit 1
+
   quality:
     strategy:
       fail-fast: false
