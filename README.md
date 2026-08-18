@@ -82,6 +82,11 @@ Formatting lands before linting because otherwise the first drain pull request i
 nobody can review. Freezing lands last because a ceiling taken before formatting drops for no reason
 anybody can reconstruct later.
 
+**The freeze is where stopping is free.** From that commit CI rejects any new violation, so the run
+reports there — the number, and that draining from here is optional — before it opens the first
+drain pull request. Everything after step 4 can stop at any pull request without leaving the
+repository worse than it was.
+
 Everything bootstrap writes — every selected rule tier, every pinned action, every threshold — is
 listed in **[Default configuration](docs/defaults.md)**. It never overwrites a config that already
 exists.

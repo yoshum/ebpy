@@ -64,6 +64,22 @@ Each of these is a pull request of its own, in this order: a formatting PR, a to
 PR, then one PR per rule. On an untouched repository that is more than a handful — worth saying to
 the user before you start, not after.
 
+### Report at the freeze before you open the first drain PR
+
+Freeze is the point where the value is locked in: from that commit CI rejects any new violation, and
+everything after it is optional cleanup that can stop at any pull request without leaving the
+repository worse. Say so there, in four lines:
+
+- the number — "4,312 violations across 47 rules are now grandfathered";
+- new code is held to every rule from here; old code is not;
+- a red `ebpy check` means the diff added something — not that the repository is bad;
+- draining from here is optional, and stopping after any pull request leaves the repository better
+  than it was.
+
+**This is a checkpoint, not a question.** Do not wait for an answer — keep going into P3. The
+owner cannot choose to stop at the one place where stopping is free unless somebody tells them it
+is there, and after the tenth drain PR the offer is worth much less than it is here.
+
 ## Coming back to a repository you have not touched in a while
 
 **Re-diagnose first.** `ebpy status` prints a `STALE` line, and `QUALITY.md` opens with a warning,

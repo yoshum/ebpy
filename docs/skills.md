@@ -132,8 +132,11 @@ new stuff".
 - **Never freeze twice.** The second freeze grandfathers everything added since — `prune` is the
   normal way down, and `--force` is only for a rule that was genuinely reconfigured.
 
-**What it tells you at the end:** the number. "4,312 violations across 47 rules are now
-grandfathered; new code is held to all of them." Then the next step.
+**What it tells you at the end:** four lines, because this commit is the one worth stopping on —
+the number ("4,312 violations across 47 rules are now grandfathered"), that new code is held to
+every rule from here and old code is not, that a red `ebpy check` means the diff added something
+rather than that the repository is bad, and that draining from here is optional. CI already rejects
+any new violation, so stopping after any pull request leaves the repository better, never worse.
 
 Drives: [`freeze`](cli/freeze.md), [`check`](cli/check.md), [`prune`](cli/prune.md).
 
@@ -211,6 +214,13 @@ PR, then one PR per rule.
 does is reformat every file, and a format commit on top of somebody's uncommitted work is not a
 merge conflict they can resolve — it is their diff rewritten underneath them. A dirty tree stops
 the run before a single file has been written.
+
+**It reports at the freeze.** That commit is where the value is locked in — CI rejects any new
+violation from there, and everything after it is optional cleanup that can stop at any pull request
+without leaving the repository worse. So it says so at that point rather than after the tenth drain
+PR: the number, that new code is now held to every rule, that a red `check` means the diff added
+something, and that stopping here is free. It is a checkpoint, not a question — it does not wait
+for an answer.
 
 **What keeps it honest**
 

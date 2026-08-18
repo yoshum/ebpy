@@ -55,5 +55,14 @@ prevent — so ebpy refuses it. Two legitimate ways forward:
 
 ## What to tell the user afterwards
 
-The number. "4,312 violations across 47 rules are now grandfathered; new code is held to all of
-them." Then the next step: `ebpy next` ranks what to drain first, and `ebpy-drain` does the work.
+This commit is the one worth stopping on, so report at it rather than rolling straight into the
+backlog. Four lines:
+
+- **the number** — "4,312 violations across 47 rules are now grandfathered";
+- **new code is held to every rule from here; old code is not**;
+- **a red `ebpy check` means the diff added something** — not that the repository is bad. That
+  sentence prevents the first false conclusion somebody draws from a failing gate;
+- **draining is optional from here.** CI already rejects any new violation, so stopping after any
+  pull request leaves the repository better than it was, never worse.
+
+Then the next step: `ebpy next` ranks what to drain first, and `ebpy-drain` does the work.
