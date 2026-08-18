@@ -26,8 +26,11 @@ It is not a linter. It runs *your* Ruff, with *your* config, from *your* virtual
 
 ## Install
 
+Not published to a package index — install from a released tag (`<tag>` is a version from the
+[Releases](https://github.com/yoshum/ebpy/releases) page, e.g. `v0.1.0`):
+
 ```bash
-uv add --dev ebpy      # or pip install ebpy, or pipx install ebpy
+uv add --dev "ebpy @ git+https://github.com/yoshum/ebpy@<tag>"    # or: pipx install "git+https://github.com/yoshum/ebpy@<tag>"
 ```
 
 Python 3.11 or later. Works with uv, poetry, pdm, pipenv and pip — the package manager is detected
@@ -214,6 +217,14 @@ Not a transliteration — the ideas are the same, the mechanics follow the Pytho
   specifiers.
 - No `migrate` or `emit-diff`: JavaScript-to-TypeScript has no Python analogue, and Python has no
   compile step whose output could prove a type-only refactor changed nothing.
+
+## Releases
+
+`main` ships. A merged pull request that changed `src/ebpy/` or `skills/` moves the version — how far
+is decided by the Conventional Commits since the last tag — then writes `CHANGELOG.md`, tags the
+commit and cuts a GitHub Release. Merges that touch neither release nothing, and nothing is uploaded
+to PyPI. It is [python-semantic-release](https://python-semantic-release.readthedocs.io) doing the
+work; the rules, and the case for releasing on every merge, are in [docs/release.md](docs/release.md).
 
 ## Design
 

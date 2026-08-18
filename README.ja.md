@@ -26,8 +26,11 @@ ESLint はこれを **bulk suppressions** で本体解決しました。Ruff に
 
 ## インストール
 
+パッケージインデックスには公開していません。リリース済みのタグからインストールしてください
+(`<tag>` は [Releases](https://github.com/yoshum/ebpy/releases) にあるバージョン、例: `v0.1.0`):
+
 ```bash
-uv add --dev ebpy      # または pip install ebpy / pipx install ebpy
+uv add --dev "ebpy @ git+https://github.com/yoshum/ebpy@<tag>"    # または pipx install "git+https://github.com/yoshum/ebpy@<tag>"
 ```
 
 Python 3.11 以降。uv / poetry / pdm / pipenv / pip に対応し、パッケージマネージャは lockfile から
@@ -210,6 +213,14 @@ issue には選択肢と、エージェントならどれを選ぶかが書か�
 - **fan-in は Python の import を解決します** — 相対、絶対、`src/` レイアウトの両方。
 - `migrate` と `emit-diff` はありません。JavaScript → TypeScript に相当するものが Python には
   なく、「型だけのリファクタが挙動を変えていない」ことを証明できるコンパイル出力もないためです。
+
+## リリース
+
+出荷元は `main` です。`src/ebpy/` か `skills/` を変更した PR がマージされるとバージョンが上がり
+(上げ幅は前回タグ以降の Conventional Commits が決めます)、`CHANGELOG.md` を書き、コミットにタグを
+打ち、GitHub Release を作ります。どちらも触っていないマージはリリースされず、PyPI への公開は行い
+ません。実処理は [python-semantic-release](https://python-semantic-release.readthedocs.io) です。
+ルールと「毎マージでリリースする」ことの根拠は [docs/release.md](docs/release.md) に。
 
 ## 設計
 

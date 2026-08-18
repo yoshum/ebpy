@@ -35,6 +35,7 @@ ebpy = "ebpy.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5"]
+release = ["python-semantic-release>=10.4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ebpy"]
@@ -78,3 +79,36 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# How this repository ships itself. Conventional Commits decide how far the version moves;
+# `path_filters` decides whether there is a release at all.
+[tool.semantic_release]
+commit_parser = "conventional-monorepo"
+tag_format = "v{version}"
+# Both defaults changed in v10 and neither is what this repository wants: 0.x is refused
+# outright unless allowed, and a breaking change is taken straight to 1.0.0. Reaching 1.0
+# should be a decision somebody made rather than one a `!` made for them.
+allow_zero_version = true
+major_on_zero = false
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/ebpy/__init__.py:__version__"]
+commit_message = "chore(release): v{version}"
+# The lockfile records the project's own version, so `uv sync --locked` starts failing the
+# moment pyproject.toml moves without it. --upgrade-package restamps that one entry and
+# nothing else: a release is the wrong moment to also take whatever landed upstream today.
+# Chained with && rather than written on two lines: semantic-release reports a multi-line
+# build command as successful when only its last line succeeded, so a failed `uv lock` would
+# be swallowed and the release tagged with a lockfile still naming the previous version.
+build_command = 'uv lock --upgrade-package "$PACKAGE_NAME" && git add uv.lock'
+
+[tool.semantic_release.remote]
+# Push over the deploy key actions/checkout installed, not over GITHUB_TOKEN. The release
+# commit lands on protected main, and github-actions[bot] is a system bot that cannot be
+# granted a ruleset bypass — a deploy key can. The token is still what opens the Release.
+ignore_token_for_push = true
+
+# The release surface: the command and the skills a tag delivers. A commit touching neither
+# is parsed for nothing — no version, no changelog entry. Directories match their subtrees,
+# so `src/ebpy` covers `src/ebpy/**`.
+[tool.semantic_release.commit_parser_options]
+path_filters = ["src/ebpy", "skills"]

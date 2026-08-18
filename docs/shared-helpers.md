@@ -6,7 +6,7 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-102 public functions.
+103 public functions.
 
 ## src/ebpy
 
@@ -29,8 +29,8 @@ notices once the copies are textually similar — and independently written ones
 | `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
 | `count_errors` | src/ebpy/mypy_runner.py:33 |  |
 | `count_importers` | src/ebpy/fan_in.py:114 |  |
-| `diagnose` | src/ebpy/diagnose.py:159 |  |
-| `diagnosis_from_dict` | src/ebpy/models.py:122 |  |
+| `diagnose` | src/ebpy/diagnose.py:176 |  |
+| `diagnosis_from_dict` | src/ebpy/models.py:126 |  |
 | `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `empty_state` | src/ebpy/state.py:43 |  |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
@@ -103,25 +103,26 @@ notices once the copies are textually similar — and independently written ones
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `detect_ci` | src/ebpy/detect/ci.py:19 |  |
+| `detect_ci` | src/ebpy/detect/ci.py:41 |  |
 | `detect_framework` | src/ebpy/detect/tooling.py:135 |  |
 | `detect_package_manager` | src/ebpy/detect/package_manager.py:20 |  |
 | `detect_tooling` | src/ebpy/detect/tooling.py:89 |  |
 | `has_ruff_config` | src/ebpy/detect/tooling.py:70 |  |
-| `missing_runners` | src/ebpy/detect/ci.py:34 |  |
+| `missing_runners` | src/ebpy/detect/ci.py:57 |  |
 | `mypy_strict_configured` | src/ebpy/detect/tooling.py:78 |  |
 | `requires_python` | src/ebpy/detect/tooling.py:143 |  |
 | `summarize_sizes` | src/ebpy/detect/sizes.py:16 |  |
+| `unpinned_actions` | src/ebpy/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
 
 ## src/ebpy/generate
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `gate_workflow` | src/ebpy/generate/workflows.py:72 | Lint, typecheck, test and the ratchet gate, on all three platforms — path handling breaks per platform, and only per platform. |
+| `gate_workflow` | src/ebpy/generate/workflows.py:97 | Lint, typecheck, test and the ratchet gate, on all three platforms — path handling breaks per platform, and only per platform. |
 | `python_version_from_requires` | src/ebpy/generate/configs.py:58 | ``requires-python = ">=3.11"`` -> ``py311``, so the generated Ruff config allows exactly the syntax the package already promises. |
 | `ruff_pyproject_section` | src/ebpy/generate/configs.py:35 | Appended to an existing pyproject.toml that has no [tool.ruff] table. |
 | `ruff_toml_content` | src/ebpy/generate/configs.py:44 | A standalone ruff.toml, for a repository with no pyproject.toml to append to. |
-| `secret_scan_workflow` | src/ebpy/generate/workflows.py:120 | fetch-depth: 0 because a shallow clone misses the commit that leaked, and --redact so the secret does not land in a public log. |
+| `secret_scan_workflow` | src/ebpy/generate/workflows.py:145 | fetch-depth: 0 because a shallow clone misses the commit that leaked, and --redact so the secret does not land in a public log. |
 
 ## src/ebpy/render
 
@@ -129,7 +130,7 @@ notices once the copies are textually similar — and independently written ones
 | --- | --- | --- |
 | `build_worklist` | src/ebpy/render/worklist.py:39 |  |
 | `extract_notes` | src/ebpy/render/quality.py:160 |  |
-| `render_diagnosis` | src/ebpy/render/report.py:66 |  |
+| `render_diagnosis` | src/ebpy/render/report.py:73 |  |
 | `render_lint_report` | src/ebpy/render/lint_report.py:65 |  |
 | `render_next` | src/ebpy/render/next.py:76 |  |
 | `render_quality` | src/ebpy/render/quality.py:170 |  |
