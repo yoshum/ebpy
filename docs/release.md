@@ -88,6 +88,24 @@ which is the other reason the workflow runs the whole gate itself before it call
 commit keeps them, which is what this repository does. Switching to squash merges would make the
 pull request title the only subject in the range, and it would have to follow the convention itself.
 
+**Rebase an out-of-date pull request; never merge `main` into its branch.** The merge commit GitHub
+creates when the pull request itself lands is wanted. A merge commit already inside the pull
+request's head is not. In particular, do not use an **Update branch** action that is configured to
+merge. Update locally instead:
+
+```bash
+git fetch origin
+git rebase origin/main
+git push --force-with-lease
+```
+
+python-semantic-release determines the next version by walking outward from `HEAD`, but reconstructs
+the changelog with a topological log. If a branch contains its work, then a merge of a tagged `main`,
+the two walks can put those pre-merge commits on opposite sides of the tag: a `feat:` still moves the
+minor version while the changelog attributes it to the previous release. `quality.yml` rejects every
+merge commit unique to a pull-request branch so that topology cannot reach the release job. Rebase
+keeps the Conventional Commit subjects and places every branch commit unambiguously after the tag.
+
 ## Cutting 1.0.0, and re-running a release
 
 Set `major_on_zero = true` in `pyproject.toml` and land a breaking change; the next release is
