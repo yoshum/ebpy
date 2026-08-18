@@ -145,9 +145,10 @@ The generated workflow already carries the gate; if you wire it yourself, two li
 ```
 
 [`check`](docs/cli/check.md) is what makes the baseline a ratchet rather than a note.
-[`report`](docs/cli/report.md) is never a gate — it appends to the job summary and cannot change an
-exit code. [`secrets`](docs/cli/secrets.md) is the one check with no baseline: a committed key is
-already public, so it gates from the first run.
+[`report`](docs/cli/report.md) is not a quality gate — findings do not change its exit code, and it
+degrades explicitly when Ruff cannot run. Invalid ceiling artifacts still fail closed rather than
+producing a false report. [`secrets`](docs/cli/secrets.md) is the one check with no baseline: a
+committed key is already public, so it gates from the first run.
 
 ### Coming back after a while
 
@@ -189,6 +190,12 @@ Flags, exit codes and the shared options: **[CLI reference](docs/cli/README.md)*
 | `.ebpy/baseline.json` | ebpy | yes — it *is* the ceiling |
 | `.ebpy/state.json` | ebpy | yes — the ledger |
 | `QUALITY.md` | rendered from the ledger | yes — the human view |
+
+The baseline and ledger are one ceiling contract. A normal command accepts either a fresh
+repository (neither contract file, or a pre-freeze ledger with no ceiling data) or a matching,
+readable frozen pair. Every partial, malformed or inconsistent combination fails before tools run
+or files change. ebpy does not reconstruct one from the other: restore both matching files, or use
+`ebpy freeze --force` to discard the old contract and pin a complete new one.
 
 `QUALITY.md` is regenerated on every run and carries four sections rendered from the ledger: a
 **Worklist** of phases as checkboxes with the smallest remaining rules as sub-items, **Carried over**

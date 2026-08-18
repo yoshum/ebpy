@@ -3,10 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from ebpy.baseline import (
+    Ceiling,
+    baseline_path,
     cells_of,
     parse_suppressions,
     prune_cells,
+    read_ceiling,
     read_suppressions,
     split_against_baseline,
     write_cells,
@@ -79,3 +84,62 @@ def test_cells_of_regroups_entries_by_file() -> None:
         Suppression(file="a.py", rule="F401", count=1),
     ]
     assert cells_of(entries) == {"a.py": {"E501": 2, "F401": 1}}
+
+
+def test_a_missing_baseline_and_an_empty_one_are_different_facts(tmp_path: Path) -> None:
+    """`freeze` decides from this: a repository frozen while clean has a baseline holding
+    nothing, and re-freezing it would grandfather everything written since."""
+    assert read_ceiling(tmp_path) == Ceiling(exists=False, total=None)
+    write_cells(tmp_path, {})
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=0)
+
+
+def test_the_ceiling_totals_the_cells_it_holds(tmp_path: Path) -> None:
+    write_cells(tmp_path, {"a.py": {"E501": 2}, "b.py": {"F401": 3}})
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=5)
+
+
+def test_a_baseline_that_cannot_be_parsed_reports_no_total_rather_than_zero(tmp_path: Path) -> None:
+    """Conflict markers leave the file present and unreadable. Reporting zero would read
+    as "nothing to protect" at the exact moment nothing can be measured."""
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("<<<<<<< HEAD\n{}\n=======\n{}\n>>>>>>> other\n", encoding="utf-8")
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)
+
+
+def test_a_baseline_with_invalid_utf8_is_unreadable_not_missing(tmp_path: Path) -> None:
+    """A decoding failure is as unreadable as invalid JSON and must fail closed."""
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\xff\xfe")
+
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)
+    assert read_suppressions(tmp_path) == []
+
+
+def test_a_broken_baseline_symlink_is_unreadable_not_missing(tmp_path: Path) -> None:
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.symlink_to("missing.json")
+
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        [],
+        {"src/a.py": {}},
+        {"src/a.py": {"F401": {"count": 0}}},
+        {"src/a.py": {"F401": {"count": True}}},
+        {"src/a.py": {"F401": {"count": 1, "extra": "ignored"}}},
+        {"src/a.py": {"F401": "one"}},
+    ],
+)
+def test_a_semantically_malformed_baseline_is_unreadable_as_a_whole(tmp_path: Path, raw: object) -> None:
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)

@@ -43,7 +43,9 @@ a repository setting, invisible from a clone, so ignore that gap if you know it 
 
 Persists the diagnosis into `.ebpy/state.json` **stamped with the current commit**, and re-renders
 `QUALITY.md`. The stamp is what lets [`status`](status.md) say later that the numbers describe code
-that has moved.
+that has moved. If the ceiling artifacts are incomplete, malformed or inconsistent, `--write`
+exits 1 without replacing either one. It does not guess whether partial data still holds a ceiling;
+restore both matching files or deliberately replace the contract with `freeze --force`.
 
 Without `--write` nothing is written at all — no ledger, no `QUALITY.md`, no `.ebpy/` directory.
 

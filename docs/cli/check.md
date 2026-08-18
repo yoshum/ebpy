@@ -17,6 +17,7 @@ Exit 0 when nothing rose; exit 1 with the reason when something did.
 | a ratcheted counter grew (`mypy:errors`) | `name: baseline -> current` |
 | Ruff could not parse a file | the syntax errors, named |
 | there is no baseline at all | run `ebpy freeze` and commit the result |
+| the baseline and ledger are incomplete, malformed or inconsistent | restore the matching pair, or deliberately replace it with `ebpy freeze --force` |
 
 ## The ratchet is per file and per rule
 

@@ -9,8 +9,8 @@ ebpy next --fan-in
 ```
 
 Since the ratchet works per file per rule, the useful question is not "which rule is smallest" but
-**"which edit enforces the most"**. `next` answers it in four lists, read from `.ebpy/baseline.json`
-alone — it runs no tools and writes nothing.
+**"which edit enforces the most"**. `next` answers it in four lists from the baseline, after
+verifying that the baseline and ledger form a valid pair — it runs no tools and writes nothing.
 
 ## The four sections
 
@@ -58,3 +58,6 @@ The whole loop, including what to do with a violation that turns out to be a rea
 
 Either the baseline is not frozen yet ([`freeze`](freeze.md)) or the backlog is empty. Those are
 different situations and the message says which.
+
+An incomplete, malformed or inconsistent artifact pair is neither case: `next` exits 1 rather than
+treating unreadable cells as an empty backlog.

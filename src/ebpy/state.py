@@ -7,11 +7,23 @@ Everything QUALITY.md shows is rendered from here.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from .models import Counter, LogEntry, LogKind, Phase, Regression, RuleBaseline, State, diagnosis_from_dict
+from .models import (
+    LOG_KINDS,
+    PHASE_ORDER,
+    Counter,
+    LogEntry,
+    LogKind,
+    Phase,
+    Regression,
+    RuleBaseline,
+    State,
+    diagnosis_from_dict,
+)
 
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
@@ -30,6 +42,14 @@ BaselineMode = Literal["observe", "freeze", "rebaseline"]
 
 # Kept bounded: this file is read whole on every command, and a log is the thing that grows.
 MAX_LOG_ENTRIES = 200
+
+
+@dataclass(frozen=True)
+class Ledger:
+    """Whether the state file exists, and the state it holds when readable."""
+
+    exists: bool
+    state: State | None
 
 
 def _now() -> str:
@@ -54,33 +74,100 @@ def _entry_from_dict(raw: dict[str, Any]) -> LogEntry:
     )
 
 
-def state_from_dict(raw: dict[str, Any]) -> State | None:
-    if raw.get("version") != 1 or "rules" not in raw or "counters" not in raw:
-        return None
-    diagnosis_raw = raw.get("diagnosis")
-    return State(
-        version=1,
-        tool=str(raw.get("tool", "ebpy")),
-        phase=raw.get("phase", "diagnose"),
-        updated_at=str(raw.get("updatedAt", "")),
-        frozen_at=raw.get("frozenAt"),
-        diagnosed_at=raw.get("diagnosedAt"),
-        diagnosed_commit=raw.get("diagnosedCommit"),
-        diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
-        rules={
-            name: RuleBaseline(
-                baseline=int(rule.get("baseline") or 0),
-                current=int(rule.get("current") or 0),
-                status=rule.get("status", "draining"),
-            )
-            for name, rule in (raw.get("rules") or {}).items()
-        },
-        counters={
-            name: Counter(baseline=int(c.get("baseline") or 0), current=int(c.get("current") or 0))
-            for name, c in (raw.get("counters") or {}).items()
-        },
-        log=[_entry_from_dict(entry) for entry in raw.get("log") or []],
+def _is_count(value: Any) -> bool:
+    return type(value) is int and value >= 0
+
+
+def _is_optional_string(value: Any) -> bool:
+    return value is None or isinstance(value, str)
+
+
+def _has_valid_state_shape(raw: dict[str, Any]) -> bool:
+    rules = raw.get("rules")
+    counters = raw.get("counters")
+    log = raw.get("log", [])
+    phase = raw.get("phase", "diagnose")
+    frozen_at = raw.get("frozenAt")
+    if (
+        raw.get("version") != 1
+        or raw.get("tool", "ebpy") != "ebpy"
+        or phase not in PHASE_ORDER
+        or ("updatedAt" in raw and not isinstance(raw["updatedAt"], str))
+        or (frozen_at is not None and (not isinstance(frozen_at, str) or not frozen_at))
+        or not _is_optional_string(raw.get("diagnosedAt"))
+        or not _is_optional_string(raw.get("diagnosedCommit"))
+        or (raw.get("diagnosis") is not None and not isinstance(raw.get("diagnosis"), dict))
+        or not isinstance(rules, dict)
+        or not isinstance(counters, dict)
+        or not isinstance(log, list)
+    ):
+        return False
+    if any(
+        not isinstance(name, str)
+        or not name
+        or not isinstance(rule, dict)
+        or not _is_count(rule.get("baseline"))
+        or not _is_count(rule.get("current"))
+        or rule.get("status") not in ("off", "draining", "enforced")
+        for name, rule in rules.items()
+    ):
+        return False
+    if any(
+        not isinstance(name, str)
+        or not name
+        or not isinstance(counter, dict)
+        or not _is_count(counter.get("baseline"))
+        or not _is_count(counter.get("current"))
+        for name, counter in counters.items()
+    ):
+        return False
+    return all(
+        isinstance(entry, dict)
+        and isinstance(entry.get("at"), str)
+        and _is_optional_string(entry.get("commit"))
+        and entry.get("kind") in LOG_KINDS
+        and isinstance(entry.get("text"), str)
+        and _is_optional_string(entry.get("rule"))
+        for entry in log
     )
+
+
+def state_from_dict(raw: dict[str, Any]) -> State | None:
+    if not _has_valid_state_shape(raw):
+        return None
+    rules_raw = raw["rules"]
+    counters_raw = raw["counters"]
+    log_raw = raw.get("log", [])
+    diagnosis_raw = raw.get("diagnosis")
+    try:
+        return State(
+            version=1,
+            tool=str(raw.get("tool", "ebpy")),
+            phase=raw.get("phase", "diagnose"),
+            updated_at=str(raw.get("updatedAt", "")),
+            frozen_at=raw.get("frozenAt"),
+            diagnosed_at=raw.get("diagnosedAt"),
+            diagnosed_commit=raw.get("diagnosedCommit"),
+            diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
+            rules={
+                name: RuleBaseline(
+                    baseline=int(rule.get("baseline") or 0),
+                    current=int(rule.get("current") or 0),
+                    status=rule.get("status", "draining"),
+                )
+                for name, rule in rules_raw.items()
+            },
+            counters={
+                name: Counter(
+                    baseline=int(counter.get("baseline") or 0),
+                    current=int(counter.get("current") or 0),
+                )
+                for name, counter in counters_raw.items()
+            },
+            log=[_entry_from_dict(entry) for entry in log_raw],
+        )
+    except (AttributeError, OverflowError, TypeError, ValueError):
+        return None
 
 
 def state_to_dict(state: State) -> dict[str, Any]:
@@ -114,12 +201,20 @@ def state_to_dict(state: State) -> dict[str, Any]:
     }
 
 
-def read_state(cwd: Path) -> State | None:
+def read_ledger(cwd: Path) -> Ledger:
+    path = state_path(cwd)
     try:
-        raw = json.loads(state_path(cwd).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return state_from_dict(raw) if isinstance(raw, dict) else None
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return Ledger(exists=path.is_symlink(), state=None)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return Ledger(exists=True, state=None)
+    state = state_from_dict(raw) if isinstance(raw, dict) else None
+    return Ledger(exists=True, state=state)
+
+
+def read_state(cwd: Path) -> State | None:
+    return read_ledger(cwd).state
 
 
 def write_state(cwd: Path, state: State) -> None:

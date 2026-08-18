@@ -135,6 +135,36 @@ def _check_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
     return Outcome(result.message, 0 if result.ok else 1)
 
 
+def _diagnose_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_diagnose(cwd, args.json, args.write)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _freeze_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_freeze(cwd, args.force)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _prune_outcome(_args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_prune(cwd)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _status_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_status(cwd, args.json)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _next_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_next(cwd, args.json, args.fan_in)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _report_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_report(cwd, args.json)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
 def _secrets_outcome(_args: argparse.Namespace, cwd: Path) -> Outcome:
     # Carries gitleaks' own code — 2 findings, 1 could-not-scan — because flattening both
     # to 1 is the ambiguity this command exists to remove, and a caller cannot get the
@@ -149,7 +179,8 @@ def _log_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
     text = " ".join(args.text).strip()
     if not text:
         return Outcome('log needs text: ebpy log --kind deferred "..."', 1)
-    return Outcome(run_log(cwd, args.kind, text, args.rule), 0)
+    result = run_log(cwd, args.kind, text, args.rule)
+    return Outcome(result.message, 0 if result.ok else 1)
 
 
 def _install_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
@@ -164,20 +195,20 @@ def _skills_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
 
 # Every command that only ever succeeds; fallible commands are collected separately below.
 _ALWAYS_OK: dict[str, Callable[[argparse.Namespace, Path], str]] = {
-    "diagnose": lambda args, cwd: run_diagnose(cwd, args.json, args.write),
     "bootstrap": lambda args, cwd: run_bootstrap(cwd, args.dry_run, args.python),
-    "freeze": lambda args, cwd: run_freeze(cwd, args.force),
-    "prune": lambda _args, cwd: run_prune(cwd),
-    "status": lambda args, cwd: run_status(cwd, args.json),
-    "next": lambda args, cwd: run_next(cwd, args.json, args.fan_in),
-    "report": lambda args, cwd: run_report(cwd, args.json),
     "catalog": lambda _args, cwd: run_catalog(cwd),
 }
 
 _FALLIBLE: dict[str, Callable[[argparse.Namespace, Path], Outcome]] = {
     "install": _install_outcome,
     "skills": _skills_outcome,
+    "diagnose": _diagnose_outcome,
+    "freeze": _freeze_outcome,
+    "prune": _prune_outcome,
     "check": _check_outcome,
+    "status": _status_outcome,
+    "next": _next_outcome,
+    "report": _report_outcome,
     "secrets": _secrets_outcome,
     "log": _log_outcome,
 }

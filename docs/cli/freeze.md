@@ -4,7 +4,7 @@ P2. One command, run once, and it is the commit the whole approach hangs off.
 
 ```bash
 ebpy freeze
-ebpy freeze --force    # only when a rule was genuinely reconfigured
+ebpy freeze --force    # deliberately replace the existing or invalid contract
 ```
 
 It runs Ruff, writes today's **per-file per-rule** counts to `.ebpy/baseline.json`, records the mypy
@@ -55,12 +55,25 @@ with thorough CI that never runs the gate enforces nothing and looks identical f
 ## Freezing twice is refused
 
 The second freeze grandfathers everything added since, which is the one thing the baseline exists to
-prevent. Two legitimate ways forward:
+prevent. A refusal exits 1 without measuring or writing anything, so automation cannot mistake it
+for a completed freeze. Two legitimate ways forward:
 
 | | |
 | --- | --- |
-| [`ebpy prune`](prune.md) | after fixing violations. Reclaims exactly what was fixed, can only lower, safe at any time. **The normal path.** |
-| `ebpy freeze --force` | only when a rule was genuinely reconfigured and its old ceiling no longer describes the same measurement. Say which rule changed in the commit message — this is the only operation that can move a ceiling **up**. |
+| [`ebpy prune`](prune.md) | after fixing violations. Reclaims exactly what was fixed and can only lower while both ceiling artifacts are readable. **The normal path.** |
+| `ebpy freeze --force` | deliberately replaces the contract. Use it when a rule was genuinely reconfigured, or when the artifact pair is invalid and restoring both matching files is not appropriate. This is the only operation that can move a ceiling **up**. |
+
+## Invalid artifacts fail closed
+
+The baseline and ledger are valid only as a matching pair. If either is missing, unreadable, has an
+invalid shape, lacks the expected freeze state, or records Ruff ceilings that disagree with the
+other, normal `freeze` exits 1 before running Ruff or writing anything. It never tries to recover a
+partial contract: the ledger-only counters and baseline-only per-file cells cannot reconstruct one
+another reliably.
+
+Restore both matching files from version control when the old contract matters. Otherwise,
+`freeze --force` discards the old contract and measures a complete new one. When recovering from an
+invalid pair it also starts a new ledger, because metadata from an invalid state file is not trusted.
 
 ## Next
 

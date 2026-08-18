@@ -10,6 +10,7 @@ reading a log never is.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -43,10 +44,61 @@ def baseline_path(cwd: Path) -> Path:
     return cwd / BASELINE_FILE
 
 
+@dataclass(frozen=True)
+class Ceiling:
+    """What ``.ebpy/baseline.json`` says about a ceiling having been pinned.
+
+    A missing file and a file holding nothing are different facts. A repository frozen
+    while clean has the second, and re-freezing it would grandfather everything added
+    since just as surely as one with cells — so the count cannot be the evidence.
+    Only `freeze` and `prune` ever write this file, which makes its existence the
+    question "has a ceiling been pinned here" answered exactly.
+    """
+
+    exists: bool
+    # None when the file is there but could not be read. That is still a ceiling, and
+    # the one case where guessing at the number would be worst.
+    total: int | None
+
+
+def read_ceiling(cwd: Path) -> Ceiling:
+    path = baseline_path(cwd)
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return Ceiling(exists=path.is_symlink(), total=None)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return Ceiling(exists=True, total=None)
+    if not _is_valid_baseline(raw):
+        return Ceiling(exists=True, total=None)
+    return Ceiling(exists=True, total=sum(entry.count for entry in parse_suppressions(raw)))
+
+
+def _is_valid_baseline(raw: Any) -> bool:
+    """Whether the whole document has the exact shape written by ``write_cells``.
+
+    ``parse_suppressions`` stays deliberately tolerant for callers inspecting arbitrary
+    data. A ceiling decision cannot be: skipping one malformed cell would silently lower
+    the contract and make a partial baseline look valid.
+    """
+    if not isinstance(raw, dict):
+        return False
+    for file, rules in raw.items():
+        if not isinstance(file, str) or not file or not isinstance(rules, dict) or not rules:
+            return False
+        for rule, entry in rules.items():
+            if not isinstance(rule, str) or not rule or not isinstance(entry, dict):
+                return False
+            count = entry.get("count")
+            if set(entry) != {"count"} or type(count) is not int or count <= 0:
+                return False
+    return True
+
+
 def read_suppressions(cwd: Path) -> list[Suppression]:
     try:
         raw = json.loads(baseline_path(cwd).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return []
     return parse_suppressions(raw)
 

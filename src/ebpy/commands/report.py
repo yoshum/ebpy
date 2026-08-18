@@ -1,16 +1,14 @@
-"""The backlog as a rule x area table, for a terminal or a CI job summary.
-
-It is never a gate: it cannot change an exit code, and it does not fail when
-the summary file cannot be written.
-"""
+"""The backlog as a rule x area table, for a terminal or a CI job summary."""
 
 from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..baseline import prune_cells, read_cells, read_suppressions, split_against_baseline
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..lint_report import build_lint_report, matrix_from_cells, matrix_from_suppressions
 from ..mypy_runner import run_mypy_error_count
 from ..render.lint_report import render_lint_report
@@ -20,6 +18,12 @@ from ..ruff_runner import RuffResult, run_ruff_check
 # makes this a CI report without anyone editing a workflow, and outside Actions it is
 # unset so a terminal run only ever prints.
 _STEP_SUMMARY = "GITHUB_STEP_SUMMARY"
+
+
+@dataclass(frozen=True)
+class ReportResult:
+    ok: bool
+    message: str
 
 
 def _append_to_step_summary(markdown: str) -> None:
@@ -45,7 +49,11 @@ def _lint(cwd: Path) -> tuple[RuffResult | None, str | None]:
         return None, str(error).split("\n")[0]
 
 
-def run_report(cwd: Path, as_json: bool) -> str:
+def run_report(cwd: Path, as_json: bool) -> ReportResult:
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        return ReportResult(ok=False, message=invalid_artifacts_message(artifacts))
+
     result, failure = _lint(cwd)
     baseline = read_cells(cwd)
 
@@ -71,7 +79,7 @@ def run_report(cwd: Path, as_json: bool) -> str:
         )
 
     if as_json:
-        return json.dumps(report.to_dict(), indent=2)
+        return ReportResult(ok=True, message=json.dumps(report.to_dict(), indent=2))
     markdown = render_lint_report(report)
     _append_to_step_summary(markdown)
-    return markdown
+    return ReportResult(ok=True, message=markdown)

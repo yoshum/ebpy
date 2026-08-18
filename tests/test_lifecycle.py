@@ -127,7 +127,7 @@ def test_freezing_twice_is_refused(repo: Path, capsys: pytest.CaptureFixture[str
     run(repo, "bootstrap")
     run(repo, "freeze")
     capsys.readouterr()
-    assert run(repo, "freeze") == 0
+    assert run(repo, "freeze") == 1
     output = capsys.readouterr().out
     assert "Already frozen" in output
     assert "prune" in output

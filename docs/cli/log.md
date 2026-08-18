@@ -10,7 +10,8 @@ ebpy log --kind issue    --rule B008    "opened #42 — mutable default, product
 ebpy log --kind note                    "enabled mypy strict before freezing"
 ```
 
-`--kind` defaults to `note`; `--rule` is optional. Empty text and an unknown kind both exit 1.
+`--kind` defaults to `note`; `--rule` is optional. Empty text, an unknown kind, and an incomplete,
+malformed or inconsistent ceiling artifact pair all exit 1 without changing the ledger.
 
 ## The four kinds
 

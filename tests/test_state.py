@@ -5,14 +5,17 @@ from pathlib import Path
 from ebpy.models import Counter, RuleBaseline
 from ebpy.state import (
     MYPY_COUNTER,
+    Ledger,
     append_log,
     apply_rule_counts,
     empty_state,
     find_regressions,
     improvements,
     next_baseline,
+    read_ledger,
     read_state,
     set_counter,
+    state_from_dict,
     total_violations,
     write_state,
 )
@@ -86,6 +89,60 @@ def test_state_round_trips_through_disk(tmp_path: Path) -> None:
 
 def test_missing_state_reads_as_none(tmp_path: Path) -> None:
     assert read_state(tmp_path) is None
+    assert read_ledger(tmp_path) == Ledger(exists=False, state=None)
+
+
+def test_invalid_utf8_state_reads_as_none(tmp_path: Path) -> None:
+    path = tmp_path / ".ebpy" / "state.json"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"\xff\xfe")
+
+    assert read_state(tmp_path) is None
+    assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
+
+
+def test_a_broken_state_symlink_is_unreadable_not_missing(tmp_path: Path) -> None:
+    path = tmp_path / ".ebpy" / "state.json"
+    path.parent.mkdir(parents=True)
+    path.symlink_to("missing.json")
+
+    assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
+
+
+def test_structurally_invalid_state_is_present_but_unreadable(tmp_path: Path) -> None:
+    path = tmp_path / ".ebpy" / "state.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        '{"version": 1, "rules": {"F401": "broken"}, "counters": {}}',
+        encoding="utf-8",
+    )
+
+    assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
+
+
+def test_falsy_containers_with_the_wrong_type_are_not_valid_state() -> None:
+    valid = {"version": 1, "rules": {}, "counters": {}, "log": []}
+
+    for field, invalid in (("rules", []), ("counters", []), ("log", {})):
+        assert state_from_dict({**valid, field: invalid}) is None
+
+
+def test_invalid_ceiling_fields_are_not_coerced_into_valid_state() -> None:
+    valid = {"version": 1, "rules": {}, "counters": {}, "log": []}
+
+    assert state_from_dict({**valid, "phase": "unknown"}) is None
+    assert state_from_dict({**valid, "updatedAt": 42}) is None
+    assert state_from_dict({**valid, "frozenAt": ""}) is None
+    assert (
+        state_from_dict(
+            {
+                **valid,
+                "rules": {"F401": {"baseline": True, "current": 1, "status": "draining"}},
+            }
+        )
+        is None
+    )
+    assert state_from_dict({**valid, "counters": {"mypy:errors": {"baseline": -1, "current": 1}}}) is None
 
 
 def test_a_log_cannot_grow_without_bound() -> None:
