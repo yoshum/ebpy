@@ -40,6 +40,9 @@ release = ["python-semantic-release>=10.4"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/ebpy"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"skills" = "ebpy/_skills"
+
 [tool.ruff]
 line-length = 110
 target-version = "py311"

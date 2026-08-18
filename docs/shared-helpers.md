@@ -6,7 +6,7 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-103 public functions.
+105 public functions.
 
 ## src/ebpy
 
@@ -20,7 +20,7 @@ notices once the copies are textually similar — and independently written ones
 | `build_drain_plan` | src/ebpy/drain_order.py:157 |  |
 | `build_graph` | src/ebpy/fan_in.py:94 | File -> the project files it imports. |
 | `build_lint_report` | src/ebpy/lint_report.py:126 |  |
-| `build_parser` | src/ebpy/cli.py:49 |  |
+| `build_parser` | src/ebpy/cli.py:52 |  |
 | `build_plan` | src/ebpy/bootstrap_plan.py:111 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
 | `cells_of` | src/ebpy/baseline.py:62 |  |
@@ -48,7 +48,7 @@ notices once the copies are textually similar — and independently written ones
 | `list_all_files` | src/ebpy/facts.py:64 |  |
 | `list_source_paths` | src/ebpy/facts.py:78 |  |
 | `log_of_kind` | src/ebpy/state.py:145 |  |
-| `main` | src/ebpy/cli.py:161 |  |
+| `main` | src/ebpy/cli.py:196 |  |
 | `matrix_from_cells` | src/ebpy/lint_report.py:79 |  |
 | `matrix_from_suppressions` | src/ebpy/lint_report.py:88 | The ratchet file is per file per rule, which is the same information one directory up. |
 | `next_baseline` | src/ebpy/state.py:154 |  |
@@ -92,11 +92,13 @@ notices once the copies are textually similar — and independently written ones
 | `run_check` | src/ebpy/commands/check.py:36 |  |
 | `run_diagnose` | src/ebpy/commands/diagnose.py:16 |  |
 | `run_freeze` | src/ebpy/commands/freeze.py:53 |  |
+| `run_install` | src/ebpy/commands/install.py:257 |  |
 | `run_log` | src/ebpy/commands/log.py:23 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:21 |  |
 | `run_prune` | src/ebpy/commands/prune.py:22 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:48 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
+| `run_skills_install` | src/ebpy/commands/install.py:194 |  |
 | `run_status` | src/ebpy/commands/status.py:14 |  |
 
 ## src/ebpy/detect

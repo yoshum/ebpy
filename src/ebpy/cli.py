@@ -13,6 +13,7 @@ from .commands.catalog import run_catalog
 from .commands.check import run_check
 from .commands.diagnose import run_diagnose
 from .commands.freeze import run_freeze
+from .commands.install import run_install, run_skills_install
 from .commands.log import LOG_KIND_LIST, is_log_kind, run_log
 from .commands.next_command import run_next
 from .commands.prune import run_prune
@@ -24,6 +25,8 @@ from .ruff_runner import RuffFailedError, RuffNotFoundError
 
 USAGE_EPILOG = f"""\
 commands:
+  install     add an exact ebpy release/ref and its skills to this project
+  skills      manage the bundled Claude Code skills
   diagnose    survey the repo and write QUALITY.md   (read-only without --write)
   bootstrap   install missing tooling, generate configs
   freeze      pin today's violations as the ceiling   (once, at the start)
@@ -70,6 +73,27 @@ def build_parser() -> argparse.ArgumentParser:
 
     diagnose = add("diagnose", "survey the repo")
     diagnose.add_argument("--write", action="store_true", help="persist state and QUALITY.md")
+
+    install = add("install", "install an exact ebpy release/ref and its Claude Code skills")
+    install.add_argument(
+        "version",
+        nargs="?",
+        metavar="VERSION",
+        help="exact release version (default: this installer's version)",
+    )
+    install.add_argument("--ref", help="install an exact Git commit or branch instead of a release")
+    install.add_argument(
+        "--force", action="store_true", help="replace locally changed ebpy skill directories"
+    )
+
+    skills = add("skills", "manage the bundled Claude Code skills")
+    skills_sub = skills.add_subparsers(dest="skills_command", metavar="command", required=True)
+    skills_install = skills_sub.add_parser(
+        "install", help="install bundled skills into .claude/skills", parents=[common]
+    )
+    skills_install.add_argument(
+        "--force", action="store_true", help="replace locally changed ebpy skill directories"
+    )
 
     bootstrap = add("bootstrap", "install missing tooling")
     bootstrap.add_argument("--dry-run", action="store_true", help="print the plan without touching anything")
@@ -128,8 +152,17 @@ def _log_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
     return Outcome(run_log(cwd, args.kind, text, args.rule), 0)
 
 
-# Every command that only ever succeeds; `check`, `secrets` and `log` are the three that
-# can fail, above.
+def _install_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_install(cwd, args.version, args.ref, args.force)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+def _skills_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
+    result = run_skills_install(cwd, args.force)
+    return Outcome(result.message, 0 if result.ok else 1)
+
+
+# Every command that only ever succeeds; fallible commands are collected separately below.
 _ALWAYS_OK: dict[str, Callable[[argparse.Namespace, Path], str]] = {
     "diagnose": lambda args, cwd: run_diagnose(cwd, args.json, args.write),
     "bootstrap": lambda args, cwd: run_bootstrap(cwd, args.dry_run, args.python),
@@ -142,6 +175,8 @@ _ALWAYS_OK: dict[str, Callable[[argparse.Namespace, Path], str]] = {
 }
 
 _FALLIBLE: dict[str, Callable[[argparse.Namespace, Path], Outcome]] = {
+    "install": _install_outcome,
+    "skills": _skills_outcome,
     "check": _check_outcome,
     "secrets": _secrets_outcome,
     "log": _log_outcome,
