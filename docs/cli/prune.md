@@ -12,8 +12,12 @@ you fixed.
 
 ## It can only ever take away
 
-No cell is ever raised, which makes it safe to run at any point and impossible to use as a second
-freeze. If nothing was fixed it reports that nothing was reclaimed.
+No cell is ever raised, which makes it safe to rerun after the ceiling has been frozen and impossible
+to use as a second freeze. It refuses before the first freeze, or when the ceiling artifacts are
+missing, unreadable, malformed or inconsistent: without a valid pair it cannot prove that every
+cell and counter only falls. It never reconstructs one artifact from the other. If nothing was
+fixed it reports that nothing was reclaimed. A refusal exits 1 without measuring or writing
+anything; a valid no-op exits 0.
 
 The reclaimed count is measured against the baseline **file**, not the ledger: a `check` run since
 the fix has already lowered the ledger's current numbers, so comparing that would report every prune
@@ -39,4 +43,5 @@ type errors fixed along the way are reclaimed too.
 
 Prune lowers cells to today's reality. If a *rule* was reconfigured — a tier added, a setting
 changed — its old ceiling no longer describes the same measurement, and that is the one case for
-[`freeze --force`](freeze.md#freezing-twice-is-refused).
+[`freeze --force`](freeze.md#freezing-twice-is-refused). The same command is the explicit recovery
+when an invalid artifact pair should be discarded rather than restored.

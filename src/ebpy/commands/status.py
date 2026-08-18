@@ -5,14 +5,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..errors import CommandError
 from ..quality_file import freshness_of
-from ..state import find_regressions, improvements, read_state, state_to_dict, total_violations
+from ..state import find_regressions, improvements, state_to_dict, total_violations
 
 _NEXT_RULE_SAMPLE = 5
 
 
 def run_status(cwd: Path, as_json: bool) -> str:
-    state = read_state(cwd)
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        raise CommandError(invalid_artifacts_message(artifacts))
+    state = artifacts.ledger.state
     if not state:
         return "No .ebpy/state.json here. Start with `ebpy diagnose`."
     if as_json:

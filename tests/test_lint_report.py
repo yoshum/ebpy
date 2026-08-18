@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from ebpy.lint_report import area_of, build_lint_report, matrix_from_cells, matrix_from_suppressions
-from ebpy.models import Suppression
+from ebpy.lint_report import area_of, build_lint_report, matrix_from_cells
 from ebpy.render.lint_report import render_lint_report
 
 
@@ -13,11 +12,6 @@ def test_a_root_file_belongs_to_a_named_area_not_an_empty_one() -> None:
 def test_the_matrix_folds_files_up_into_their_area() -> None:
     matrix = matrix_from_cells({"src/a.py": {"E501": 2}, "src/b.py": {"E501": 1}, "tests/c.py": {"F401": 4}})
     assert matrix == {"src": {"E501": 3}, "tests": {"F401": 4}}
-
-
-def test_the_matrix_reads_the_same_from_the_ratchet_file() -> None:
-    entries = [Suppression(file="src/a.py", rule="E501", count=2)]
-    assert matrix_from_suppressions(entries) == {"src": {"E501": 2}}
 
 
 def test_areas_are_ordered_by_weight_so_the_shape_is_visible() -> None:

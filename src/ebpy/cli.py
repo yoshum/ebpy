@@ -7,6 +7,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from .commands.bootstrap import run_bootstrap
 from .commands.catalog import run_catalog
@@ -20,6 +21,7 @@ from .commands.prune import run_prune
 from .commands.report import run_report
 from .commands.secrets import run_secrets
 from .commands.status import run_status
+from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
 from .ruff_runner import RuffFailedError, RuffNotFoundError
 
@@ -47,6 +49,14 @@ Python {DEFAULT_PYTHON_VERSION} is the default for generated workflows.
 class Outcome:
     output: str
     code: int
+
+
+class _Result(Protocol):
+    @property
+    def ok(self) -> bool: ...
+
+    @property
+    def message(self) -> str: ...
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -130,8 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _check_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
-    result = run_check(cwd, write=not args.no_write)
+def _result_outcome(result: _Result) -> Outcome:
     return Outcome(result.message, 0 if result.ok else 1)
 
 
@@ -152,44 +161,41 @@ def _log_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
     return Outcome(run_log(cwd, args.kind, text, args.rule), 0)
 
 
-def _install_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
-    result = run_install(cwd, args.version, args.ref, args.force)
-    return Outcome(result.message, 0 if result.ok else 1)
-
-
-def _skills_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
-    result = run_skills_install(cwd, args.force)
-    return Outcome(result.message, 0 if result.ok else 1)
-
-
-# Every command that only ever succeeds; fallible commands are collected separately below.
-_ALWAYS_OK: dict[str, Callable[[argparse.Namespace, Path], str]] = {
-    "diagnose": lambda args, cwd: run_diagnose(cwd, args.json, args.write),
+# Text commands return normally on success and raise CommandError when a request must
+# be refused. Result and outcome commands carry their exit status as data instead.
+_TEXT_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], str]] = {
     "bootstrap": lambda args, cwd: run_bootstrap(cwd, args.dry_run, args.python),
+    "catalog": lambda _args, cwd: run_catalog(cwd),
+    "diagnose": lambda args, cwd: run_diagnose(cwd, args.json, args.write),
     "freeze": lambda args, cwd: run_freeze(cwd, args.force),
     "prune": lambda _args, cwd: run_prune(cwd),
     "status": lambda args, cwd: run_status(cwd, args.json),
     "next": lambda args, cwd: run_next(cwd, args.json, args.fan_in),
     "report": lambda args, cwd: run_report(cwd, args.json),
-    "catalog": lambda _args, cwd: run_catalog(cwd),
 }
 
-_FALLIBLE: dict[str, Callable[[argparse.Namespace, Path], Outcome]] = {
-    "install": _install_outcome,
-    "skills": _skills_outcome,
-    "check": _check_outcome,
+_RESULT_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], _Result]] = {
+    "install": lambda args, cwd: run_install(cwd, args.version, args.ref, args.force),
+    "skills": lambda args, cwd: run_skills_install(cwd, args.force),
+    "check": lambda args, cwd: run_check(cwd, write=not args.no_write),
+}
+
+_OUTCOME_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], Outcome]] = {
     "secrets": _secrets_outcome,
     "log": _log_outcome,
 }
 
 
 def _dispatch(args: argparse.Namespace, cwd: Path) -> Outcome:
-    always_ok = _ALWAYS_OK.get(args.command)
-    if always_ok:
-        return Outcome(always_ok(args, cwd), 0)
-    fallible = _FALLIBLE.get(args.command)
-    if fallible:
-        return fallible(args, cwd)
+    text_command = _TEXT_COMMANDS.get(args.command)
+    if text_command:
+        return Outcome(text_command(args, cwd), 0)
+    result_command = _RESULT_COMMANDS.get(args.command)
+    if result_command:
+        return _result_outcome(result_command(args, cwd))
+    outcome_command = _OUTCOME_COMMANDS.get(args.command)
+    if outcome_command:
+        return outcome_command(args, cwd)
     return Outcome(f"Unknown command: {args.command}", 1)
 
 
@@ -202,6 +208,9 @@ def main(argv: list[str] | None = None) -> int:
     cwd = Path(args.cwd).resolve()
     try:
         outcome = _dispatch(args, cwd)
+    except CommandError as error:
+        sys.stdout.write(f"{error}\n")
+        return 1
     except (RuffNotFoundError, RuffFailedError) as error:
         sys.stderr.write(f"{error}\n")
         return 1

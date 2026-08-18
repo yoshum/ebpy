@@ -104,11 +104,3 @@ def run_ruff_check(cwd: Path) -> RuffResult:
         return parse_ruff_json(result.stdout, cwd)
     except json.JSONDecodeError as error:
         raise RuffFailedError(f"ruff produced unparseable output: {error}") from error
-
-
-def rule_totals(cells: CellCounts) -> dict[str, int]:
-    totals: dict[str, int] = {}
-    for rules in cells.values():
-        for rule, count in rules.items():
-            totals[rule] = totals.get(rule, 0) + count
-    return totals

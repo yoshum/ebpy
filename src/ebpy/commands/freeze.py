@@ -9,17 +9,18 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..baseline import write_cells
+from ..baseline import rule_totals, write_cells
+from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
+from ..errors import CommandError
 from ..models import State
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
-from ..ruff_runner import RuffResult, rule_totals, run_ruff_check
+from ..ruff_runner import RuffResult, run_ruff_check
 from ..state import (
     MYPY_COUNTER,
     BaselineMode,
     apply_rule_counts,
     empty_state,
-    read_state,
     set_counter,
     with_phase,
     write_state,
@@ -50,17 +51,43 @@ def _unattributed_report(result: RuffResult) -> list[str]:
     ]
 
 
+def _already_frozen(artifacts: CeilingArtifacts) -> str:
+    state = artifacts.ledger.state
+    assert state is not None and state.frozen_at is not None
+    return "\n".join(
+        [
+            f"Already frozen at {state.frozen_at}.",
+            "Freezing again would grandfather everything added since, which is the one thing the",
+            "baseline exists to prevent. To reclaim cells you have fixed, run `ebpy prune`.",
+            "To deliberately replace the contract, re-run with --force.",
+        ]
+    )
+
+
+def _previous_state(artifacts: CeilingArtifacts, force: bool) -> State:
+    """Choose metadata to preserve; a forced recovery trusts no invalid artifact."""
+    if artifacts.kind == "invalid":
+        return empty_state()
+    state = artifacts.ledger.state or empty_state()
+    if force:
+        # `--force` pins a complete new contract. Keeping an unmeasured old counter or
+        # rule would make the result depend on the contract it claims to replace.
+        state.rules = {}
+        state.counters = {}
+    return state
+
+
 def run_freeze(cwd: Path, force: bool) -> str:
-    previous = read_state(cwd) or empty_state()
-    if previous.frozen_at and not force:
-        return "\n".join(
-            [
-                f"Already frozen at {previous.frozen_at}.",
-                "Freezing again would grandfather everything added since, which is the one thing the",
-                "baseline exists to prevent. To reclaim cells you have fixed, run `ebpy prune`.",
-                "If a rule was genuinely reconfigured, re-run with --force.",
-            ]
-        )
+    artifacts = read_ceiling_artifacts(cwd)
+    if not force:
+        # Read before measuring: a repository that must not be frozen must not have its
+        # ceiling raised by the run that discovers it.
+        if artifacts.kind == "invalid":
+            raise CommandError(invalid_artifacts_message(artifacts))
+        if artifacts.kind == "frozen":
+            raise CommandError(_already_frozen(artifacts))
+
+    previous = _previous_state(artifacts, force)
 
     result = run_ruff_check(cwd)
     write_cells(cwd, result.cells)

@@ -1,7 +1,7 @@
 # `ebpy status`
 
-Where this repository stands, in eight lines. Reads `.ebpy/state.json` and nothing else — no tools
-run, nothing is written.
+Where this repository stands, in eight lines. Reads the baseline and ledger to verify they form a
+valid pair, then renders the ledger — no tools run, nothing is written.
 
 ```bash
 ebpy status
@@ -38,3 +38,6 @@ moved. Re-run [`diagnose --write`](diagnose.md) before quoting any of them.
 
 `No .ebpy/state.json here` — the repository has never been diagnosed. Start with
 [`diagnose`](diagnose.md).
+
+If either ceiling artifact exists without a valid matching partner, `status` exits 1 instead of
+rendering a ledger whose ceiling cannot be trusted.

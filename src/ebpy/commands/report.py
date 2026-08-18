@@ -1,8 +1,4 @@
-"""The backlog as a rule x area table, for a terminal or a CI job summary.
-
-It is never a gate: it cannot change an exit code, and it does not fail when
-the summary file cannot be written.
-"""
+"""The backlog as a rule x area table, for a terminal or a CI job summary."""
 
 from __future__ import annotations
 
@@ -10,8 +6,10 @@ import json
 import os
 from pathlib import Path
 
-from ..baseline import prune_cells, read_cells, read_suppressions, split_against_baseline
-from ..lint_report import build_lint_report, matrix_from_cells, matrix_from_suppressions
+from ..baseline import prune_cells, split_against_baseline
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..errors import CommandError
+from ..lint_report import build_lint_report, matrix_from_cells
 from ..mypy_runner import run_mypy_error_count
 from ..render.lint_report import render_lint_report
 from ..ruff_runner import RuffResult, run_ruff_check
@@ -46,13 +44,17 @@ def _lint(cwd: Path) -> tuple[RuffResult | None, str | None]:
 
 
 def run_report(cwd: Path, as_json: bool) -> str:
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        raise CommandError(invalid_artifacts_message(artifacts))
+
     result, failure = _lint(cwd)
-    baseline = read_cells(cwd)
+    baseline = artifacts.cells
 
     if result is None:
         report = build_lint_report(
             new_by_rule=None,
-            backlog_matrix=matrix_from_suppressions(read_suppressions(cwd)),
+            backlog_matrix=matrix_from_cells(baseline),
             mypy_errors=None,
             files_with_findings=0,
             lint_failure=failure or "Ruff did not run",

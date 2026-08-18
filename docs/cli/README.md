@@ -38,11 +38,25 @@ accept the flag and ignore it.
 | Code | Meaning | Which commands |
 | --- | --- | --- |
 | 0 | success | all |
-| 1 | the gate failed, or the command could not do its job | `install`, `skills install`, `check`, `log` (bad `--kind` or empty text), `secrets` (scan could not run), any command when Ruff is missing or fails |
+| 1 | the gate failed, the command could not do its job, or the ceiling artifacts are invalid | `install`, `skills install`, `diagnose --write`, `freeze`, `prune`, `check`, `status`, `next`, `report`, `log`, `secrets`, or any command when Ruff is missing or fails |
 | 2 | secrets found | `secrets` only |
 
-Only `check` and `secrets` are gates. Everything else returns 0 whenever it ran, including
-`report` — see [why a report must never change an exit code](report.md#it-is-never-a-gate).
+Only `check` and `secrets` are quality gates. A refusal returns 1 so automation cannot mistake an
+invalid or unchanged result for a valid one. `report` does not fail merely because Ruff or the job
+summary is unavailable, but it does fail when the artifacts it would report are invalid.
+
+## Ceiling artifact integrity
+
+`.ebpy/baseline.json` and `.ebpy/state.json` are one contract. ebpy recognises only three states:
+
+| State | Valid files | What commands do |
+| --- | --- | --- |
+| fresh | neither file, or a readable pre-freeze ledger with no ceiling data | `freeze` may pin the first ceiling |
+| frozen | both files are readable, the ledger records a freeze, and its Ruff ceilings match the baseline | normal ratchet commands run |
+| invalid | every other combination, including one missing file, malformed data, or disagreeing ceilings | commands that use the artifacts exit 1 before measuring or writing |
+
+ebpy does not infer or reconstruct missing ceiling data. Restore both matching files from version
+control, or run `ebpy freeze --force` to discard the old contract and pin a complete new one.
 
 ## Running it
 
@@ -67,8 +81,8 @@ the path.
 
 | File | Written by | Read by |
 | --- | --- | --- |
-| `.ebpy/baseline.json` | `freeze`, `prune` | `check`, `next`, `report` |
-| `.ebpy/state.json` | `diagnose --write`, `freeze`, `check`, `prune`, `log` | `status`, `check`, `QUALITY.md` |
+| `.ebpy/baseline.json` | `freeze`, `prune` | every command that reads or updates the ceiling contract |
+| `.ebpy/state.json` | `diagnose --write`, `freeze`, `check`, `prune`, `log` | every command that reads or updates the ceiling contract, `QUALITY.md` |
 | `QUALITY.md` | every command that writes the ledger | humans |
 
 Commit all three. See [Artifacts](../../README.md#artifacts).

@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..baseline import read_suppressions
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..drain_order import build_drain_plan
+from ..errors import CommandError
 from ..facts import list_source_paths, read_sources
 from ..fan_in import build_graph, count_importers, importers_of
 from ..models import Suppression
@@ -19,7 +20,14 @@ def _gather_importers(cwd: Path, entries: list[Suppression]) -> dict[str, int]:
 
 
 def run_next(cwd: Path, as_json: bool, fan_in: bool) -> str:
-    entries = read_suppressions(cwd)
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        raise CommandError(invalid_artifacts_message(artifacts))
+    entries = [
+        Suppression(file=file, rule=rule, count=count)
+        for file, rules in artifacts.cells.items()
+        for rule, count in rules.items()
+    ]
     # Reading every source file to parse its imports is the weight of a whole-repo pass,
     # not of a command you run between edits — so it is a flag rather than the default.
     importers = _gather_importers(cwd, entries) if fan_in else {}

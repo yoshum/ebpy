@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..errors import CommandError
 from ..git import head_commit
 from ..models import LOG_KINDS, LogKind
 from ..quality_file import write_quality_file
-from ..state import append_log, empty_state, read_state, write_state
+from ..state import append_log, empty_state, write_state
 
 LOG_KIND_LIST = " | ".join(LOG_KINDS)
 
@@ -24,7 +26,10 @@ def run_log(cwd: Path, kind: LogKind, text: str, rule: str | None) -> str:
     """`deferred` is the one that earns its keep: a refactor consciously not made,
     stamped with the commit it was seen at, so the next session can tell whether the
     observation still describes the code."""
-    state = read_state(cwd) or empty_state()
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        raise CommandError(invalid_artifacts_message(artifacts))
+    state = artifacts.ledger.state or empty_state()
     state = append_log(state, kind, text, head_commit(cwd), rule)
     write_state(cwd, state)
     write_quality_file(cwd, state)

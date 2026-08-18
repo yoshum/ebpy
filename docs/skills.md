@@ -135,7 +135,8 @@ new stuff".
 - **The gate is actually wired.** A baseline with nothing running `ebpy check` is a note, not a
   ratchet, and a repository like that looks identical from the outside to one that enforces.
 - **Never freeze twice.** The second freeze grandfathers everything added since — `prune` is the
-  normal way down, and `--force` is only for a rule that was genuinely reconfigured.
+  normal way down. `--force` deliberately replaces the contract, for a genuinely reconfigured rule
+  or an invalid artifact pair that should be discarded rather than restored.
 
 **What it tells you at the end:** four lines, because this commit is the one worth stopping on —
 the number ("4,312 violations across 47 rules are now grandfathered"), that new code is held to

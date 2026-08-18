@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from .baseline import CellCounts
-from .models import Suppression
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"
@@ -82,16 +81,6 @@ def matrix_from_cells(cells: CellCounts) -> Matrix:
         area = matrix.setdefault(area_of(file), {})
         for rule, count in rules.items():
             area[rule] = area.get(rule, 0) + count
-    return matrix
-
-
-def matrix_from_suppressions(entries: list[Suppression]) -> Matrix:
-    """The ratchet file is per file per rule, which is the same information one
-    directory up."""
-    matrix: Matrix = {}
-    for entry in entries:
-        area = matrix.setdefault(area_of(entry.file), {})
-        area[entry.rule] = area.get(entry.rule, 0) + entry.count
     return matrix
 
 

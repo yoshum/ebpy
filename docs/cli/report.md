@@ -18,11 +18,16 @@ ebpy report --json
 - the mypy error total;
 - how many files have findings at all.
 
-## It is never a gate
+## It is not a quality gate
 
-It cannot change an exit code, and it does not fail when the summary file cannot be written —
-failing the job because a *report* could not be written would make it one, and the markdown has
-already gone to stdout either way.
+Ruff being unavailable and the summary file being unwritable do not fail the report: it renders
+the usable half of the answer and says what was not measured. Findings themselves never change the
+exit code.
+
+Invalid inputs are different. If the baseline and ledger are incomplete, malformed or inconsistent,
+`report` exits 1 before measuring; treating unreadable or disagreeing ceiling data as an empty
+backlog would be a false report. Restore both matching files, or replace the contract explicitly
+with `freeze --force`.
 
 The generated workflow runs it after `check` with `if: always()`, because the run where the gate has
 just failed is the run where the backlog is worth most.

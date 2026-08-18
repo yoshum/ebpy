@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..baseline import read_cells, split_against_baseline
+from ..baseline import split_against_baseline
+from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
 from ..ruff_runner import run_ruff_check
@@ -13,7 +14,6 @@ from ..state import (
     MYPY_COUNTER,
     apply_rule_counts,
     find_regressions,
-    read_state,
     set_counter,
     total_violations,
     write_state,
@@ -34,12 +34,16 @@ def _worst(counts: dict[str, int]) -> list[str]:
 
 
 def run_check(cwd: Path, write: bool) -> CheckResult:
-    previous = read_state(cwd)
-    if not previous:
+    artifacts = read_ceiling_artifacts(cwd)
+    if artifacts.kind == "invalid":
+        return CheckResult(ok=False, message=invalid_artifacts_message(artifacts))
+    if artifacts.kind == "fresh":
         return CheckResult(ok=False, message="No baseline. Run `ebpy freeze` and commit the result.")
+    previous = artifacts.ledger.state
+    assert previous is not None
 
     result = run_ruff_check(cwd)
-    baseline = read_cells(cwd)
+    baseline = artifacts.cells
     new_by_rule, grandfathered = split_against_baseline(result.cells, baseline)
 
     state = apply_rule_counts(previous, grandfathered, "observe")
