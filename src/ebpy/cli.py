@@ -23,7 +23,6 @@ from .commands.secrets import run_secrets
 from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
-from .ruff_runner import RuffFailedError, RuffNotFoundError
 
 USAGE_EPILOG = f"""\
 commands:
@@ -210,9 +209,6 @@ def main(argv: list[str] | None = None) -> int:
         outcome = _dispatch(args, cwd)
     except CommandError as error:
         sys.stdout.write(f"{error}\n")
-        return 1
-    except (RuffNotFoundError, RuffFailedError) as error:
-        sys.stderr.write(f"{error}\n")
         return 1
     sys.stdout.write(f"{outcome.output}\n")
     return outcome.code

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Literal, TypeAlias, TypeVar
 
@@ -46,7 +46,11 @@ Observation: TypeAlias = Measured[T] | Unavailable | Failed
 @dataclass(frozen=True)
 class Measurement:
     lint: Observation[LintMeasurement]
-    counters: dict[str, Observation[int]] = field(default_factory=dict)
+    counters: dict[str, Observation[int]]
+
+    def __post_init__(self) -> None:
+        if MYPY_COUNTER not in self.counters:
+            raise ValueError(f"Measurement requires an observation for {MYPY_COUNTER}")
 
 
 def _detail(error: BaseException) -> str:
