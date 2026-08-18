@@ -28,9 +28,9 @@ def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
     ]
 
 
-def _ci_line(diagnosis: Diagnosis) -> str:
+def _ci_lines(diagnosis: Diagnosis) -> list[str]:
     if not diagnosis.ci.present:
-        return "  ci                none"
+        return ["  ci                none"]
     runners = ", ".join(diagnosis.ci.runners) or "unknown runners"
     steps = [
         name
@@ -42,7 +42,14 @@ def _ci_line(diagnosis: Diagnosis) -> str:
         )
         if present
     ]
-    return f"  ci                {runners} [{' '.join(steps) or 'no known steps'}]"
+    unpinned = len(diagnosis.ci.unpinned_actions)
+    # Only under `present`: "every action is pinned" and "there were no actions to look
+    # at" are different answers, and a repository without CI has given neither.
+    pins = f"{unpinned} on a moveable tag" if unpinned else "all pinned to commits"
+    return [
+        f"  ci                {runners} [{' '.join(steps) or 'no known steps'}]",
+        f"  action pins       {pins}",
+    ]
 
 
 def _size_lines(diagnosis: Diagnosis) -> list[str]:
@@ -69,7 +76,7 @@ def render_diagnosis(diagnosis: Diagnosis) -> str:
             "ebpy diagnose",
             "",
             *_tooling_lines(diagnosis),
-            _ci_line(diagnosis),
+            *_ci_lines(diagnosis),
             *_size_lines(diagnosis),
             *_gap_lines(diagnosis.gaps),
             "",

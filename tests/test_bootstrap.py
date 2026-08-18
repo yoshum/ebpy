@@ -4,10 +4,22 @@ import tomllib
 from pathlib import Path
 
 from ebpy.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.detect.ci import unpinned_actions
 from ebpy.diagnose import diagnose
 from ebpy.facts import gather_facts
-from ebpy.generate.configs import python_version_from_requires, ruff_pyproject_section, ruff_toml_content
-from ebpy.generate.workflows import gate_workflow, secret_scan_workflow
+from ebpy.generate.configs import (
+    DEPENDABOT_CONTENT,
+    python_version_from_requires,
+    ruff_pyproject_section,
+    ruff_toml_content,
+)
+from ebpy.generate.workflows import (
+    GITLEAKS_SHA256,
+    PinnedAction,
+    gate_workflow,
+    secret_scan_workflow,
+)
+from ebpy.models import WorkflowFile
 
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:
@@ -56,6 +68,36 @@ def test_the_secret_workflow_scans_history_and_working_tree() -> None:
     assert "gitleaks dir ." in workflow
     # The secret must not land in a public log.
     assert "--redact" in workflow
+
+
+def test_every_generated_action_is_pinned_to_a_commit() -> None:
+    """What bootstrap writes must not trip the gap diagnose reports."""
+    for manager in ("uv", "poetry", "pdm", "pipenv", "pip"):
+        workflows = (
+            WorkflowFile(path="quality.yml", content=gate_workflow(manager)),
+            WorkflowFile(path="secret-scan.yml", content=secret_scan_workflow()),
+        )
+        assert unpinned_actions(workflows) == ()
+
+
+def test_the_pinned_version_is_a_comment_beside_the_commit() -> None:
+    # Dependabot rewrites the pair together, so the release has to travel with the SHA.
+    action = PinnedAction("actions/checkout", "a" * 40, "v4.4.0")
+    assert action.uses == f"actions/checkout@{'a' * 40} # v4.4.0"
+
+
+def test_the_secret_workflow_checks_the_digest_before_it_runs_the_binary() -> None:
+    workflow = secret_scan_workflow()
+    assert GITLEAKS_SHA256 in workflow
+    # Order is the whole point: a digest checked after extraction has verified nothing.
+    verify = workflow.index("sha256sum -c")
+    assert verify < workflow.index("tar -xzf")
+    assert verify < workflow.index("install -m 0755")
+
+
+def test_dependabot_updates_the_actions_bootstrap_just_pinned() -> None:
+    # Pinning without an updater freezes the repo on whatever was current that day.
+    assert "github-actions" in DEPENDABOT_CONTENT
 
 
 def test_a_bare_repository_gets_configs_and_a_dev_install(tmp_path: Path) -> None:

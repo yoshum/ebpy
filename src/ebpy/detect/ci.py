@@ -15,6 +15,28 @@ from ..models import CiCoverage, WorkflowFile
 # match workflow FILENAMES like `windows-daily.yaml` and report a runner never used.
 _RUNNER_PATTERN = re.compile(r"(?:ubuntu|macos|windows)-(?:latest|\d[\w.]*)")
 
+_USES_PATTERN = re.compile(r"^\s*(?:-\s+)?uses:\s*[\"']?([^\s\"'#]+)", re.MULTILINE)
+
+# SHA-1 today, SHA-256 whenever GitHub finishes moving; anything else after the `@` is a
+# tag or a branch, which the action's owner can move onto new code at any time.
+_COMMIT_PIN = re.compile(r"@(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+
+
+def unpinned_actions(workflows: tuple[WorkflowFile, ...]) -> tuple[str, ...]:
+    """The `uses:` references that name a tag or branch instead of a commit.
+
+    Local actions (`./.github/actions/x`) and container steps (`docker://`) are not
+    included: neither resolves through a moveable git ref, so neither is a pin anybody
+    can tighten.
+    """
+    combined = "\n".join(workflow.content for workflow in workflows)
+    refs = {
+        ref
+        for ref in _USES_PATTERN.findall(combined)
+        if not ref.startswith(("./", "docker://")) and not _COMMIT_PIN.search(ref)
+    }
+    return tuple(sorted(refs))
+
 
 def detect_ci(workflows: tuple[WorkflowFile, ...]) -> CiCoverage:
     combined = "\n".join(workflow.content for workflow in workflows)
@@ -22,6 +44,7 @@ def detect_ci(workflows: tuple[WorkflowFile, ...]) -> CiCoverage:
     return CiCoverage(
         present=len(workflows) > 0,
         runners=runners,
+        unpinned_actions=unpinned_actions(workflows),
         runs_lint=bool(re.search(r"\bruff\s+check\b|\bflake8\b|\bpylint\b", combined)),
         runs_typecheck=bool(re.search(r"\bmypy\b|\bpyright\b", combined)),
         runs_test=bool(re.search(r"\bpytest\b|\bpython\s+-m\s+unittest\b", combined)),

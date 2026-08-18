@@ -13,6 +13,9 @@ from .detect.tooling import detect_framework, detect_tooling, requires_python
 from .facts import RepoFacts
 from .models import CiCoverage, Diagnosis, Gap, SizeDistribution, ToolingPresence
 
+# Enough to recognise the workflow they live in; the rest is a count, not a wall of refs.
+_ACTIONS_NAMED = 3
+
 
 def _tooling_gaps(tooling: ToolingPresence) -> list[Gap]:
     gaps: list[Gap] = []
@@ -127,6 +130,20 @@ def _ci_gaps(ci: CiCoverage) -> list[Gap]:
                 id="ci-lint",
                 title="CI does not run lint",
                 detail="The rules are configured but nothing runs them on a pull request.",
+                phase="review",
+            )
+        )
+    if ci.unpinned_actions:
+        shown = ", ".join(ci.unpinned_actions[:_ACTIONS_NAMED])
+        more = len(ci.unpinned_actions) - _ACTIONS_NAMED
+        gaps.append(
+            Gap(
+                id="ci-action-pins",
+                title=f"{len(ci.unpinned_actions)} action(s) not pinned to a commit",
+                detail=f"{shown}{f' + {more} more' if more > 0 else ''}. A tag is not a pin: whoever "
+                "owns the action can move it onto new code, and CI would run that without a diff — "
+                "with whatever token the job holds. Pin each to a full commit SHA and let dependabot "
+                "bump them.",
                 phase="review",
             )
         )

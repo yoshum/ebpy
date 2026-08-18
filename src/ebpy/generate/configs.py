@@ -66,6 +66,10 @@ def python_version_from_requires(requires: str | None, default: str = "py311") -
 
 GITATTRIBUTES_CONTENT = "* text=auto eol=lf\n"
 
+# Pinning without an updater is how a repository ends up frozen on a version with a
+# known hole, so the actions ebpy pins to SHAs get an updater in the same breath. They
+# are grouped into one pull request rather than one per action, because the point is a
+# diff somebody reads, not a queue somebody rubber-stamps.
 DEPENDABOT_CONTENT = """\
 version: 2
 updates:
@@ -77,4 +81,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
 """

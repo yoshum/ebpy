@@ -72,8 +72,8 @@ run ebpy on this repo
 
 Read-only survey. Reports the package manager, the declared Python version, the framework, which of
 Ruff / a formatter / mypy / pytest / vulture / pre-commit / secret scanning are configured, what CI
-runs and on which platforms, how many files exceed the size limit, and a gap list with the phase
-that closes each one.
+runs and on which platforms, whether every workflow `uses:` is pinned to a commit SHA, how many
+files exceed the size limit, and a gap list with the phase that closes each one.
 
 Pass `--write` to persist `QUALITY.md` and `.ebpy/state.json`. Pass `--json` for the raw diagnosis.
 
@@ -93,8 +93,11 @@ the approach depends on, each covering what the others cannot see:
 | style | `ruff format` | settled once, so no diff ever argues about it |
 | dead code | vulture | functions and classes nobody calls |
 
-Plus a three-platform quality workflow, a secret-scan workflow, `dependabot.yml` so the pinned
-action versions stay current after ebpy has stopped looking, and `.gitattributes`.
+Plus a three-platform quality workflow, a secret-scan workflow, `dependabot.yml`, and
+`.gitattributes`. Every action in those workflows is pinned to a full commit SHA with the release
+as a trailing comment, and the gitleaks download is checked against a digest — a tag can be moved
+onto new code by whoever owns it, and a release asset can be replaced in place. Dependabot is what
+keeps those pins from going stale after ebpy has stopped looking.
 
 It **never overwrites a config that already exists** — the exceptions in it have reasons that are
 not in the file. `--dry-run` prints the plan and touches nothing.

@@ -55,6 +55,9 @@ class CiCoverage:
     present: bool
     # Runner labels seen across all workflows, e.g. ("ubuntu-latest", "macos-latest").
     runners: tuple[str, ...]
+    # `uses:` references still on a tag or branch. Empty means every one is a commit pin
+    # — but only when `present`, since a repo with no workflows has none of either.
+    unpinned_actions: tuple[str, ...]
     runs_lint: bool
     runs_typecheck: bool
     runs_test: bool
@@ -105,6 +108,7 @@ class Diagnosis:
             "ci": {
                 "present": self.ci.present,
                 "runners": list(self.ci.runners),
+                "unpinnedActions": list(self.ci.unpinned_actions),
                 "runsLint": self.ci.runs_lint,
                 "runsTypecheck": self.ci.runs_typecheck,
                 "runsTest": self.ci.runs_test,
@@ -141,6 +145,7 @@ def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
         ci=CiCoverage(
             present=bool(ci.get("present")),
             runners=tuple(ci.get("runners") or ()),
+            unpinned_actions=tuple(ci.get("unpinnedActions") or ()),
             runs_lint=bool(ci.get("runsLint")),
             runs_typecheck=bool(ci.get("runsTypecheck")),
             runs_test=bool(ci.get("runsTest")),
