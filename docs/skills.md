@@ -222,12 +222,15 @@ the run before a single file has been written.
   branch the owner may have read, never commit to the default branch, and every PR leaves
   `ebpy check` passing. A red gate on a PR that was supposed to *lower* the ceiling is the failure
   mode that discredits the whole exercise.
-- **Exactly two things stop the whole run:** a dirty working tree at the start, and an install that
+- **Exactly three things stop the whole run:** a dirty working tree at the start, an install that
   cannot run at all (no network, a broken lockfile — every later phase depends on the tools
-  existing).
+  existing), and **two drain pull requests in a row failing CI for a reason it cannot diagnose**.
+  One failure is a bad fix, which it fixes; two in a row is a loop, and a loop left running produces
+  a queue of pull requests nobody can merge — which costs more than the backlog did.
 - **Two things look like stops and are not:** an issue-list item (open the issue, continue with the
   next rule, do not wait), and CI that was already red before it arrived (say so once, keep
-  draining, never silently fix somebody else's test suite under a lint PR).
+  draining, never silently fix somebody else's test suite under a lint PR — and it does not count
+  toward the two failures above, since it was not caused by a drain PR).
 - **Coming back after a while, it re-diagnoses first**, then re-reads Carried over and drops the
   entries that no longer describe anything. A stale checklist nobody prunes is how the list stops
   being read.

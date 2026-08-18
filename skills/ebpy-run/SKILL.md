@@ -9,7 +9,7 @@ requests, not questions.
 
 **Default to acting.** Everything in this process that can be decided from the code, you decide. Two
 short lists bound that: the decisions that become an issue, written down in `ebpy-drain`, and the
-two hard stops at the end of this file. If something is on neither, do it.
+three hard stops at the end of this file. If something is on neither, do it.
 
 ## Before anything: the working tree must be clean
 
@@ -92,19 +92,24 @@ A stale checklist that nobody prunes is how the list stops being read at all.
 
 ## When to stop and wait
 
-Two cases stop the whole run, and only two:
+Three cases stop the whole run, and only three:
 
 1. **The working tree was dirty when you arrived** — see above. Before anything, so nothing has
    been written yet when you ask.
 2. **The install cannot run at all** (no network, a broken lockfile). Report it and stop — every
    later phase depends on the tools existing.
+3. **Two drain pull requests in a row fail CI for a reason you cannot diagnose.** One is a bad fix,
+   and you fix it. Two in a row is a loop, and a loop left running produces a queue of pull requests
+   nobody can merge — which costs the owner more than the backlog did. Stop and report both
+   failures, with what you tried.
 
 Two things look like stops and are not:
 
 - **Something on the issue list in `ebpy-drain`** — open the issue and continue with the next
   rule. Do not wait.
 - **CI is red for reasons that predate you.** Say so once, in one place, and keep draining; do not
-  fix somebody else's broken test suite silently under a lint PR.
+  fix somebody else's broken test suite silently under a lint PR. It also does not arm the counter
+  above: a failure that was there before you started is not one of your two.
 
 Everything else: keep going.
 
