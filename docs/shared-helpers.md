@@ -21,7 +21,7 @@ notices once the copies are textually similar — and independently written ones
 | `build_graph` | src/ebpy/fan_in.py:94 | File -> the project files it imports. |
 | `build_lint_report` | src/ebpy/lint_report.py:126 |  |
 | `build_parser` | src/ebpy/cli.py:52 |  |
-| `build_plan` | src/ebpy/bootstrap_plan.py:111 |  |
+| `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
 | `cells_of` | src/ebpy/baseline.py:62 |  |
 | `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
@@ -61,7 +61,7 @@ notices once the copies are textually similar — and independently written ones
 | `read_suppression_total` | src/ebpy/baseline.py:54 |  |
 | `read_suppressions` | src/ebpy/baseline.py:46 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
-| `render_plan` | src/ebpy/bootstrap_plan.py:150 |  |
+| `render_plan` | src/ebpy/bootstrap_plan.py:142 |  |
 | `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
 | `rule_totals` | src/ebpy/ruff_runner.py:109 |  |
 | `run` | src/ebpy/util.py:17 |  |
@@ -92,13 +92,13 @@ notices once the copies are textually similar — and independently written ones
 | `run_check` | src/ebpy/commands/check.py:36 |  |
 | `run_diagnose` | src/ebpy/commands/diagnose.py:16 |  |
 | `run_freeze` | src/ebpy/commands/freeze.py:53 |  |
-| `run_install` | src/ebpy/commands/install.py:257 |  |
+| `run_install` | src/ebpy/commands/install.py:322 |  |
 | `run_log` | src/ebpy/commands/log.py:23 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:21 |  |
 | `run_prune` | src/ebpy/commands/prune.py:22 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:48 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
-| `run_skills_install` | src/ebpy/commands/install.py:194 |  |
+| `run_skills_install` | src/ebpy/commands/install.py:222 |  |
 | `run_status` | src/ebpy/commands/status.py:14 |  |
 
 ## src/ebpy/detect

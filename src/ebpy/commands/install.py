@@ -1,4 +1,4 @@
-"""Install ebpy in a uv project and manage its bundled Claude Code skills."""
+"""Install ebpy in a project and manage its bundled Claude Code skills."""
 
 from __future__ import annotations
 
@@ -6,17 +6,22 @@ import hashlib
 import json
 import re
 import shutil
+import tomllib
 from dataclasses import dataclass
 from importlib import metadata, resources
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from .. import __version__
+from ..detect.package_manager import detect_package_manager
+from ..models import PackageManager
+from ..package_manager import DEV_INSTALL_PREFIXES, RUN_PREFIXES
 from ..util import run
 
 REPOSITORY_URL = "https://github.com/yoshum/ebpy"
 MANIFEST_NAME = ".ebpy-manifest.json"
+MINIMUM_INSTALL_VERSION = "0.3.0"
 VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z]+)*")
 REF_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._/-]*")
 
@@ -40,28 +45,51 @@ class InstallTarget:
     description: str
 
 
-def _current_source() -> str:
+def _direct_url_data() -> dict[str, object] | None:
     try:
         direct_url = metadata.distribution("ebpy").read_text("direct_url.json")
     except metadata.PackageNotFoundError:
-        direct_url = None
-    if direct_url:
-        try:
-            loaded: object = json.loads(direct_url)
-        except json.JSONDecodeError:
-            loaded = None
-        if isinstance(loaded, dict):
-            data = cast(dict[str, object], loaded)
-            url = data.get("url")
-            vcs = data.get("vcs_info")
-            if isinstance(url, str) and isinstance(vcs, dict):
-                commit = cast(dict[str, object], vcs).get("commit_id")
-                if isinstance(commit, str) and commit:
-                    git_url = url if url.startswith("git+") else f"git+{url}"
-                    return f"{git_url}@{commit}"
-            if isinstance(url, str):
-                return url
+        return None
+    if not direct_url:
+        return None
+    try:
+        loaded: object = json.loads(direct_url)
+    except json.JSONDecodeError:
+        return None
+    return cast(dict[str, object], loaded) if isinstance(loaded, dict) else None
+
+
+def _current_source() -> str:
+    data = _direct_url_data()
+    if data is not None:
+        url = data.get("url")
+        vcs = data.get("vcs_info")
+        if isinstance(url, str) and isinstance(vcs, dict):
+            commit = cast(dict[str, object], vcs).get("commit_id")
+            if isinstance(commit, str) and commit:
+                git_url = url if url.startswith("git+") else f"git+{url}"
+                return f"{git_url}@{commit}"
+        if isinstance(url, str):
+            return url
     return f"v{__version__}"
+
+
+def _bootstrap_ref() -> str | None:
+    data = _direct_url_data()
+    vcs = data.get("vcs_info") if data is not None else None
+    if not isinstance(vcs, dict):
+        return None
+    requested = cast(dict[str, object], vcs).get("requested_revision")
+    return requested if isinstance(requested, str) and requested else None
+
+
+def _project_manager(cwd: Path) -> PackageManager:
+    root_entries = tuple(sorted(entry.name for entry in cwd.iterdir() if entry.is_file()))
+    try:
+        pyproject: dict[str, Any] | None = tomllib.loads((cwd / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        pyproject = None
+    return detect_package_manager(root_entries, pyproject)
 
 
 def _skills_root() -> Traversable:
@@ -140,7 +168,7 @@ def _conflicts(destination: Path, bundle: Bundle) -> list[str]:
     for root_name in bundle.managed_roots:
         target = destination / root_name
         actual = _files_below(target)
-        if actual == {} and not target.exists():
+        if actual == {}:
             continue
         expected = {
             Path(*relative.parts[1:]): content
@@ -193,7 +221,7 @@ def _write_bundle(destination: Path, bundle: Bundle) -> None:
 
 def run_skills_install(cwd: Path, force: bool) -> InstallResult:
     if not (cwd / "pyproject.toml").is_file():
-        return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the uv project root.")
+        return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
 
     try:
         bundle = _load_bundle()
@@ -238,49 +266,94 @@ def _valid_ref(ref: str) -> bool:
     )
 
 
-def _resolve_target(version: str | None, ref: str | None) -> InstallTarget | str:
-    if version is not None and ref is not None:
-        return "VERSION and --ref cannot be used together."
-    if ref is not None:
-        if not _valid_ref(ref):
-            return f"Invalid Git ref: {ref}"
-        return InstallTarget(ref, f"Git ref {ref}")
-
-    requested_version = version or __version__
-    normalized = _normalize_version(requested_version)
+def _release_target(version: str) -> InstallTarget | str:
+    normalized = _normalize_version(version)
     if normalized is None:
-        return f"VERSION must be an exact release such as {__version__}; version ranges are not supported."
+        if _valid_ref(version):
+            return f"{version!r} looks like a Git ref; use `--ref {version}` instead of VERSION."
+        return (
+            f"VERSION must be an exact release such as {MINIMUM_INSTALL_VERSION}; "
+            "version ranges are not supported."
+        )
+    core_match = re.match(r"([0-9]+)\.([0-9]+)\.([0-9]+)", normalized)
+    if core_match is None:  # Kept separate from the syntax regex so the comparison stays explicit.
+        return f"Invalid release version: {version}"
+    core = tuple(int(part) for part in core_match.groups())
+    minimum = tuple(int(part) for part in MINIMUM_INSTALL_VERSION.split("."))
+    if core < minimum:
+        return (
+            f"ebpy install supports v{MINIMUM_INSTALL_VERSION} or newer; "
+            f"v{normalized} does not provide `ebpy skills install`."
+        )
     revision = f"v{normalized}"
     return InstallTarget(revision, f"release {revision}")
 
 
+def _ref_target(ref: str, *, bootstrap: bool = False) -> InstallTarget | str:
+    if not _valid_ref(ref):
+        return f"Invalid Git ref: {ref}"
+    normalized = _normalize_version(ref)
+    if normalized is not None:
+        release = _release_target(normalized)
+        if isinstance(release, str):
+            return release
+    qualifier = "bootstrap Git ref" if bootstrap else "Git ref"
+    return InstallTarget(ref, f"{qualifier} {ref}")
+
+
+def _resolve_target(version: str | None, ref: str | None, bootstrap_ref: str | None) -> InstallTarget | str:
+    if version is not None and ref is not None:
+        return "VERSION and --ref cannot be used together."
+    if ref is not None:
+        return _ref_target(ref)
+    if version is not None:
+        return _release_target(version)
+    if bootstrap_ref is not None:
+        return _ref_target(bootstrap_ref, bootstrap=True)
+    return _release_target(__version__)
+
+
+def _requirement(manager: PackageManager, target: InstallTarget) -> str:
+    repository = f"{REPOSITORY_URL}.git" if manager == "pipenv" else REPOSITORY_URL
+    vcs_url = f"git+{repository}@{target.revision}"
+    return f"{vcs_url}#egg=ebpy" if manager == "pipenv" else f"ebpy @ {vcs_url}"
+
+
 def run_install(cwd: Path, version: str | None, ref: str | None, force: bool) -> InstallResult:
     if not (cwd / "pyproject.toml").is_file():
-        return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the uv project root.")
-    target = _resolve_target(version, ref)
+        return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
+    target = _resolve_target(version, ref, _bootstrap_ref())
     if isinstance(target, str):
         return InstallResult(False, target)
 
-    requirement = f"ebpy @ git+{REPOSITORY_URL}@{target.revision}"
-    added = run(["uv", "add", "--dev", requirement], cwd)
+    manager = _project_manager(cwd)
+    requirement = _requirement(manager, target)
+    install_argv = [*DEV_INSTALL_PREFIXES[manager]]
+    if manager == "pipenv":
+        install_argv.append("--editable")
+    install_argv.append(requirement)
+    added = run(install_argv, cwd)
     if added.code != 0:
         return InstallResult(
             False,
-            f"uv add failed for {target.description} (exit {added.code})."
+            f"{manager} dependency installation failed for {target.description} (exit {added.code})."
             f"{_failure_detail(added.stdout, added.stderr)}",
         )
 
-    skills_argv = ["uv", "run", "ebpy", "skills", "install"]
+    skills_argv = [*RUN_PREFIXES[manager], "ebpy", "skills", "install"]
     if force:
         skills_argv.append("--force")
     skills = run(skills_argv, cwd)
     if skills.code != 0:
+        command = " ".join(skills_argv)
         return InstallResult(
             False,
-            f"Added ebpy from {target.description}, but `uv run ebpy skills install` failed "
+            f"Added ebpy from {target.description}, but `{command}` failed "
             f"(exit {skills.code}).{_failure_detail(skills.stdout, skills.stderr)}",
         )
 
     skill_message = skills.stdout.strip()
     suffix = f"\n{skill_message}" if skill_message else ""
-    return InstallResult(True, f"Installed ebpy from {target.description} as a dev dependency.{suffix}")
+    return InstallResult(
+        True, f"Installed ebpy from {target.description} as a {manager} dev dependency.{suffix}"
+    )
