@@ -203,23 +203,23 @@ def state_to_dict(state: State) -> dict[str, Any]:
 
 def read_ledger(cwd: Path) -> Ledger:
     path = state_path(cwd)
+    if path.is_symlink():
+        return Ledger(exists=True, state=None)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return Ledger(exists=path.is_symlink(), state=None)
+        return Ledger(exists=False, state=None)
     except (OSError, UnicodeError, json.JSONDecodeError):
         return Ledger(exists=True, state=None)
     state = state_from_dict(raw) if isinstance(raw, dict) else None
     return Ledger(exists=True, state=state)
 
 
-def read_state(cwd: Path) -> State | None:
-    return read_ledger(cwd).state
-
-
 def write_state(cwd: Path, state: State) -> None:
     path = state_path(cwd)
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        path.unlink()
     state.updated_at = _now()
     path.write_text(json.dumps(state_to_dict(state), indent=2) + "\n", encoding="utf-8")
 

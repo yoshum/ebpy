@@ -13,7 +13,6 @@ from ebpy.state import (
     improvements,
     next_baseline,
     read_ledger,
-    read_state,
     set_counter,
     state_from_dict,
     total_violations,
@@ -78,7 +77,7 @@ def test_state_round_trips_through_disk(tmp_path: Path) -> None:
     state = append_log(state, "deferred", "router.py is 1400 lines", "abc1234", rule="PLR0915")
     write_state(tmp_path, state)
 
-    loaded = read_state(tmp_path)
+    loaded = read_ledger(tmp_path).state
     assert loaded is not None
     assert loaded.rules["E501"].baseline == 4
     assert loaded.counters[MYPY_COUNTER].current == 11
@@ -88,7 +87,6 @@ def test_state_round_trips_through_disk(tmp_path: Path) -> None:
 
 
 def test_missing_state_reads_as_none(tmp_path: Path) -> None:
-    assert read_state(tmp_path) is None
     assert read_ledger(tmp_path) == Ledger(exists=False, state=None)
 
 
@@ -97,7 +95,6 @@ def test_invalid_utf8_state_reads_as_none(tmp_path: Path) -> None:
     path.parent.mkdir(parents=True)
     path.write_bytes(b"\xff\xfe")
 
-    assert read_state(tmp_path) is None
     assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
 
 
@@ -105,6 +102,16 @@ def test_a_broken_state_symlink_is_unreadable_not_missing(tmp_path: Path) -> Non
     path = tmp_path / ".ebpy" / "state.json"
     path.parent.mkdir(parents=True)
     path.symlink_to("missing.json")
+
+    assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
+
+
+def test_a_readable_state_symlink_is_unreadable(tmp_path: Path) -> None:
+    target = tmp_path / "outside-state.json"
+    target.write_text('{"version": 1, "rules": {}, "counters": {}, "log": []}\n', encoding="utf-8")
+    path = tmp_path / ".ebpy" / "state.json"
+    path.parent.mkdir(parents=True)
+    path.symlink_to(target)
 
     assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
 

@@ -126,6 +126,16 @@ def test_a_broken_baseline_symlink_is_unreadable_not_missing(tmp_path: Path) -> 
     assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)
 
 
+def test_a_readable_baseline_symlink_is_unreadable(tmp_path: Path) -> None:
+    target = tmp_path / "outside-baseline.json"
+    target.write_text("{}\n", encoding="utf-8")
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.symlink_to(target)
+
+    assert read_ceiling(tmp_path) == Ceiling(exists=True, total=None)
+
+
 @pytest.mark.parametrize(
     "raw",
     [

@@ -61,7 +61,7 @@ def test_freeze_leaves_an_empty_ceiling_alone_when_the_ledger_is_missing(tmp_pat
 
 
 def test_freeze_leaves_the_ceiling_alone_when_the_ledger_is_unreadable(tmp_path: Path) -> None:
-    """Conflict markers make the ledger invalid JSON, which `read_state` reports the same
+    """Conflict markers make the ledger invalid JSON, which `read_ledger` reports the same
     way as a file that was never written. Neither may unlock a re-freeze."""
     write_cells(tmp_path, {"src/app.py": {"F401": 1}})
     before = (tmp_path / BASELINE_FILE).read_text(encoding="utf-8")
@@ -166,4 +166,34 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     result = run_freeze(tmp_path, force=True)
 
     assert result.ok
+    assert read_ceiling_artifacts(tmp_path).kind == "frozen"
+
+
+def test_force_replaces_artifact_symlinks_without_touching_their_targets(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline_target = tmp_path / "outside-baseline.json"
+    state_target = tmp_path / "outside-state.json"
+    baseline_text = "{}\n"
+    state_text = '{"version": 1, "rules": {}, "counters": {}, "log": []}\n'
+    baseline_target.write_text(baseline_text, encoding="utf-8")
+    state_target.write_text(state_text, encoding="utf-8")
+
+    artifact_dir = tmp_path / ".ebpy"
+    artifact_dir.mkdir()
+    baseline_path(tmp_path).symlink_to(baseline_target)
+    state_path(tmp_path).symlink_to(state_target)
+    assert read_ceiling_artifacts(tmp_path).kind == "invalid"
+
+    monkeypatch.setattr(freeze, "run_ruff_check", lambda _cwd: RuffResult(cells={}))
+    monkeypatch.setattr(freeze, "run_mypy_error_count", lambda _cwd: None)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    result = run_freeze(tmp_path, force=True)
+
+    assert result.ok
+    assert not baseline_path(tmp_path).is_symlink()
+    assert not state_path(tmp_path).is_symlink()
+    assert baseline_target.read_text(encoding="utf-8") == baseline_text
+    assert state_target.read_text(encoding="utf-8") == state_text
     assert read_ceiling_artifacts(tmp_path).kind == "frozen"

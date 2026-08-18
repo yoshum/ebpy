@@ -63,10 +63,12 @@ class Ceiling:
 
 def read_ceiling(cwd: Path) -> Ceiling:
     path = baseline_path(cwd)
+    if path.is_symlink():
+        return Ceiling(exists=True, total=None)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return Ceiling(exists=path.is_symlink(), total=None)
+        return Ceiling(exists=False, total=None)
     except (OSError, UnicodeError, json.JSONDecodeError):
         return Ceiling(exists=True, total=None)
     if not _is_valid_baseline(raw):
@@ -121,6 +123,8 @@ def cells_of(entries: list[Suppression]) -> CellCounts:
 def write_cells(cwd: Path, cells: CellCounts) -> None:
     path = baseline_path(cwd)
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        path.unlink()
     serialised = {
         file: {rule: {"count": count} for rule, count in sorted(rules.items()) if count > 0}
         for file, rules in sorted(cells.items())
@@ -161,7 +165,3 @@ def split_against_baseline(
             if within:
                 grandfathered[rule] = grandfathered.get(rule, 0) + within
     return new, grandfathered
-
-
-def total_of(counts: dict[str, int]) -> int:
-    return sum(counts.values())
