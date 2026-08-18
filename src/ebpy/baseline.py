@@ -18,6 +18,7 @@ from .models import CellCounts
 
 BASELINE_FILE = ".ebpy/baseline.json"
 
+
 def _to_posix(file: str) -> str:
     """Paths are recorded with `/` whatever platform froze the baseline, so a repository
     frozen on Windows groups by the same directory as one frozen on Linux."""

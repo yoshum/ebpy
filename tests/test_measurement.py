@@ -11,9 +11,7 @@ from ebpy.mypy_runner import MypyFailedError, MypyNotFoundError
 from ebpy.ruff_runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 
-def test_each_capability_has_one_observation(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lint = LintMeasurement(cells={})
     monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: lint)
     monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
@@ -24,9 +22,7 @@ def test_each_capability_has_one_observation(
     assert result.counters == {MYPY_COUNTER: Measured(tool="mypy", value=0)}
 
 
-def test_mypy_is_measured_after_ruff_fails(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_mypy_is_measured_after_ruff_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
     def fail_ruff(_cwd: Path) -> LintMeasurement:
@@ -47,9 +43,7 @@ def test_mypy_is_measured_after_ruff_fails(
     assert result.counters[MYPY_COUNTER] == Measured(tool="mypy", value=3)
 
 
-def test_unavailable_tools_are_not_reported_as_clean(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_unavailable_tools_are_not_reported_as_clean(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def missing_ruff(_cwd: Path) -> LintMeasurement:
         raise RuffNotFoundError("ruff is not installed here")
 
