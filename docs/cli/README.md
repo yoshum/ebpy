@@ -47,11 +47,17 @@ ebpy runs *your* Ruff, with *your* config, from *your* virtualenv, so the invoca
 
 ```bash
 uv run ebpy check      # inside the project's environment — what CI does
-uvx ebpy diagnose      # read-only survey of a repo whose environment you have not set up yet
+
+# a repository that does not have ebpy yet; <tag> is a version from the Releases page
+uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy diagnose
 ```
 
-`diagnose` and `bootstrap` read configs rather than run tools, so `uvx` is enough for them.
-`freeze`, `check`, `prune`, `next` and `report` need the repository's own Ruff and mypy on the path.
+ebpy is [not published to a package index](../../README.md#install), so a bare `uvx ebpy` resolves
+nothing — it is installed from a released tag, or added to the repository as a dev dependency.
+
+`diagnose` and `bootstrap` read configs rather than run tools, so the throwaway `uvx` form is enough
+for them. `freeze`, `check`, `prune`, `next` and `report` need the repository's own Ruff and mypy on
+the path.
 
 ## Where the numbers live
 

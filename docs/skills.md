@@ -18,8 +18,10 @@ Then talk to Claude Code normally. Skills are selected from what you say, not fr
 type, so "lint を入れて" and "set up linting here" reach the same one. **Never ask for a skill by
 name** — say what you want done.
 
-The skills call `ebpy` through `uvx` or the project's own runner, so the package does not have to be
-a dependency of the repository being cleaned up.
+The skills call `ebpy` through the project's own runner (`uv run ebpy`) when the repository has it
+as a dev dependency, and through `uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it
+does not — so the package does not have to be a dependency of the repository being cleaned up. ebpy
+is [not published to a package index](../README.md#install): a bare `uvx ebpy` resolves nothing.
 
 ## Which one runs
 

@@ -197,6 +197,7 @@ issue には選択肢と、エージェントならどれを選ぶかが書か�
 | [スキルリファレンス](docs/skills.md) | 各スキルが何をして、何を譲らず、何をやらないか |
 | [CLI リファレンス](docs/cli/README.md) | コマンドごとに 1 ページ、フラグと終了コード付き |
 | [デフォルト設定一覧](docs/defaults.md) | `bootstrap` が書く値のすべてと、その理由 |
+| [リリース](docs/release.md) | `main` へのマージが何を出荷し、バージョンを何が決めるか |
 | [共有ヘルパー](docs/shared-helpers.md) | `ebpy catalog` がこのリポジトリ自身のソースから生成 |
 
 ## ever-better との違い
