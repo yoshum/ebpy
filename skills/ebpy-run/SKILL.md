@@ -7,9 +7,21 @@ description: Run the whole ebpy process on a Python repository unattended — di
 The unattended mode. The user has handed you a repository and expects to come back to pull
 requests, not questions.
 
-**Default to acting.** Everything in this process that can be decided from the code, you decide. The
-list of things that stop and ask is short and is written down in `ebpy-drain` — if something is not
-on it, do it.
+**Default to acting.** Everything in this process that can be decided from the code, you decide. Two
+short lists bound that: the decisions that become an issue, written down in `ebpy-drain`, and the
+two hard stops at the end of this file. If something is on neither, do it.
+
+## Before anything: the working tree must be clean
+
+```bash
+git status --porcelain
+```
+
+If that prints anything you did not create, stop and ask. The first thing this run does is reformat
+every file in the repository, and a format commit on top of somebody's uncommitted work is not a
+merge conflict they can resolve — it is their diff rewritten underneath them.
+
+An untracked file whose purpose you think you can see is not an exception. Ask.
 
 ## The checklist and the log are in the repo, not in your head
 
@@ -80,14 +92,19 @@ A stale checklist that nobody prunes is how the list stops being read at all.
 
 ## When to stop and wait
 
-Three cases, and only three:
+Two cases stop the whole run, and only two:
 
-1. **Something on the issue list in `ebpy-drain`** — open the issue and continue with the next rule.
-   Do not wait.
-2. **CI is red for reasons that predate you.** Say so once, in one place, and keep draining; do not
-   fix somebody else's broken test suite silently under a lint PR.
-3. **The install cannot run at all** (no network, a broken lockfile). Report it and stop — every
+1. **The working tree was dirty when you arrived** — see above. Before anything, so nothing has
+   been written yet when you ask.
+2. **The install cannot run at all** (no network, a broken lockfile). Report it and stop — every
    later phase depends on the tools existing.
+
+Two things look like stops and are not:
+
+- **Something on the issue list in `ebpy-drain`** — open the issue and continue with the next
+  rule. Do not wait.
+- **CI is red for reasons that predate you.** Say so once, in one place, and keep draining; do not
+  fix somebody else's broken test suite silently under a lint PR.
 
 Everything else: keep going.
 

@@ -207,6 +207,11 @@ handful, which is worth saying before it starts rather than after.
 **The sequence**, one pull request per step, in this order: a formatting PR, a tooling PR, a freeze
 PR, then one PR per rule.
 
+**Before it touches anything** it checks that the working tree is clean. The first thing the run
+does is reformat every file, and a format commit on top of somebody's uncommitted work is not a
+merge conflict they can resolve — it is their diff rewritten underneath them. A dirty tree stops
+the run before a single file has been written.
+
 **What keeps it honest**
 
 - **The checklist and the log are in the repository, not in its head.** `QUALITY.md` carries the
@@ -217,10 +222,12 @@ PR, then one PR per rule.
   branch the owner may have read, never commit to the default branch, and every PR leaves
   `ebpy check` passing. A red gate on a PR that was supposed to *lower* the ceiling is the failure
   mode that discredits the whole exercise.
-- **It stops for exactly three things:** an issue-list item (open the issue and continue — do not
-  wait), CI that was already red before it arrived (say so once, keep draining, do not silently fix
-  somebody else's test suite under a lint PR), and an install that cannot run at all (report and
-  stop — every later phase depends on the tools existing).
+- **Exactly two things stop the whole run:** a dirty working tree at the start, and an install that
+  cannot run at all (no network, a broken lockfile — every later phase depends on the tools
+  existing).
+- **Two things look like stops and are not:** an issue-list item (open the issue, continue with the
+  next rule, do not wait), and CI that was already red before it arrived (say so once, keep
+  draining, never silently fix somebody else's test suite under a lint PR).
 - **Coming back after a while, it re-diagnoses first**, then re-reads Carried over and drops the
   entries that no longer describe anything. A stale checklist nobody prunes is how the list stops
   being read.
