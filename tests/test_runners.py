@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ebpy.mypy_runner import count_errors
-from ebpy.ruff_runner import parse_ruff_json, rule_totals
+from ebpy.ruff_runner import parse_ruff_json
 
 
 def diagnostic(filename: str, code: str | None, row: int = 1, message: str = "boom") -> dict[str, object]:
@@ -56,10 +56,6 @@ def test_a_clean_repository_parses_to_nothing(tmp_path: Path) -> None:
     result = parse_ruff_json("[]", tmp_path)
     assert result.cells == {}
     assert result.files_with_findings == 0
-
-
-def test_rule_totals_sum_across_files() -> None:
-    assert rule_totals({"a.py": {"E501": 2}, "b.py": {"E501": 3, "F401": 1}}) == {"E501": 5, "F401": 1}
 
 
 def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:

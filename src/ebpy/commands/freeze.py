@@ -6,16 +6,16 @@ since, which is the one thing the baseline exists to prevent.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..baseline import write_cells
+from ..baseline import rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
+from ..errors import CommandError
 from ..models import State
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
-from ..ruff_runner import RuffResult, rule_totals, run_ruff_check
+from ..ruff_runner import RuffResult, run_ruff_check
 from ..state import (
     MYPY_COUNTER,
     BaselineMode,
@@ -27,12 +27,6 @@ from ..state import (
 )
 
 _UNATTRIBUTED_SHOWN = 5
-
-
-@dataclass(frozen=True)
-class FreezeResult:
-    ok: bool
-    message: str
 
 
 def _unattributed_report(result: RuffResult) -> list[str]:
@@ -83,15 +77,15 @@ def _previous_state(artifacts: CeilingArtifacts, force: bool) -> State:
     return state
 
 
-def run_freeze(cwd: Path, force: bool) -> FreezeResult:
+def run_freeze(cwd: Path, force: bool) -> str:
     artifacts = read_ceiling_artifacts(cwd)
     if not force:
         # Read before measuring: a repository that must not be frozen must not have its
         # ceiling raised by the run that discovers it.
         if artifacts.kind == "invalid":
-            return FreezeResult(ok=False, message=invalid_artifacts_message(artifacts))
+            raise CommandError(invalid_artifacts_message(artifacts))
         if artifacts.kind == "frozen":
-            return FreezeResult(ok=False, message=_already_frozen(artifacts))
+            raise CommandError(_already_frozen(artifacts))
 
     previous = _previous_state(artifacts, force)
 
@@ -115,17 +109,14 @@ def run_freeze(cwd: Path, force: bool) -> FreezeResult:
         if mypy_errors is not None
         else "mypy did not run, so no type-error ceiling was recorded."
     )
-    return FreezeResult(
-        ok=True,
-        message="\n".join(
-            [
-                f"Baseline pinned: {backlog} violations across {len(counts)} rules are now grandfathered.",
-                mypy_line,
-                "New code is held to the full rule set from here.",
-                *_unattributed_report(result),
-                "",
-                "Commit .ebpy/baseline.json, .ebpy/state.json and QUALITY.md.",
-                "Next: `ebpy next` ranks what to drain first.",
-            ]
-        ),
+    return "\n".join(
+        [
+            f"Baseline pinned: {backlog} violations across {len(counts)} rules are now grandfathered.",
+            mypy_line,
+            "New code is held to the full rule set from here.",
+            *_unattributed_report(result),
+            "",
+            "Commit .ebpy/baseline.json, .ebpy/state.json and QUALITY.md.",
+            "Next: `ebpy next` ranks what to drain first.",
+        ]
     )

@@ -16,6 +16,9 @@ from ebpy.state import state_path
     [
         ("diagnose", "--write"),
         ("log", "a note that must not replace the ledger"),
+        ("freeze",),
+        ("prune",),
+        ("check",),
     ],
 )
 def test_an_unreadable_ledger_is_never_replaced(
@@ -41,6 +44,8 @@ def test_an_unreadable_ledger_is_never_replaced(
     [
         ("diagnose", "--write"),
         ("log", "a note"),
+        ("freeze",),
+        ("prune",),
         ("check", "--no-write"),
         ("status",),
         ("next",),

@@ -203,7 +203,7 @@ def state_to_dict(state: State) -> dict[str, Any]:
 
 def read_ledger(cwd: Path) -> Ledger:
     path = state_path(cwd)
-    if path.is_symlink():
+    if path.parent.is_symlink() or path.is_symlink():
         return Ledger(exists=True, state=None)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
@@ -217,6 +217,8 @@ def read_ledger(cwd: Path) -> Ledger:
 
 def write_state(cwd: Path, state: State) -> None:
     path = state_path(cwd)
+    if path.parent.is_symlink():
+        path.parent.unlink()
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.is_symlink():
         path.unlink()

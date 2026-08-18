@@ -14,8 +14,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .models import Suppression
-
 BASELINE_FILE = ".ebpy/baseline.json"
 
 CellCounts = dict[str, dict[str, int]]
@@ -27,17 +25,27 @@ def _to_posix(file: str) -> str:
     return file.replace("\\", "/")
 
 
-def parse_suppressions(raw: Any) -> list[Suppression]:
+def parse_cells(raw: Any) -> CellCounts | None:
+    """Parse the complete baseline, rejecting rather than skipping any bad cell."""
     if not isinstance(raw, dict):
-        return []
-    entries: list[Suppression] = []
+        return None
+    cells: CellCounts = {}
     for file, rules in raw.items():
-        if not isinstance(rules, dict):
-            continue
+        if not isinstance(file, str) or not file or not isinstance(rules, dict) or not rules:
+            return None
+        parsed_rules: dict[str, int] = {}
         for rule, entry in rules.items():
-            if isinstance(entry, dict) and isinstance(entry.get("count"), int):
-                entries.append(Suppression(file=_to_posix(str(file)), rule=str(rule), count=entry["count"]))
-    return entries
+            if not isinstance(rule, str) or not rule or not isinstance(entry, dict):
+                return None
+            count = entry.get("count")
+            if set(entry) != {"count"} or type(count) is not int or count <= 0:
+                return None
+            parsed_rules[rule] = count
+        normalised = _to_posix(file)
+        if normalised in cells:
+            return None
+        cells[normalised] = parsed_rules
+    return cells
 
 
 def baseline_path(cwd: Path) -> Path:
@@ -48,80 +56,31 @@ def baseline_path(cwd: Path) -> Path:
 class Ceiling:
     """What ``.ebpy/baseline.json`` says about a ceiling having been pinned.
 
-    A missing file and a file holding nothing are different facts. A repository frozen
-    while clean has the second, and re-freezing it would grandfather everything added
-    since just as surely as one with cells — so the count cannot be the evidence.
-    Only `freeze` and `prune` ever write this file, which makes its existence the
-    question "has a ceiling been pinned here" answered exactly.
+    A missing file and a readable file holding no cells are different facts. ``cells``
+    is None only when the file is absent or invalid; ``exists`` distinguishes those two.
     """
 
     exists: bool
-    # None when the file is there but could not be read. That is still a ceiling, and
-    # the one case where guessing at the number would be worst.
-    total: int | None
+    cells: CellCounts | None
 
 
 def read_ceiling(cwd: Path) -> Ceiling:
     path = baseline_path(cwd)
-    if path.is_symlink():
-        return Ceiling(exists=True, total=None)
+    if path.parent.is_symlink() or path.is_symlink():
+        return Ceiling(exists=True, cells=None)
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return Ceiling(exists=False, total=None)
+        return Ceiling(exists=False, cells=None)
     except (OSError, UnicodeError, json.JSONDecodeError):
-        return Ceiling(exists=True, total=None)
-    if not _is_valid_baseline(raw):
-        return Ceiling(exists=True, total=None)
-    return Ceiling(exists=True, total=sum(entry.count for entry in parse_suppressions(raw)))
-
-
-def _is_valid_baseline(raw: Any) -> bool:
-    """Whether the whole document has the exact shape written by ``write_cells``.
-
-    ``parse_suppressions`` stays deliberately tolerant for callers inspecting arbitrary
-    data. A ceiling decision cannot be: skipping one malformed cell would silently lower
-    the contract and make a partial baseline look valid.
-    """
-    if not isinstance(raw, dict):
-        return False
-    for file, rules in raw.items():
-        if not isinstance(file, str) or not file or not isinstance(rules, dict) or not rules:
-            return False
-        for rule, entry in rules.items():
-            if not isinstance(rule, str) or not rule or not isinstance(entry, dict):
-                return False
-            count = entry.get("count")
-            if set(entry) != {"count"} or type(count) is not int or count <= 0:
-                return False
-    return True
-
-
-def read_suppressions(cwd: Path) -> list[Suppression]:
-    try:
-        raw = json.loads(baseline_path(cwd).read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return []
-    return parse_suppressions(raw)
-
-
-def read_suppression_total(cwd: Path) -> int:
-    return sum(entry.count for entry in read_suppressions(cwd))
-
-
-def read_cells(cwd: Path) -> CellCounts:
-    return cells_of(read_suppressions(cwd))
-
-
-def cells_of(entries: list[Suppression]) -> CellCounts:
-    cells: CellCounts = {}
-    for entry in entries:
-        cells.setdefault(entry.file, {})[entry.rule] = entry.count
-    return cells
+        return Ceiling(exists=True, cells=None)
+    return Ceiling(exists=True, cells=parse_cells(raw))
 
 
 def write_cells(cwd: Path, cells: CellCounts) -> None:
     path = baseline_path(cwd)
+    if path.parent.is_symlink():
+        path.parent.unlink()
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.is_symlink():
         path.unlink()
@@ -165,3 +124,11 @@ def split_against_baseline(
             if within:
                 grandfathered[rule] = grandfathered.get(rule, 0) + within
     return new, grandfathered
+
+
+def rule_totals(cells: CellCounts) -> dict[str, int]:
+    totals: dict[str, int] = {}
+    for rules in cells.values():
+        for rule, count in rules.items():
+            totals[rule] = totals.get(rule, 0) + count
+    return totals

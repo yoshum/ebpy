@@ -6,24 +6,23 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-107 public functions.
+102 public functions.
 
 ## src/ebpy
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `append_log` | src/ebpy/state.py:232 |  |
-| `apply_rule_counts` | src/ebpy/state.py:253 |  |
-| `area_of` | src/ebpy/lint_report.py:21 |  |
+| `append_log` | src/ebpy/state.py:236 |  |
+| `apply_rule_counts` | src/ebpy/state.py:257 |  |
+| `area_of` | src/ebpy/lint_report.py:20 |  |
 | `assess_freshness` | src/ebpy/freshness.py:45 |  |
-| `baseline_path` | src/ebpy/baseline.py:43 |  |
+| `baseline_path` | src/ebpy/baseline.py:51 |  |
 | `build_drain_plan` | src/ebpy/drain_order.py:157 |  |
 | `build_graph` | src/ebpy/fan_in.py:94 | File -> the project files it imports. |
-| `build_lint_report` | src/ebpy/lint_report.py:126 |  |
-| `build_parser` | src/ebpy/cli.py:52 |  |
+| `build_lint_report` | src/ebpy/lint_report.py:115 |  |
+| `build_parser` | src/ebpy/cli.py:62 |  |
 | `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
-| `cells_of` | src/ebpy/baseline.py:116 |  |
 | `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
 | `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
@@ -35,73 +34,69 @@ notices once the copies are textually similar — and independently written ones
 | `empty_state` | src/ebpy/state.py:63 |  |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
 | `find_mypy` | src/ebpy/mypy_runner.py:23 |  |
-| `find_regressions` | src/ebpy/state.py:280 | The gate. |
+| `find_regressions` | src/ebpy/state.py:284 | The gate. |
 | `find_ruff` | src/ebpy/ruff_runner.py:49 |  |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
 | `gather_facts` | src/ebpy/facts.py:111 |  |
 | `head_commit` | src/ebpy/git.py:25 |  |
 | `heaviest_files` | src/ebpy/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
 | `importers_of` | src/ebpy/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
-| `improvements` | src/ebpy/state.py:293 |  |
+| `improvements` | src/ebpy/state.py:297 |  |
 | `interpret_gitleaks` | src/ebpy/secret_scan.py:65 |  |
 | `invalid_artifacts_message` | src/ebpy/ceiling_artifacts.py:34 |  |
 | `is_git_repository` | src/ebpy/git.py:13 | Whether there is a history here at all. |
 | `list_all_files` | src/ebpy/facts.py:64 |  |
 | `list_source_paths` | src/ebpy/facts.py:78 |  |
-| `log_of_kind` | src/ebpy/state.py:238 |  |
-| `main` | src/ebpy/cli.py:227 |  |
-| `matrix_from_cells` | src/ebpy/lint_report.py:79 |  |
-| `matrix_from_suppressions` | src/ebpy/lint_report.py:88 | The ratchet file is per file per rule, which is the same information one directory up. |
-| `next_baseline` | src/ebpy/state.py:247 |  |
+| `log_of_kind` | src/ebpy/state.py:242 |  |
+| `main` | src/ebpy/cli.py:202 |  |
+| `matrix_from_cells` | src/ebpy/lint_report.py:78 |  |
+| `next_baseline` | src/ebpy/state.py:251 |  |
+| `parse_cells` | src/ebpy/baseline.py:28 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
 | `parse_ruff_json` | src/ebpy/ruff_runner.py:67 |  |
-| `parse_suppressions` | src/ebpy/baseline.py:30 |  |
-| `prune_cells` | src/ebpy/baseline.py:136 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
-| `read_ceiling` | src/ebpy/baseline.py:64 |  |
-| `read_ceiling_artifacts` | src/ebpy/ceiling_artifacts.py:98 | Read and classify both files without inferring missing contract data. |
-| `read_cells` | src/ebpy/baseline.py:112 |  |
+| `prune_cells` | src/ebpy/baseline.py:95 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
+| `read_ceiling` | src/ebpy/baseline.py:67 |  |
+| `read_ceiling_artifacts` | src/ebpy/ceiling_artifacts.py:91 | Read and classify both files without inferring missing contract data. |
 | `read_ledger` | src/ebpy/state.py:204 |  |
 | `read_sources` | src/ebpy/facts.py:82 |  |
-| `read_suppression_total` | src/ebpy/baseline.py:108 |  |
-| `read_suppressions` | src/ebpy/baseline.py:100 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
 | `render_plan` | src/ebpy/bootstrap_plan.py:142 |  |
 | `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
-| `rule_totals` | src/ebpy/ruff_runner.py:109 |  |
+| `rule_totals` | src/ebpy/baseline.py:129 |  |
 | `run` | src/ebpy/util.py:17 |  |
 | `run_mypy_error_count` | src/ebpy/mypy_runner.py:37 | Today's mypy error total, or None when it could not be measured. |
 | `run_ruff_check` | src/ebpy/ruff_runner.py:92 |  |
-| `set_counter` | src/ebpy/state.py:268 |  |
-| `split_against_baseline` | src/ebpy/baseline.py:148 | Divide today's violations into (new, grandfathered) per rule. |
+| `set_counter` | src/ebpy/state.py:272 |  |
+| `split_against_baseline` | src/ebpy/baseline.py:107 | Divide today's violations into (new, grandfathered) per rule. |
 | `state_from_dict` | src/ebpy/state.py:135 |  |
 | `state_path` | src/ebpy/state.py:59 |  |
 | `state_to_dict` | src/ebpy/state.py:173 |  |
-| `total_violations` | src/ebpy/state.py:301 |  |
+| `total_violations` | src/ebpy/state.py:305 |  |
 | `totals_of` | src/ebpy/drain_order.py:85 |  |
 | `tracked_files` | src/ebpy/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
-| `with_diagnosis` | src/ebpy/state.py:225 |  |
-| `with_phase` | src/ebpy/state.py:242 |  |
-| `write_cells` | src/ebpy/baseline.py:123 |  |
+| `with_diagnosis` | src/ebpy/state.py:229 |  |
+| `with_phase` | src/ebpy/state.py:246 |  |
+| `write_cells` | src/ebpy/baseline.py:80 |  |
 | `write_quality_file` | src/ebpy/quality_file.py:27 |  |
-| `write_state` | src/ebpy/state.py:216 |  |
+| `write_state` | src/ebpy/state.py:218 |  |
 
 ## src/ebpy/commands
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `is_log_kind` | src/ebpy/commands/log.py:27 |  |
+| `is_log_kind` | src/ebpy/commands/log.py:21 |  |
 | `run_bootstrap` | src/ebpy/commands/bootstrap.py:32 |  |
 | `run_catalog` | src/ebpy/commands/catalog.py:13 |  |
 | `run_check` | src/ebpy/commands/check.py:36 |  |
-| `run_diagnose` | src/ebpy/commands/diagnose.py:24 |  |
-| `run_freeze` | src/ebpy/commands/freeze.py:86 |  |
+| `run_diagnose` | src/ebpy/commands/diagnose.py:18 |  |
+| `run_freeze` | src/ebpy/commands/freeze.py:80 |  |
 | `run_install` | src/ebpy/commands/install.py:444 |  |
-| `run_log` | src/ebpy/commands/log.py:31 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
-| `run_next` | src/ebpy/commands/next_command.py:29 |  |
-| `run_prune` | src/ebpy/commands/prune.py:35 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
-| `run_report` | src/ebpy/commands/report.py:52 |  |
+| `run_log` | src/ebpy/commands/log.py:25 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
+| `run_next` | src/ebpy/commands/next_command.py:22 |  |
+| `run_prune` | src/ebpy/commands/prune.py:29 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
+| `run_report` | src/ebpy/commands/report.py:46 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
-| `run_status` | src/ebpy/commands/status.py:22 |  |
+| `run_status` | src/ebpy/commands/status.py:16 |  |
 
 ## src/ebpy/detect
 

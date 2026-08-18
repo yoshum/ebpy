@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from ebpy.models import Counter, RuleBaseline
 from ebpy.state import (
     MYPY_COUNTER,
@@ -98,17 +100,14 @@ def test_invalid_utf8_state_reads_as_none(tmp_path: Path) -> None:
     assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
 
 
-def test_a_broken_state_symlink_is_unreadable_not_missing(tmp_path: Path) -> None:
-    path = tmp_path / ".ebpy" / "state.json"
-    path.parent.mkdir(parents=True)
-    path.symlink_to("missing.json")
-
-    assert read_ledger(tmp_path) == Ledger(exists=True, state=None)
-
-
-def test_a_readable_state_symlink_is_unreadable(tmp_path: Path) -> None:
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_a_state_symlink_is_always_unreadable(tmp_path: Path, target_exists: bool) -> None:
     target = tmp_path / "outside-state.json"
-    target.write_text('{"version": 1, "rules": {}, "counters": {}, "log": []}\n', encoding="utf-8")
+    if target_exists:
+        target.write_text(
+            '{"version": 1, "rules": {}, "counters": {}, "log": []}\n',
+            encoding="utf-8",
+        )
     path = tmp_path / ".ebpy" / "state.json"
     path.parent.mkdir(parents=True)
     path.symlink_to(target)

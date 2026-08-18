@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..baseline import read_cells, split_against_baseline
+from ..baseline import split_against_baseline
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..mypy_runner import run_mypy_error_count
 from ..quality_file import write_quality_file
@@ -43,7 +43,7 @@ def run_check(cwd: Path, write: bool) -> CheckResult:
     assert previous is not None
 
     result = run_ruff_check(cwd)
-    baseline = read_cells(cwd)
+    baseline = artifacts.cells
     new_by_rule, grandfathered = split_against_baseline(result.cells, baseline)
 
     state = apply_rule_counts(previous, grandfathered, "observe")
