@@ -20,9 +20,21 @@ Append `--force` to the manager-specific command when replacement is intentional
 The installed version, source and file hashes are recorded in
 `.claude/skills/.ebpy-manifest.json`.
 
+## Failure safety
+
+The command writes the complete new bundle and manifest into a temporary directory before touching
+the installed skills. It then moves the previous managed entries into a backup and replaces only
+those entries; unrelated project skills remain in place. If a filesystem operation fails during the
+swap, newly moved entries are removed and the backup is restored.
+
+When rollback succeeds, the error confirms that the previous managed skills were restored. If
+rollback itself encounters an error, the temporary directory is deliberately retained and its path
+is printed so the remaining backup can be recovered manually. This protects handled filesystem
+failures; it is not a persistent transaction journal for abrupt process or machine termination.
+
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | skills installed |
-| `1` | no project root, a managed skill conflict, or missing bundled skills |
+| `1` | no project root, a managed skill conflict, missing bundled skills, or a staging/swap failure |

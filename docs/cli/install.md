@@ -79,6 +79,19 @@ uvx --from "git+https://github.com/yoshum/ebpy" ebpy install --force
 
 `--force` is passed only to `ebpy skills install`; it does not change dependency resolution.
 
+## If delegated installation fails
+
+Once the package manager succeeds, `install` does not try to reverse its metadata and lockfile
+changes. If the delegated skill command fails, the error says that the dependency remains installed
+and prints the exact manager-specific command to retry after resolving the cause, for example:
+
+```text
+The dependency remains installed; after resolving the error, retry `poetry run ebpy skills install`.
+```
+
+The skill command itself protects the previously installed managed files as described in
+[`skills install`](skills-install.md#failure-safety).
+
 ## Exit codes
 
 | Code | Meaning |
