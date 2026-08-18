@@ -52,12 +52,17 @@ back to a stack of pull requests.
 
 ## The sequence
 
+**Running it.** ebpy is not on a package index, so a bare `uvx ebpy` resolves nothing. Use
+`uv run ebpy` when the repository already has it as a dev dependency, and
+`uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it does not — `<tag>` is a
+version from [Releases](https://github.com/yoshum/ebpy/releases). Written as `ebpy` below.
+
 ```bash
-uvx ebpy diagnose --write     # P0: the gap list, stamped with the commit
+ebpy diagnose --write         # P0: the gap list, stamped with the commit
 uv run ruff format .          # formatting, alone, in its own commit
-uvx ebpy bootstrap            # P1: install and generate
-uv run ebpy freeze            # P2: pin the ceiling
-uv run ebpy next              # P3: and then the loop, per `ebpy-drain`
+ebpy bootstrap                # P1: install and generate
+ebpy freeze                   # P2: pin the ceiling
+ebpy next                     # P3: and then the loop, per `ebpy-drain`
 ```
 
 Each of these is a pull request of its own, in this order: a formatting PR, a tooling PR, a freeze
@@ -88,7 +93,7 @@ commit no longer in this history (a rebase or force-push). All three mean the sa
 and counts in the ledger may describe code that has moved.
 
 ```bash
-uv run ebpy diagnose --write
+ebpy diagnose --write
 ```
 
 The ratchet itself never goes stale — Ruff maintains it against the current tree. It is the

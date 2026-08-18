@@ -9,10 +9,15 @@ generates the configs; it does not fix a single violation, and it must not try t
 
 ## Order
 
+**Running it.** ebpy is not on a package index, so a bare `uvx ebpy` resolves nothing. Use
+`uv run ebpy` when the repository already has it as a dev dependency, and
+`uvx --from "git+https://github.com/yoshum/ebpy@<tag>" ebpy` when it does not — `<tag>` is a
+version from [Releases](https://github.com/yoshum/ebpy/releases). Written as `ebpy` below.
+
 ```bash
-uvx ebpy diagnose            # read what is missing
-uvx ebpy bootstrap --dry-run # what it would do, exactly
-uvx ebpy bootstrap           # do it
+ebpy diagnose            # read what is missing
+ebpy bootstrap --dry-run # what it would do, exactly
+ebpy bootstrap           # do it
 ```
 
 Read the dry run before running it for real, especially in a repository you did not set up. The
