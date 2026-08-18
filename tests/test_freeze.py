@@ -15,9 +15,18 @@ from ebpy.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.cli import main
 from ebpy.commands import freeze
-from ebpy.commands.freeze import run_freeze
-from ebpy.ruff_runner import RuffResult
-from ebpy.state import state_path
+from ebpy.commands.freeze import freeze_measurement, run_freeze
+from ebpy.errors import CommandError
+from ebpy.measurement import Failed, Measured, Measurement, Unavailable
+from ebpy.models import MYPY_COUNTER, LintMeasurement
+from ebpy.state import empty_state, state_path
+
+
+def clean_measurement() -> Measurement:
+    return Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
+    )
 
 
 @pytest.mark.parametrize("cells", [{}, {"src/app.py": {"F401": 1}}])
@@ -46,8 +55,7 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_cells(tmp_path, {"src/old.py": {"F401": 1}})
-    monkeypatch.setattr(freeze, "run_ruff_check", lambda _cwd: RuffResult(cells={}))
-    monkeypatch.setattr(freeze, "run_mypy_error_count", lambda _cwd: None)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True)
@@ -71,8 +79,7 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     state_path(tmp_path).symlink_to(state_target)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "run_ruff_check", lambda _cwd: RuffResult(cells={}))
-    monkeypatch.setattr(freeze, "run_mypy_error_count", lambda _cwd: None)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True)
@@ -96,8 +103,7 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     (tmp_path / ".ebpy").symlink_to(outside, target_is_directory=True)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "run_ruff_check", lambda _cwd: RuffResult(cells={}))
-    monkeypatch.setattr(freeze, "run_mypy_error_count", lambda _cwd: None)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True)
@@ -106,3 +112,38 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     assert (outside / "baseline.json").read_text(encoding="utf-8") == baseline_text
     assert (outside / "state.json").read_text(encoding="utf-8") == state_text
     assert read_ceiling_artifacts(tmp_path).kind == "frozen"
+
+
+def test_failed_lint_cannot_build_a_frozen_contract() -> None:
+    previous = empty_state()
+    measurement = Measurement(
+        lint=Failed(tool="ruff", failure_kind="execution-failed", detail="ruff failed"),
+        counters={MYPY_COUNTER: Measured(tool="mypy", value=2)},
+    )
+
+    with pytest.raises(CommandError, match="ruff failed"):
+        freeze_measurement(previous, measurement, "freeze", "2026-08-19T00:00:00Z")
+
+    assert previous.frozen_at is None
+    assert previous.counters == {}
+
+
+def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> None:
+    decision = freeze_measurement(
+        empty_state(),
+        Measurement(
+            lint=Measured(
+                tool="ruff",
+                value=LintMeasurement(cells={"src/a.py": {"F401": 2}}),
+            ),
+            counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
+        ),
+        "freeze",
+        "2026-08-19T00:00:00Z",
+    )
+
+    assert decision.cells == {"src/a.py": {"F401": 2}}
+    assert decision.state.frozen_at == "2026-08-19T00:00:00Z"
+    assert decision.state.rules["F401"].baseline == 2
+    assert MYPY_COUNTER not in decision.state.counters
+    assert "mypy did not run: mypy is not installed" in decision.message
