@@ -1,0 +1,60 @@
+name: release
+
+# main is the only branch that ships. A merged PR that changed the command or the skills gets a
+# version, a changelog entry, a tag and a GitHub Release; one that changed neither gets nothing.
+# python-semantic-release decides all of that from the commits — see docs/release.md and the
+# [tool.semantic_release] section of pyproject.toml. Nothing is published to a package index.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  # For re-running a release whose push failed. It reads main as it stands, so it is safe to
+  # run when there is nothing to release: semantic-release then does nothing.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One release at a time, and never cancelled halfway: the bump, the tag and the GitHub Release
+# are three steps of one command, and a cancelled run can leave them disagreeing.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # main as a branch, not the merge commit: semantic-release refuses to release from a
+          # detached HEAD, and it checks the upstream has not moved before it pushes anyway.
+          ref: main
+          # The whole history and its tags — the last tag is what the next version counts from.
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --all-groups
+      # quality.yml ran against each PR's own head, not against the merge of them: two branches
+      # green apart can be broken together, and a tag is the wrong place to find that out.
+      # --no-write because a release run is not a ledger entry, and a dirty tree is not what
+      # semantic-release should be handed.
+      - name: Gate what is about to be tagged
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+          uv run mypy .
+          uv run pytest
+          uv run ebpy check --no-write
+      # Stamps the version into pyproject.toml, src/ebpy/__init__.py and uv.lock, writes
+      # CHANGELOG.md, commits, tags, pushes both, and opens the GitHub Release. Exits cleanly
+      # having done nothing when the commits warrant no version.
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run semantic-release -v version
