@@ -37,4 +37,4 @@ failures; it is not a persistent transaction journal for abrupt process or machi
 | Code | Meaning |
 | --- | --- |
 | `0` | skills installed |
-| `1` | no project root, a managed skill conflict, missing bundled skills, or a staging/swap failure |
+| `1` | no project root, a managed skill conflict, an inspection error, missing bundled skills, or a staging/swap failure |

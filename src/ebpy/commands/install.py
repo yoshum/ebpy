@@ -338,7 +338,14 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
         return InstallResult(False, str(error))
 
     destination = cwd / ".claude" / "skills"
-    conflicts = _conflicts(destination, bundle, _manifest_hashes(destination))
+    try:
+        conflicts = _conflicts(destination, bundle, _manifest_hashes(destination))
+    except OSError as error:
+        return InstallResult(
+            False,
+            f"Could not inspect the existing managed ebpy skills ({error}); "
+            "existing skills were not changed.",
+        )
     if conflicts and not force:
         names = ", ".join(conflicts)
         return InstallResult(
@@ -352,9 +359,10 @@ def run_skills_install(cwd: Path, force: bool) -> InstallResult:
     except _BundleInstallError as error:
         return InstallResult(False, str(error))
     replaced = " Replaced the previous managed copies." if conflicts else ""
+    skill_noun = "skill" if bundle.skill_count == 1 else "skills"
     return InstallResult(
         True,
-        f"Installed {bundle.skill_count} Claude Code skills from ebpy v{__version__} "
+        f"Installed {bundle.skill_count} Claude Code {skill_noun} from ebpy v{__version__} "
         f"in .claude/skills.{replaced}",
     )
 
@@ -404,7 +412,7 @@ def _release_target(version: str) -> InstallTarget | str:
 def _ref_target(ref: str, *, bootstrap: bool = False) -> InstallTarget | str:
     if not _valid_ref(ref):
         return f"Invalid Git ref: {ref}"
-    normalized = _normalize_version(ref)
+    normalized = _normalize_version(ref.removeprefix("refs/tags/"))
     if normalized is not None:
         release = _release_target(normalized)
         if isinstance(release, str):

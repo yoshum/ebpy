@@ -87,6 +87,18 @@ def test_skills_install_copies_all_bundled_skills(
     }
 
 
+def test_skills_install_uses_the_singular_noun_for_one_skill(
+    project: Path,
+    skill_bundle: Path,
+) -> None:
+    shutil.rmtree(skill_bundle / "ebpy-guide")
+
+    result = run_skills_install(project, force=False)
+
+    assert result.ok
+    assert "Installed 1 Claude Code skill from" in result.message
+
+
 @pytest.mark.usefixtures("skill_bundle")
 def test_skills_install_is_idempotent(project: Path) -> None:
     assert run_skills_install(project, force=False).ok
@@ -147,6 +159,33 @@ def test_a_locally_edited_removed_skill_requires_force(
     assert "--force" in refused.message
     assert replaced.ok
     assert not removed.exists()
+
+
+@pytest.mark.usefixtures("skill_bundle")
+def test_an_unreadable_managed_file_reports_an_error_without_changing_skills(
+    project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert run_skills_install(project, force=False).ok
+    destination = project / ".claude" / "skills"
+    before = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+
+    def fail_inspection(_root: Path) -> dict[Path, bytes] | None:
+        raise PermissionError("permission denied")
+
+    monkeypatch.setattr(install, "_files_below", fail_inspection)
+    result = run_skills_install(project, force=False)
+    after = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+
+    assert not result.ok
+    assert "Could not inspect the existing managed ebpy skills" in result.message
+    assert "permission denied" in result.message
+    assert "were not changed" in result.message
+    assert after == before
 
 
 def test_a_staging_failure_leaves_the_installed_bundle_unchanged(
@@ -369,7 +408,12 @@ def test_an_explicit_ref_overrides_the_bootstrap_ref(
 
 @pytest.mark.parametrize(
     ("version", "ref"),
-    [("0.1.0", None), ("v0.2.0", None), (None, "v0.2.0")],
+    [
+        ("0.1.0", None),
+        ("v0.2.0", None),
+        (None, "v0.2.0"),
+        (None, "refs/tags/v0.2.0"),
+    ],
 )
 def test_releases_without_skills_install_are_rejected_before_dependency_changes(
     project: Path,
