@@ -15,10 +15,6 @@ from typing import Any
 from .models import CellCounts, LintMeasurement, UnattributedFinding
 from .util import run
 
-# Compatibility names while commands move behind the Measurement seam.
-RuffResult = LintMeasurement
-Unattributed = UnattributedFinding
-
 
 class RuffNotFoundError(RuntimeError):
     pass

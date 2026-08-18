@@ -60,11 +60,3 @@ def run_mypy_check(cwd: Path) -> int:
         suffix = f":\n{detail[:4000]}" if detail else ""
         raise MypyFailedError(f"mypy failed (exit {result.code}){suffix}")
     return count_errors(result.stdout)
-
-
-def run_mypy_error_count(cwd: Path) -> int | None:
-    """Compatibility wrapper for callers not yet moved behind Measurement."""
-    try:
-        return run_mypy_check(cwd)
-    except (MypyNotFoundError, MypyFailedError):
-        return None
