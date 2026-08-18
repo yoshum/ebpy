@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from ebpy.models import Counter, RuleBaseline
+from ebpy.state import (
+    MYPY_COUNTER,
+    append_log,
+    apply_rule_counts,
+    empty_state,
+    find_regressions,
+    improvements,
+    next_baseline,
+    read_state,
+    set_counter,
+    total_violations,
+    write_state,
+)
+
+
+def test_observe_leaves_the_ceiling_alone() -> None:
+    assert next_baseline(10, 12, "observe") == 10
+    assert next_baseline(10, 3, "observe") == 10
+
+
+def test_freeze_lowers_but_never_raises() -> None:
+    assert next_baseline(10, 3, "freeze") == 3
+    # Running freeze twice after a bad week must not legalise the damage.
+    assert next_baseline(10, 42, "freeze") == 10
+
+
+def test_rebaseline_is_the_only_way_up() -> None:
+    assert next_baseline(10, 42, "rebaseline") == 42
+
+
+def test_a_rule_seen_for_the_first_time_starts_at_todays_count() -> None:
+    assert next_baseline(None, 7, "observe") == 7
+
+
+def test_apply_rule_counts_marks_a_cleared_rule_enforced() -> None:
+    state = apply_rule_counts(empty_state(), {"E501": 3}, "freeze")
+    assert state.rules["E501"].status == "draining"
+    state = apply_rule_counts(state, {"E501": 0}, "observe")
+    assert state.rules["E501"].status == "enforced"
+    assert state.rules["E501"].baseline == 3
+
+
+def test_a_rule_that_disappears_is_kept_at_zero_not_dropped() -> None:
+    state = apply_rule_counts(empty_state(), {"E501": 3}, "freeze")
+    state = apply_rule_counts(state, {}, "observe")
+    assert state.rules["E501"].current == 0
+
+
+def test_find_regressions_covers_rules_and_counters() -> None:
+    state = empty_state()
+    state.rules = {"E501": RuleBaseline(baseline=3, current=5, status="draining")}
+    state.counters = {MYPY_COUNTER: Counter(baseline=2, current=9)}
+    names = {item.name for item in find_regressions(state)}
+    assert names == {"E501", MYPY_COUNTER}
+
+
+def test_improvements_are_rules_below_their_ceiling() -> None:
+    state = empty_state()
+    state.rules = {
+        "E501": RuleBaseline(baseline=5, current=2, status="draining"),
+        "F401": RuleBaseline(baseline=1, current=1, status="draining"),
+    }
+    assert [item.name for item in improvements(state)] == ["E501"]
+    assert total_violations(state) == 3
+
+
+def test_state_round_trips_through_disk(tmp_path: Path) -> None:
+    state = apply_rule_counts(empty_state(), {"E501": 4}, "freeze")
+    state = set_counter(state, MYPY_COUNTER, 11, "freeze")
+    state = append_log(state, "deferred", "router.py is 1400 lines", "abc1234", rule="PLR0915")
+    write_state(tmp_path, state)
+
+    loaded = read_state(tmp_path)
+    assert loaded is not None
+    assert loaded.rules["E501"].baseline == 4
+    assert loaded.counters[MYPY_COUNTER].current == 11
+    assert loaded.log[0].kind == "deferred"
+    assert loaded.log[0].rule == "PLR0915"
+    assert loaded.log[0].commit == "abc1234"
+
+
+def test_missing_state_reads_as_none(tmp_path: Path) -> None:
+    assert read_state(tmp_path) is None
+
+
+def test_a_log_cannot_grow_without_bound() -> None:
+    state = empty_state()
+    for index in range(250):
+        state = append_log(state, "note", f"entry {index}", None)
+    assert len(state.log) == 200
+    assert state.log[-1].text == "entry 249"
