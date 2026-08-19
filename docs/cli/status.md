@@ -13,11 +13,10 @@ phase      drain
 frozen     2026-08-18T00:07:45Z
 backlog    4312
 improved   6 rules
-regressed  0 rules
 
 smallest remaining backlogs:
-    2  C901
-    5  ARG001
+    2  ruff:C901
+    5  ruff:ARG001
 ```
 
 The smallest remaining counts are a starting point, not the drain order —
@@ -33,6 +32,12 @@ moved. Re-run [`diagnose --write`](diagnose.md) before quoting any of them.
 
 **The ratchet itself never goes stale.** Ruff maintains it against the current tree on every
 `check`. It is the diagnosis that ages: the gap list, the file sizes, and every deferred note.
+
+## `--json`
+
+`--json` returns the ledger as the full state v2 object, including `frozenAnalyzers` — the list of
+analyzers whose ceilings are active in the contract. The v1 field `counters` is not present in v2
+state.
 
 ## When there is no ledger
 

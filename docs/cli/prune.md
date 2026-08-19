@@ -26,7 +26,7 @@ as a no-op.
 ## Commit it with the fix
 
 ```bash
-ruff check --select C901 src/app/handler.py   # confirm it is gone
+ruff check --select C901 src/app/handler.py   # confirm ruff:C901 is gone
 ebpy prune
 git add .ebpy/baseline.json src/app/handler.py
 ```
@@ -36,8 +36,8 @@ A fix committed without the prune leaves room for the violation to come back sil
 
 ## What it writes
 
-`.ebpy/baseline.json`, `.ebpy/state.json` and `QUALITY.md`. It also refreshes the mypy counter, so
-type errors fixed along the way are reclaimed too.
+`.ebpy/baseline.json`, `.ebpy/state.json` and `QUALITY.md`. Each complete analyzer's cells are
+lowered independently — Ruff and mypy improvements are each reclaimed in the same run.
 
 ## Not a substitute for `freeze --force`
 

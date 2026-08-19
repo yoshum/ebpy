@@ -4,11 +4,14 @@ P2. One command, run once, and it is the commit the whole approach hangs off.
 
 ```bash
 ebpy freeze
-ebpy freeze --force    # deliberately replace the existing or invalid contract
+ebpy freeze --force                 # deliberately replace the existing or invalid contract
+ebpy freeze --analyzer NAME         # add one analyzer to an existing contract
+ebpy freeze --force --analyzer NAME # replace one analyzer in an existing contract
 ```
 
-It runs Ruff, writes today's **per-file per-rule** counts to `.ebpy/baseline.json`, records the mypy
-error total as a ratcheted counter, sets the phase to `drain`, and renders `QUALITY.md`.
+It runs Ruff and mypy, writes today's **per-file per-rule** counts to `.ebpy/baseline.json` with
+rule IDs namespaced as `ruff:F401`, `mypy:arg-type` and so on, records the contract in
+`.ebpy/state.json`, and renders `QUALITY.md`.
 
 From that commit on, every rule is an error for new code and no existing line had to change.
 
@@ -28,12 +31,39 @@ and it would enter the baseline as "clean" and quietly stay unlinted forever. Fr
 and asks you to fix them, then re-run so they enter the baseline properly. [`check`](check.md)
 refuses them for the same reason.
 
-## mypy gets a counter, not a baseline
+## Every in-scope analyzer must be complete
 
-Type errors have no per-file suppression mechanism, so their **total** is ratcheted instead: one
-number, recorded at the freeze, which `check` fails on if it rises. If mypy could not run, freeze
-says so rather than recording a zero — "no type errors" and "nobody measured type errors" must not
-read the same way.
+`freeze` and `freeze --force` both refuse when any in-scope analyzer is unavailable, failed, or
+reported findings it could not attribute to a rule. There is no invocation that silently skips an
+incomplete analyzer and proceeds.
+
+If an analyzer cannot run, fix the toolchain first — `ebpy bootstrap` can install it. If a file is
+intentionally unparseable (a template, a fixture, a legacy file), add it to `exclude` / 
+`extend-exclude` in the Ruff config, then re-run.
+
+## The scope × force contract
+
+| Invocation | Artifact precondition | What changes |
+| --- | --- | --- |
+| `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | All analyzers' complete cells become the initial contract. |
+| `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; all analyzers' complete cells become a new contract. |
+| `freeze --analyzer NAME` | A valid frozen pair is required; NAME must not be in the contract yet. | Adds NAME's cells to the existing contract, leaving every other namespace untouched. |
+| `freeze --force --analyzer NAME` | A valid frozen pair is required. | Replaces NAME's cells and rules in the existing contract, leaving every other namespace untouched. |
+
+**No invocation removes an analyzer from a contract.** A repository whose toolchain is incomplete
+should run `ebpy bootstrap` first, so the first freeze always covers every analyzer. `--force`
+governs only the artifact precondition — whether an existing contract may be overwritten — and does
+not change which analyzers are in scope.
+
+Scoped operations (`--analyzer NAME`) require a valid pair because they must read and preserve the
+existing contract. Invalid pairs can only be recovered by a global `freeze --force`, which discards
+everything and starts fresh.
+
+## Adding an analyzer to an existing contract
+
+`freeze --analyzer NAME` exists for a contract whose roster is narrower than the analyzers ebpy
+knows — the case that arises when a v1 artifact pair was frozen while mypy could not be measured.
+It adds mypy's cells to the contract without touching the Ruff ceiling.
 
 ## Commit all three artifacts together
 
@@ -66,10 +96,9 @@ for a completed freeze. Two legitimate ways forward:
 ## Invalid artifacts fail closed
 
 The baseline and ledger are valid only as a matching pair. If either is missing, unreadable, has an
-invalid shape, lacks the expected freeze state, or records Ruff ceilings that disagree with the
-other, normal `freeze` exits 1 before running Ruff or writing anything. It never tries to recover a
-partial contract: the ledger-only counters and baseline-only per-file cells cannot reconstruct one
-another reliably.
+invalid shape, lacks the expected freeze state, or records ceilings that disagree with the other,
+normal `freeze` exits 1 before running any analyzer or writing anything. It never tries to recover a
+partial contract: the cell-level data in the two files cannot reconstruct one another reliably.
 
 Restore both matching files from version control when the old contract matters. Otherwise,
 `freeze --force` discards the old contract and measures a complete new one. When recovering from an

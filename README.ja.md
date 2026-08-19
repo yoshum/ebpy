@@ -121,10 +121,10 @@ backlog を潰して
 コードに触れる**前に**現在の挙動を固定するテストを書き、修正し、稼いだ分だけ天井を下げます。
 
 ```bash
-ebpy next                                   # どの 1 手が一番多くを強制できるか
-ebpy prune                                  # 修正と同じコミットに入れる
-ebpy log --kind drained --rule C901 "..."   # 理由。これ以外に記録するものはない
-ebpy check                                  # 何も増えていないことの確認
+ebpy next                                          # どの 1 手が一番多くを強制できるか
+ebpy prune                                         # 修正と同じコミットに入れる
+ebpy log --kind drained --rule ruff:C901 "..."     # 理由。これ以外に記録するものはない
+ebpy check                                         # 何も増えていないことの確認
 ```
 
 既定で自動化し、issue を作るのは本当に所有者の判断が要る 4 つだけです — 挙動が曖昧なもの、公開 API
@@ -230,8 +230,9 @@ issue には選択肢と、エージェントならどれを選ぶかが書か�
 - **ラチェットは ebpy 自身のもの。** ESLint には `--suppress-all` がありますが Ruff にはないため、
   `freeze` / `check` / `prune` がファイル別ルール別の台帳を直接実装しています（ファイル形式は
   ESLint と同じ形）。
-- **mypy はベースラインではなくカウンタ。** 型エラーにはファイル単位の抑制機構がないので、
-  ever-better が ESLint の warning を扱うのと同じやり方で総数をラチェットします。
+- **mypy は Ruff と同じファイル別ルール別のセルモデルでラチェットします。** ルール ID は
+  namespace 付き — `ruff:F401`、`mypy:arg-type` — なので Ruff と mypy のセルが衝突せず同じ天井を
+  共有します。
 - **構文エラーは数えず、名指しする。** Ruff はこれをルール名なしの `invalid-syntax` として報告
   します。既得権化できないので、freeze も check も 0 を記録せずに拒否します。
 - **fan-in は Python の import を解決します** — 相対、絶対、`src/` レイアウトの両方。

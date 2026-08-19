@@ -40,9 +40,9 @@ there.
 Record as you go, not at the end:
 
 ```bash
-ebpy log --kind drained  --rule C901 "6 violations, 1 real bug (unreachable retry branch)"
-ebpy log --kind deferred --rule PLR0915 "api/router.py is 1400 lines; splitting is its own project"
-ebpy log --kind issue    --rule B008 "opened #42 — mutable default, product decision"
+ebpy log --kind drained  --rule ruff:C901 "6 violations, 1 real bug (unreachable retry branch)"
+ebpy log --kind deferred --rule ruff:PLR0915 "api/router.py is 1400 lines; splitting is its own project"
+ebpy log --kind issue    --rule ruff:B008 "opened #42 — mutable default, product decision"
 ebpy log --kind note "enabled mypy strict before freezing; the ceiling is from the strict run"
 ```
 
@@ -75,7 +75,7 @@ Freeze is the point where the value is locked in: from that commit CI rejects an
 everything after it is optional cleanup that can stop at any pull request without leaving the
 repository worse. Say so there, in four lines:
 
-- the number — "4,312 violations across 47 rules are now grandfathered";
+- the number — "4,312 violations across 47 rules and 2 analyzers are now grandfathered";
 - new code is held to every rule from here; old code is not;
 - a red `ebpy check` means the diff added something — not that the repository is bad;
 - draining from here is optional, and stopping after any pull request leaves the repository better

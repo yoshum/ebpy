@@ -73,8 +73,21 @@ strict = true
 ```
 
 Strict from the start, because plain mypy on untyped code reports almost nothing and looks green.
-Type errors have no per-file suppression mechanism, so [`freeze`](cli/freeze.md) ratchets their
-**total** as a counter called `mypy:errors` rather than recording a baseline per file.
+Type errors are ratcheted **per file per rule** — the same cell model as Ruff — so moving a type
+error from one file to another fails `check` even when the total is unchanged.
+
+ebpy supports mypy 1.10 and newer, the floor set by its own dev dependency; the output format is
+fixed by the parser's tests, and CI runs the version the lockfile resolves.
+
+ebpy invokes mypy as:
+
+```
+mypy . --no-error-summary --show-error-codes --no-pretty --no-color-output
+```
+
+`--show-error-codes` ensures rule codes appear regardless of the target repository's mypy config.
+`--no-pretty` keeps each finding on one line. `--no-color-output` prevents ANSI escapes from
+appearing in rule codes or messages.
 
 This is only ever written into a repository that had **no** mypy config. Turning `strict` on over an
 existing loose config is a *tighten* step, done deliberately with the count measured first — so

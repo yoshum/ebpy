@@ -4,10 +4,11 @@ Records what happened, stamped with the current commit. The only thing that writ
 in `QUALITY.md` — every other command records counts, never why.
 
 ```bash
-ebpy log --kind drained  --rule C901    "6 violations, 1 real bug — unreachable retry branch"
-ebpy log --kind deferred --rule PLR0915 "router.py is 1400 lines; splitting is its own project"
-ebpy log --kind issue    --rule B008    "opened #42 — mutable default, product decision"
-ebpy log --kind note                    "enabled mypy strict before freezing"
+ebpy log --kind drained  --rule ruff:C901    "6 violations, 1 real bug — unreachable retry branch"
+ebpy log --kind deferred --rule ruff:PLR0915 "router.py is 1400 lines; splitting is its own project"
+ebpy log --kind issue    --rule ruff:B008    "opened #42 — mutable default, product decision"
+ebpy log --kind drained  --rule mypy:arg-type "narrowed 3 call sites; 1 was a real type mismatch"
+ebpy log --kind note                         "enabled mypy strict before freezing"
 ```
 
 `--kind` defaults to `note`; `--rule` is optional. Empty text, an unknown kind, and an incomplete,

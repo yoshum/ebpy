@@ -44,11 +44,15 @@ hard is this" is how far the fix reaches.
 
 ## Reading it during a drain
 
+Rule IDs are namespaced in all output — `ruff:C901`, `mypy:arg-type` — so each rank row names both
+the analyzer and the local code.
+
 Take the top of the first list unless a rule was named for you. Then read the actual violations —
 the baseline hides them from a normal run:
 
 ```bash
-ruff check --select C901 path/to/file.py
+ruff check --select C901 path/to/file.py   # for a ruff:C901 finding
+mypy path/to/file.py                       # for mypy:* findings
 ```
 
 The whole loop, including what to do with a violation that turns out to be a real bug, is in the

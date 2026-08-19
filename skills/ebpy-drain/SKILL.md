@@ -42,11 +42,23 @@ violations in three files is less work than the one with 38 across thirty-one.
 ### 2. See the actual violations
 
 The baseline hides them from a normal run, so read `.ebpy/baseline.json` for which files carry the
-rule, then look at those files directly:
+rule, then look at those files directly.
 
-```bash
-uv run ruff check --select <RULE> path/to/file.py
-```
+Rule IDs in the baseline are namespaced: `ruff:C901`, `mypy:arg-type`. Strip the prefix to get the
+tool's local code:
+
+- **`ruff:*`** — strip the `ruff:` prefix and run `ruff check --select <local-code> <file>`:
+
+  ```bash
+  uv run ruff check --select C901 path/to/file.py
+  ```
+
+- **`mypy:*`** — run `mypy <file>` and look for findings tagged `[<local-code>]` in the output:
+
+  ```bash
+  uv run mypy path/to/file.py
+  # look for lines ending in [arg-type], [assignment], etc.
+  ```
 
 ### 3. Pin what the code does now — before you touch it
 
@@ -99,7 +111,7 @@ fix, so a reviewer sees the violation removed and the ceiling lowered as one cha
 ### 6. Log what happened
 
 ```bash
-ebpy log --kind drained --rule C901 "6 violations; 1 was a real bug — unreachable branch in retry()"
+ebpy log --kind drained --rule ruff:C901 "6 violations; 1 was a real bug — unreachable branch in retry()"
 ```
 
 The counts are recorded by `prune`; the *reason* exists only if you write it. One entry per commit
@@ -121,8 +133,8 @@ Open a GitHub issue, name the options, say which one you would pick, and move on
   case; only the owner knows which answer is right.
 - **A public API change.** Narrowing a published signature breaks callers you cannot see.
 - **A refactor big enough to be its own project.** A 1,400-line module is not a backlog item.
-  Record it with `ebpy log --kind deferred` too, so it lands in **Carried over** with the commit it
-  was seen at.
+  Record it with `ebpy log --kind deferred --rule ruff:PLR0915` (or the appropriate namespaced rule)
+  too, so it lands in **Carried over** with the commit it was seen at.
 - **A rule that may simply be wrong for this repo.** Say which rule, which pattern it fires on, and
   why the pattern is legitimate here. Config changes are the owner's call — and a rule removed
   after a freeze leaves cells nothing will prune, so it needs a `--force` re-freeze afterwards.
