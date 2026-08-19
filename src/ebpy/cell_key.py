@@ -61,21 +61,22 @@ def is_rule_id(value: object) -> bool:
 def normalize_analyzer_path(filename: str, cwd: Path) -> str:
     """Normalize a path an analyzer reported into the form a stored cell key uses.
 
-    Classification of "absolute" is done lexically with `PureWindowsPath` / `PurePosixPath`
-    so the result does not depend on the host OS running the tool. Only a path this host's
-    real filesystem could itself resolve — a POSIX-absolute path on a POSIX host — goes
-    through `Path.resolve()` for the repository-relative containment test; a Windows
-    drive-qualified path can never denote a location under a POSIX `cwd`, so it is left
-    absolute rather than fed to a `Path.resolve()` that would misread it as relative.
+    "Absolute" is judged lexically in both path flavours so the classification does not
+    depend on the host OS. The repository-relative containment test uses the host-native
+    `Path`, because only a path this host can itself resolve — a POSIX path on a POSIX host,
+    a drive-qualified path on a Windows host — could denote a location under `cwd`. A path
+    that is absolute only in the foreign flavour (a Windows drive path seen on POSIX, or a
+    POSIX-rooted path seen on Windows) can never be under `cwd`, so it is left absolute
+    rather than misread by a `Path.resolve()` that treats it as relative.
     """
     slashed = filename.replace("\\", "/")
-    if PureWindowsPath(slashed).is_absolute():
-        return PureWindowsPath(slashed).as_posix()
-    posix = PurePosixPath(slashed)
-    if not posix.is_absolute():
-        return str(posix)
-    try:
-        relative = Path(slashed).resolve().relative_to(cwd.resolve())
-    except ValueError:
-        return str(posix)
-    return str(PurePosixPath(*relative.parts))
+    if not PureWindowsPath(slashed).is_absolute() and not PurePosixPath(slashed).is_absolute():
+        return PurePosixPath(slashed).as_posix()
+    if Path(slashed).is_absolute():
+        try:
+            relative = Path(slashed).resolve().relative_to(cwd.resolve())
+        except ValueError:
+            pass
+        else:
+            return PurePosixPath(*relative.parts).as_posix()
+    return PurePosixPath(slashed).as_posix()

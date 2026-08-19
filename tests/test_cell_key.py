@@ -1,4 +1,4 @@
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
@@ -61,7 +61,10 @@ def test_normalize_makes_an_absolute_path_under_cwd_repository_relative(tmp_path
 
 def test_normalize_leaves_an_absolute_path_outside_cwd_absolute(tmp_path: Path) -> None:
     outside = tmp_path.parent / "elsewhere" / "a.py"
-    assert normalize_analyzer_path(str(outside), tmp_path).startswith("/")
+    result = normalize_analyzer_path(str(outside), tmp_path)
+    # The result stays absolute rather than being relativized. Asserted in both flavours so
+    # the claim holds on a POSIX host (`/...`) and a Windows host (`C:/...`) alike.
+    assert PurePosixPath(result).is_absolute() or PureWindowsPath(result).is_absolute()
 
 
 def test_normalize_reads_a_windows_drive_path_without_the_host_being_windows(tmp_path: Path) -> None:
