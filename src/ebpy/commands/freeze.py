@@ -6,20 +6,20 @@ since, which is the one thing the baseline exists to prevent.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 from ..baseline import rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
-from ..models import State
-from ..mypy_runner import run_mypy_error_count
+from ..measurement import Measured, Measurement, measure_repository
+from ..models import MYPY_COUNTER, CellCountsView, LintMeasurement, State
 from ..quality_file import write_quality_file
-from ..ruff_runner import RuffResult, run_ruff_check
 from ..state import (
-    MYPY_COUNTER,
     BaselineMode,
     apply_rule_counts,
+    copy_state,
     empty_state,
     set_counter,
     with_phase,
@@ -29,7 +29,23 @@ from ..state import (
 _UNATTRIBUTED_SHOWN = 5
 
 
-def _unattributed_report(result: RuffResult) -> list[str]:
+@dataclass(frozen=True)
+class FreezeDecision:
+    cells: CellCountsView
+    state: State
+    message: str
+
+
+def _as_clause(detail: str) -> str:
+    """A tool's message set inside a sentence of ours, without its own end punctuation.
+
+    Runners end a detail however reads best alone — "…is not installed." or "mypy failed
+    (exit 2): …" — and both produced "…installed.." or "…(exit 2):." once embedded.
+    """
+    return detail.rstrip(" .:;,")
+
+
+def _unattributed_report(result: LintMeasurement) -> list[str]:
     """Syntax errors are not rule violations the baseline can grandfather: a file that
     does not parse is invisible to every rule, so recording a count for it would be a
     lie. Naming the files turns a mystery into a task."""
@@ -68,13 +84,55 @@ def _previous_state(artifacts: CeilingArtifacts, force: bool) -> State:
     """Choose metadata to preserve; a forced recovery trusts no invalid artifact."""
     if artifacts.kind == "invalid":
         return empty_state()
-    state = artifacts.ledger.state or empty_state()
+    # Copied because the branch below rewrites it: `artifacts` is the ledger as read from
+    # disk, and a caller that re-reads it must not find the fields --force cleared.
+    state = copy_state(artifacts.ledger.state) if artifacts.ledger.state else empty_state()
     if force:
         # `--force` pins a complete new contract. Keeping an unmeasured old counter or
         # rule would make the result depend on the contract it claims to replace.
         state.rules = {}
         state.counters = {}
     return state
+
+
+def freeze_measurement(
+    previous: State,
+    measurement: Measurement,
+    mode: BaselineMode,
+    frozen_at: str,
+) -> FreezeDecision:
+    """Build a complete ceiling contract from one measurement without writing it."""
+    lint = measurement.lint
+    if not isinstance(lint, Measured):
+        raise CommandError(lint.detail)
+
+    result = lint.value
+    counts = rule_totals(result.cells)
+    state = apply_rule_counts(copy_state(previous), counts, mode)
+    mypy = measurement.counters[MYPY_COUNTER]
+    if isinstance(mypy, Measured):
+        state = set_counter(state, MYPY_COUNTER, mypy.value, mode)
+        mypy_line = (
+            f"{mypy.value} mypy errors are ratcheted as a counter — they have no per-file suppression."
+        )
+    else:
+        mypy_line = f"mypy did not run: {_as_clause(mypy.summary)}. No type-error ceiling was recorded."
+    state.frozen_at = frozen_at
+    state = with_phase(state, "drain")
+
+    backlog = sum(counts.values())
+    message = "\n".join(
+        [
+            f"Baseline pinned: {backlog} violations across {len(counts)} rules are now grandfathered.",
+            mypy_line,
+            "New code is held to the full rule set from here.",
+            *_unattributed_report(result),
+            "",
+            "Commit .ebpy/baseline.json, .ebpy/state.json and QUALITY.md.",
+            "Next: `ebpy next` ranks what to drain first.",
+        ]
+    )
+    return FreezeDecision(result.cells, state, message)
 
 
 def run_freeze(cwd: Path, force: bool) -> str:
@@ -89,34 +147,14 @@ def run_freeze(cwd: Path, force: bool) -> str:
 
     previous = _previous_state(artifacts, force)
 
-    result = run_ruff_check(cwd)
-    write_cells(cwd, result.cells)
-
     mode: BaselineMode = "rebaseline" if force else "freeze"
-    counts = rule_totals(result.cells)
-    state: State = apply_rule_counts(previous, counts, mode)
-    mypy_errors = run_mypy_error_count(cwd)
-    if mypy_errors is not None:
-        state = set_counter(state, MYPY_COUNTER, mypy_errors, mode)
-    state.frozen_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    state = with_phase(state, "drain")
-    write_state(cwd, state)
-    write_quality_file(cwd, state)
-
-    backlog = sum(counts.values())
-    mypy_line = (
-        f"{mypy_errors} mypy errors are ratcheted as a counter — they have no per-file suppression."
-        if mypy_errors is not None
-        else "mypy did not run, so no type-error ceiling was recorded."
+    decision = freeze_measurement(
+        previous,
+        measure_repository(cwd),
+        mode,
+        datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
     )
-    return "\n".join(
-        [
-            f"Baseline pinned: {backlog} violations across {len(counts)} rules are now grandfathered.",
-            mypy_line,
-            "New code is held to the full rule set from here.",
-            *_unattributed_report(result),
-            "",
-            "Commit .ebpy/baseline.json, .ebpy/state.json and QUALITY.md.",
-            "Next: `ebpy next` ranks what to drain first.",
-        ]
-    )
+    write_cells(cwd, decision.cells)
+    write_state(cwd, decision.state)
+    write_quality_file(cwd, decision.state)
+    return decision.message

@@ -9,41 +9,41 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .baseline import CellCounts
+from .errors import ToolError
+from .models import CellCounts, LintMeasurement, UnattributedFinding
 from .util import run
 
-
-@dataclass(frozen=True)
-class Unattributed:
-    file: str
-    line: int
-    message: str
+# Long enough for a config error, short enough to stay one line.
+_SUMMARY_LIMIT = 200
 
 
-@dataclass(frozen=True)
-class RuffResult:
-    """Today's violations, per file per rule — the shape the ratchet compares."""
-
-    cells: CellCounts
-    # Diagnostics Ruff could not attribute to a rule — syntax errors. The baseline
-    # cannot grandfather these: a file that does not parse is invisible to every rule,
-    # so its "count" would be a lie.
-    unattributed: list[Unattributed] = field(default_factory=list)
-    # Files Ruff reported something about — NOT the number it linted, which its JSON
-    # output does not carry. A clean repository reports zero here.
-    files_with_findings: int = 0
-
-
-class RuffNotFoundError(RuntimeError):
+class RuffNotFoundError(ToolError):
     pass
 
 
-class RuffFailedError(RuntimeError):
+class RuffFailedError(ToolError):
     pass
+
+
+class RuffInvalidOutputError(RuffFailedError):
+    pass
+
+
+def _summary_clause(output: str) -> str:
+    """The one line of Ruff's complaint a human acts on, for the summary reading.
+
+    Ruff prints a bare `ruff failed`, then indented `Cause:` lines from the outermost
+    cause inward. The first cause names what to go and fix; the ones below it explain
+    that cause in more depth and belong in the detail, which carries all of it.
+    """
+    lines = [text for line in output.splitlines() if (text := line.strip())]
+    if not lines:
+        return ""
+    causes = [line for line in lines if line.startswith("Cause:")]
+    return f": {(causes[0] if causes else lines[0])[:_SUMMARY_LIMIT]}"
 
 
 def find_ruff(cwd: Path) -> list[str] | None:
@@ -64,32 +64,49 @@ def _relative_posix(filename: str, cwd: Path) -> str:
     return str(PurePosixPath(*rel.parts))
 
 
-def parse_ruff_json(stdout: str, cwd: Path) -> RuffResult:
+def parse_ruff_json(stdout: str, cwd: Path) -> LintMeasurement:
     raw: Any = json.loads(stdout or "[]")
     if not isinstance(raw, list):
-        raise RuffFailedError("ruff produced JSON of an unexpected shape")
+        raise RuffInvalidOutputError("ruff produced JSON of an unexpected shape")
     cells: CellCounts = {}
-    unattributed: list[Unattributed] = []
+    unattributed: list[UnattributedFinding] = []
     seen_files: set[str] = set()
-    for item in raw:
+    for index, item in enumerate(raw):
         if not isinstance(item, dict):
-            continue
-        file = _relative_posix(str(item.get("filename", "")), cwd)
-        seen_files.add(file)
+            raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
+        filename = item.get("filename")
         code = item.get("code")
+        message = item.get("message")
+        location = item.get("location")
+        if (
+            not isinstance(filename, str)
+            or not filename
+            or (code is not None and (not isinstance(code, str) or not code))
+            or not isinstance(message, str)
+            or not isinstance(location, dict)
+            or type(location.get("row")) is not int
+        ):
+            raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
+        file = _relative_posix(filename, cwd)
+        seen_files.add(file)
         if not code or code == "invalid-syntax":
-            location = item.get("location") or {}
             unattributed.append(
-                Unattributed(
-                    file=file, line=int(location.get("row") or 0), message=str(item.get("message", ""))
+                UnattributedFinding(
+                    file=file,
+                    line=location["row"],
+                    message=message,
                 )
             )
             continue
         cells.setdefault(file, {})[str(code)] = cells.get(file, {}).get(str(code), 0) + 1
-    return RuffResult(cells=cells, unattributed=unattributed, files_with_findings=len(seen_files))
+    return LintMeasurement(
+        cells=cells,
+        unattributed=tuple(unattributed),
+        files_with_findings=len(seen_files),
+    )
 
 
-def run_ruff_check(cwd: Path) -> RuffResult:
+def run_ruff_check(cwd: Path) -> LintMeasurement:
     argv = find_ruff(cwd)
     if not argv:
         raise RuffNotFoundError(
@@ -99,8 +116,13 @@ def run_ruff_check(cwd: Path) -> RuffResult:
     # exit then genuinely means Ruff itself could not run.
     result = run([*argv, "check", ".", "--output-format", "json", "--exit-zero"], cwd)
     if result.code != 0:
-        raise RuffFailedError(f"ruff check failed (exit {result.code}):\n{result.stderr[:4000]}")
+        headline = f"ruff check failed (exit {result.code})"
+        output = result.stderr.strip()
+        raise RuffFailedError(
+            f"{headline}{_summary_clause(output)}",
+            detail=f"{headline}:\n{output}" if output else headline,
+        )
     try:
         return parse_ruff_json(result.stdout, cwd)
     except json.JSONDecodeError as error:
-        raise RuffFailedError(f"ruff produced unparseable output: {error}") from error
+        raise RuffInvalidOutputError(f"ruff produced unparseable output: {error}") from error

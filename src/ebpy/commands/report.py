@@ -9,10 +9,10 @@ from pathlib import Path
 from ..baseline import prune_cells, split_against_baseline
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
-from ..lint_report import build_lint_report, matrix_from_cells
-from ..mypy_runner import run_mypy_error_count
+from ..lint_report import LintReport, Unmeasured, build_lint_report, matrix_from_cells
+from ..measurement import Measured, Measurement, measure_repository
+from ..models import MYPY_COUNTER, CellCounts
 from ..render.lint_report import render_lint_report
-from ..ruff_runner import RuffResult, run_ruff_check
 
 # Actions sets this to a file every job may append markdown to. Writing there is what
 # makes this a CI report without anyone editing a workflow, and outside Actions it is
@@ -33,14 +33,34 @@ def _append_to_step_summary(markdown: str) -> None:
         return
 
 
-def _lint(cwd: Path) -> tuple[RuffResult | None, str | None]:
-    """A report is not a gate, so a repository that cannot lint still gets the half of
-    the answer the ratchet file holds. The reason travels with it — "no debt" and
-    "nobody looked" have to read differently."""
-    try:
-        return run_ruff_check(cwd), None
-    except (RuntimeError, OSError) as error:
-        return None, str(error).split("\n")[0]
+def report_from_measurement(baseline: CellCounts, measurement: Measurement) -> LintReport:
+    """Build a report from facts; tool failure changes its detail, never its exit status."""
+    mypy = measurement.counters[MYPY_COUNTER]
+    mypy_errors = mypy.value if isinstance(mypy, Measured) else None
+    mypy_failure = mypy.detail if not isinstance(mypy, Measured) else None
+
+    lint = measurement.lint
+    if not isinstance(lint, Measured):
+        return build_lint_report(
+            new_by_rule=None,
+            backlog_matrix=matrix_from_cells(baseline),
+            mypy_errors=mypy_errors,
+            files_with_findings=0,
+            unmeasured=Unmeasured(lint=lint.detail, mypy=mypy_failure),
+        )
+
+    result = lint.value
+    new_by_rule, _ = split_against_baseline(result.cells, baseline)
+    # The backlog is what the ratchet still holds: the baseline lowered to what
+    # still exists, not today's raw counts which include violations above it.
+    held = prune_cells(baseline, result.cells)
+    return build_lint_report(
+        new_by_rule=new_by_rule,
+        backlog_matrix=matrix_from_cells(held),
+        mypy_errors=mypy_errors,
+        files_with_findings=result.files_with_findings,
+        unmeasured=Unmeasured(mypy=mypy_failure),
+    )
 
 
 def run_report(cwd: Path, as_json: bool) -> str:
@@ -48,29 +68,7 @@ def run_report(cwd: Path, as_json: bool) -> str:
     if artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))
 
-    result, failure = _lint(cwd)
-    baseline = artifacts.cells
-
-    if result is None:
-        report = build_lint_report(
-            new_by_rule=None,
-            backlog_matrix=matrix_from_cells(baseline),
-            mypy_errors=None,
-            files_with_findings=0,
-            lint_failure=failure or "Ruff did not run",
-        )
-    else:
-        new_by_rule, _ = split_against_baseline(result.cells, baseline)
-        # The backlog is what the ratchet still holds: the baseline file lowered to what
-        # still exists — not today's raw counts, which include the new violations above.
-        held = prune_cells(baseline, result.cells)
-        report = build_lint_report(
-            new_by_rule=new_by_rule,
-            backlog_matrix=matrix_from_cells(held),
-            mypy_errors=run_mypy_error_count(cwd),
-            files_with_findings=result.files_with_findings,
-            lint_failure=None,
-        )
+    report = report_from_measurement(artifacts.cells, measure_repository(cwd))
 
     if as_json:
         return json.dumps(report.to_dict(), indent=2)

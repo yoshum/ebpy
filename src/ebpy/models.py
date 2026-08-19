@@ -6,8 +6,10 @@ values, and the disk access lives in the modules that build them.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from types import MappingProxyType
+from typing import Any, Literal, TypeAlias
 
 PackageManager = Literal["uv", "poetry", "pdm", "pipenv", "pip"]
 
@@ -23,11 +25,42 @@ LogKind = Literal["drained", "deferred", "issue", "note"]
 
 LOG_KINDS: tuple[LogKind, ...] = ("drained", "deferred", "issue", "note")
 
+# Ruff violations ratchet per file per rule through the baseline file. mypy has no
+# suppression mechanism at all, so its errors would be free to accumulate — their
+# total gets the same ratchet through a plain counter.
+MYPY_COUNTER = "mypy:errors"
+
+CellCounts = dict[str, dict[str, int]]
+CellCountsView: TypeAlias = Mapping[str, Mapping[str, int]]
+
 
 @dataclass(frozen=True)
 class SourceFile:
     path: str
     lines: int
+
+
+@dataclass(frozen=True)
+class UnattributedFinding:
+    file: str
+    line: int
+    message: str
+
+
+@dataclass(frozen=True)
+class LintMeasurement:
+    """Today's per-file per-rule findings, in the shape the ratchet compares."""
+
+    cells: CellCountsView
+    # Syntax errors cannot be grandfathered: a file that does not parse is invisible
+    # to every rule, so recording a rule count for it would be a lie.
+    unattributed: tuple[UnattributedFinding, ...] = ()
+    # Files with findings, not files inspected. Clean output therefore reports zero.
+    files_with_findings: int = 0
+
+    def __post_init__(self) -> None:
+        frozen_cells = {file: MappingProxyType(dict(rules)) for file, rules in self.cells.items()}
+        object.__setattr__(self, "cells", MappingProxyType(frozen_cells))
 
 
 @dataclass(frozen=True)

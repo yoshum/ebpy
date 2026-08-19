@@ -7,6 +7,7 @@ Everything QUALITY.md shows is rendered from here.
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,11 +28,6 @@ from .models import (
 
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
-
-# Ruff violations ratchet per file per rule through the baseline file. mypy has no
-# suppression mechanism at all, so its errors would be free to accumulate — their
-# total gets the same ratchet through a plain counter.
-MYPY_COUNTER = "mypy:errors"
 
 # `observe` records today's number without touching the ceiling — what `diagnose` and
 # `check` do. `freeze` lowers the ceiling to today's number if it improved, and never
@@ -252,6 +248,17 @@ def next_baseline(existing: int | None, current: int, mode: BaselineMode) -> int
     if existing is None or mode == "rebaseline":
         return current
     return min(existing, current) if mode == "freeze" else existing
+
+
+def copy_state(state: State) -> State:
+    """A caller's own State, safe to hand to the helpers below.
+
+    `State` is deliberately the one mutable value in the codebase, so `apply_rule_counts`,
+    `set_counter` and `with_phase` rewrite the object they are given. A decision function
+    that is pure over its arguments has to copy first, and every one of them needs the
+    same copy — so it is spelled once, here, rather than open-coded at each call site.
+    """
+    return deepcopy(state)
 
 
 def apply_rule_counts(state: State, counts: dict[str, int], mode: BaselineMode) -> State:

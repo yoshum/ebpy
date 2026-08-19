@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-BASELINE_FILE = ".ebpy/baseline.json"
+from .models import CellCounts, CellCountsView
 
-CellCounts = dict[str, dict[str, int]]
+BASELINE_FILE = ".ebpy/baseline.json"
 
 
 def _to_posix(file: str) -> str:
@@ -77,7 +77,7 @@ def read_ceiling(cwd: Path) -> Ceiling:
     return Ceiling(exists=True, cells=parse_cells(raw))
 
 
-def write_cells(cwd: Path, cells: CellCounts) -> None:
+def write_cells(cwd: Path, cells: CellCountsView) -> None:
     path = baseline_path(cwd)
     if path.parent.is_symlink():
         path.parent.unlink()
@@ -92,7 +92,7 @@ def write_cells(cwd: Path, cells: CellCounts) -> None:
     path.write_text(json.dumps(serialised, indent=2) + "\n", encoding="utf-8")
 
 
-def prune_cells(baseline: CellCounts, current: CellCounts) -> CellCounts:
+def prune_cells(baseline: CellCountsView, current: CellCountsView) -> CellCounts:
     """Lower every cell to what still exists, and never raise one — the only sanctioned
     way for the ceiling to fall. Cells whose violations are all gone disappear."""
     pruned: CellCounts = {}
@@ -105,7 +105,7 @@ def prune_cells(baseline: CellCounts, current: CellCounts) -> CellCounts:
 
 
 def split_against_baseline(
-    current: CellCounts, baseline: CellCounts
+    current: CellCountsView, baseline: CellCountsView
 ) -> tuple[dict[str, int], dict[str, int]]:
     """Divide today's violations into (new, grandfathered) per rule.
 
@@ -126,7 +126,7 @@ def split_against_baseline(
     return new, grandfathered
 
 
-def rule_totals(cells: CellCounts) -> dict[str, int]:
+def rule_totals(cells: CellCountsView) -> dict[str, int]:
     totals: dict[str, int] = {}
     for rules in cells.values():
         for rule, count in rules.items():

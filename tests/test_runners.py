@@ -3,8 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ebpy.mypy_runner import count_errors
-from ebpy.ruff_runner import parse_ruff_json
+import pytest
+
+from ebpy import mypy_runner
+from ebpy.mypy_runner import MypyFailedError, count_errors, run_mypy_check
+from ebpy.ruff_runner import RuffInvalidOutputError, parse_ruff_json
+from ebpy.util import ExecResult
 
 
 def diagnostic(filename: str, code: str | None, row: int = 1, message: str = "boom") -> dict[str, object]:
@@ -58,6 +62,11 @@ def test_a_clean_repository_parses_to_nothing(tmp_path: Path) -> None:
     assert result.files_with_findings == 0
 
 
+def test_an_invalid_ruff_diagnostic_is_not_reported_as_clean(tmp_path: Path) -> None:
+    with pytest.raises(RuffInvalidOutputError, match="index 0"):
+        parse_ruff_json("[123]", tmp_path)
+
+
 def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:
     output = (
         "src/a.py:12: error: Incompatible return value type\n"
@@ -69,3 +78,84 @@ def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:
 
 def test_clean_mypy_output_counts_zero() -> None:
     assert count_errors("") == 0
+
+
+def fatal_mypy(
+    monkeypatch: pytest.MonkeyPatch,
+    stderr: str,
+    stdout: str = "",
+    code: int = 2,
+) -> None:
+    monkeypatch.setattr(mypy_runner, "find_mypy", lambda _cwd: ["mypy"])
+    monkeypatch.setattr(
+        mypy_runner,
+        "run",
+        lambda _argv, _cwd: ExecResult(code=code, stdout=stdout, stderr=stderr),
+    )
+
+
+def test_a_fatal_mypy_carries_its_reason_on_the_failure_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The measurement seam keeps one line, so the reason has to survive on it."""
+    fatal_mypy(monkeypatch, "mypy.ini: [mypy]: Unrecognized option: bogus\n")
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    assert caught.value.summary == "mypy failed (exit 2): mypy.ini: [mypy]: Unrecognized option: bogus"
+    assert caught.value.detail == "mypy failed (exit 2):\nmypy.ini: [mypy]: Unrecognized option: bogus"
+
+
+def test_a_usage_banner_does_not_crowd_out_the_error_it_precedes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A rejected argument prints the banner first and the reason last."""
+    fatal_mypy(
+        monkeypatch,
+        "usage: mypy [-h] [-v] [-V] [more options; see below]\n"
+        "            [-m MODULE] [-p PACKAGE] [files ...]\n"
+        "mypy: error: Mypy no longer supports checking Python 2 code.\n",
+    )
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    # The summary skips the banner for the line a human acts on; the detail keeps both,
+    # because a reader with room for every line should not be handed the shorter reading.
+    assert caught.value.summary == (
+        "mypy failed (exit 2): mypy: error: Mypy no longer supports checking Python 2 code."
+    )
+    assert caught.value.detail.splitlines() == [
+        "mypy failed (exit 2):",
+        "usage: mypy [-h] [-v] [-V] [more options; see below]",
+        "            [-m MODULE] [-p PACKAGE] [files ...]",
+        "mypy: error: Mypy no longer supports checking Python 2 code.",
+    ]
+
+
+def test_a_fatal_mypy_falls_back_to_stdout_when_stderr_is_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "", stdout="\n  cannot find implementation for module 'x'\n")
+
+    with pytest.raises(MypyFailedError, match="cannot find implementation"):
+        run_mypy_check(tmp_path)
+
+
+def test_a_fatal_mypy_without_output_claims_no_reason_it_does_not_have(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "")
+
+    with pytest.raises(MypyFailedError, match=r"^mypy failed \(exit 2\)$"):
+        run_mypy_check(tmp_path)
+
+
+def test_a_signal_terminated_mypy_is_not_reported_as_clean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "Killed", code=-9)
+
+    with pytest.raises(MypyFailedError, match=r"exit -9"):
+        run_mypy_check(tmp_path)

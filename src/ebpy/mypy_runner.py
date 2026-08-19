@@ -11,13 +11,23 @@ import re
 import shutil
 from pathlib import Path
 
+from .errors import ToolError
 from .util import run
 
 # "path.py:12: error: ..." — counting these rather than trusting the summary line,
 # because the summary is absent under --no-error-summary and localised under others.
 _ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 
-_FATAL_EXIT = 2
+# Long enough for a config error or a missing-stubs line, short enough to stay one line.
+_SUMMARY_LIMIT = 200
+
+
+class MypyNotFoundError(ToolError):
+    pass
+
+
+class MypyFailedError(ToolError):
+    pass
 
 
 def find_mypy(cwd: Path) -> list[str] | None:
@@ -34,21 +44,40 @@ def count_errors(output: str) -> int:
     return len(_ERROR_LINE.findall(output))
 
 
-def run_mypy_error_count(cwd: Path) -> int | None:
-    """Today's mypy error total, or None when it could not be measured.
+def _summary_clause(output: str) -> str:
+    """The one line of mypy's complaint a human acts on, for the summary reading.
 
-    None and 0 must stay distinct: a counter written from a run that never happened
-    would ratchet the number to a value nobody measured.
+    Which line that is depends on how mypy failed: a rejected argument prints a two-line
+    usage banner and puts ``mypy: error: ...`` last, while a bad config file prints its
+    complaint alone. Preferring the last error line and falling back to the first covers
+    both without parsing either. The whole output still travels as the detail.
     """
+    lines = [text for line in output.splitlines() if (text := line.strip())]
+    if not lines:
+        return ""
+    errors = [line for line in lines if "error:" in line]
+    return f": {(errors[-1] if errors else lines[0])[:_SUMMARY_LIMIT]}"
+
+
+def run_mypy_check(cwd: Path) -> int:
+    """Today's mypy error total, raising when no number was measured."""
     argv = find_mypy(cwd)
     if not argv:
-        return None
+        raise MypyNotFoundError(
+            "mypy is not installed here (looked in .venv, venv and PATH). Run `ebpy bootstrap` first."
+        )
     try:
         result = run([*argv, ".", "--no-error-summary"], cwd)
-    except OSError:
-        return None
-    # 0 = clean, 1 = errors found; both mean mypy actually ran. 2 is mypy itself failing
-    # (bad config, missing stubs package aborting the run) — not a number.
-    if result.code >= _FATAL_EXIT:
-        return None
+    except OSError as error:
+        raise MypyFailedError(f"mypy could not run: {error}") from error
+    # 0 = clean, 1 = errors found; only those two mean mypy actually ran. Positive
+    # alternatives are mypy failures, while a negative return code means a signal
+    # terminated the process — neither produced a trustworthy number.
+    if result.code not in (0, 1):
+        headline = f"mypy failed (exit {result.code})"
+        output = (result.stderr or result.stdout).strip()
+        raise MypyFailedError(
+            f"{headline}{_summary_clause(output)}",
+            detail=f"{headline}:\n{output}" if output else headline,
+        )
     return count_errors(result.stdout)

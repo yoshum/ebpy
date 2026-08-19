@@ -17,8 +17,10 @@ checklist cannot express belongs in a skill.
 - Decisions are **pure functions over facts**. `facts.py` does the disk reading; `diagnose.py` and
   everything under `render/` take a value and return a verdict, so they are testable without a
   filesystem.
+- `measurement.py` is the toolchain seam. Ruff and mypy become one Measurement value before any
+  command applies ratchet policy; see `docs/measurement-seam.md`.
 - `baseline.py` owns the ratchet file, `state.py` owns the ledger. Nothing else writes either.
-- Commands under `commands/` are thin: gather, call a pure function, render, persist.
+- Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.
 
 ## Rules that are not in the linter
 

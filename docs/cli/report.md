@@ -18,6 +18,10 @@ ebpy report --json
 - the mypy error total;
 - how many files have findings at all.
 
+Ruff and mypy are measured independently. If Ruff cannot run but mypy can, the report still includes
+the mypy total alongside the last known Ruff backlog. If mypy cannot run, the report names why rather
+than rendering an unmeasured counter as zero.
+
 ## It is not a quality gate
 
 Ruff being unavailable and the summary file being unwritable do not fail the report: it renders
@@ -37,6 +41,11 @@ just failed is the run where the backlog is worth most.
 It falls back to `.ebpy/baseline.json` and **says so in the output**. "No debt" and "nobody looked
 for debt" must not render the same way — a report that quietly degraded to the last known numbers is
 worse than no report.
+
+The JSON form carries the same distinction in `lintFailure` and `mypyFailure`. Either is `null` when
+that capability was measured successfully, and otherwise holds the bounded multi-line detail — the
+same lines the human report quotes in its banner, which is usually where the fix is named. A detail
+that reaches the line or character bound ends with `... (truncated)`.
 
 ## Reading it
 
