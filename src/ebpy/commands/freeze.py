@@ -13,6 +13,7 @@ from pathlib import Path
 
 from ..baseline import cells_for, finding_total, merge_cells, rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
+from ..cell_key import analyzer_of
 from ..errors import CommandError
 from ..measurement import (
     ANALYZER_NAMES,
@@ -233,7 +234,7 @@ def _build_scoped_freeze(
     scope_cells = cells_for(obs.value.cells, scope)
     # Strip this namespace from the baseline; merge_cells will catch any accidental overlap.
     other_cells: CellCounts = {
-        file: {rule: count for rule, count in rules.items() if not rule.startswith(f"{scope}:")}
+        file: {rule: count for rule, count in rules.items() if analyzer_of(rule) != scope}
         for file, rules in baseline.items()
     }
     other_cells = {file: rules for file, rules in other_cells.items() if rules}
