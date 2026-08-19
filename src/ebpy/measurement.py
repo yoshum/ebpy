@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Generic, Literal, TypeAlias, TypeVar
 
 from .models import MYPY_COUNTER, LintMeasurement
@@ -52,6 +53,7 @@ class Measurement:
     def __post_init__(self) -> None:
         if MYPY_COUNTER not in self.counters:
             raise ValueError(f"Measurement requires an observation for {MYPY_COUNTER}")
+        object.__setattr__(self, "counters", MappingProxyType(dict(self.counters)))
 
 
 def _detail(error: BaseException) -> str:

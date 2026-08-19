@@ -14,7 +14,7 @@ from ..baseline import rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
 from ..measurement import Measured, Measurement, measure_repository
-from ..models import MYPY_COUNTER, CellCounts, LintMeasurement, State
+from ..models import MYPY_COUNTER, CellCountsView, LintMeasurement, State
 from ..quality_file import write_quality_file
 from ..state import (
     BaselineMode,
@@ -31,7 +31,7 @@ _UNATTRIBUTED_SHOWN = 5
 
 @dataclass(frozen=True)
 class FreezeDecision:
-    cells: CellCounts
+    cells: CellCountsView
     state: State
     message: str
 

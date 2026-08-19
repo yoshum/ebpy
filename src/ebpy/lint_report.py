@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .models import CellCounts
+from .models import CellCountsView
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"
@@ -79,7 +79,7 @@ class LintReport:
         }
 
 
-def matrix_from_cells(cells: CellCounts) -> Matrix:
+def matrix_from_cells(cells: CellCountsView) -> Matrix:
     matrix: Matrix = {}
     for file, rules in cells.items():
         area = matrix.setdefault(area_of(file), {})

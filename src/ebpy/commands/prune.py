@@ -52,9 +52,14 @@ def prune_measurement(
     mypy = measurement.counters[MYPY_COUNTER]
     if isinstance(mypy, Measured):
         state = set_counter(state, MYPY_COUNTER, mypy.value, "freeze")
+        mypy_note = None
+    elif MYPY_COUNTER in previous.counters:
+        mypy_note = f"{MYPY_COUNTER} was not measured; its existing ceiling was left unchanged: {mypy.detail}"
+    else:
+        mypy_note = f"{MYPY_COUNTER} was not measured; no type-error ceiling was recorded: {mypy.detail}"
 
     reclaimed = before - after
-    message = (
+    summary = (
         f"Nothing to reclaim. {total_violations(state)} still grandfathered."
         if reclaimed <= 0
         else "\n".join(
@@ -64,6 +69,7 @@ def prune_measurement(
             ]
         )
     )
+    message = "\n".join([summary, *([mypy_note] if mypy_note is not None else [])])
     return PruneDecision(pruned, state, message)
 
 

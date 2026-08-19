@@ -53,17 +53,30 @@ def parse_ruff_json(stdout: str, cwd: Path) -> LintMeasurement:
     cells: CellCounts = {}
     unattributed: list[UnattributedFinding] = []
     seen_files: set[str] = set()
-    for item in raw:
+    for index, item in enumerate(raw):
         if not isinstance(item, dict):
-            continue
-        file = _relative_posix(str(item.get("filename", "")), cwd)
-        seen_files.add(file)
+            raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
+        filename = item.get("filename")
         code = item.get("code")
+        message = item.get("message")
+        location = item.get("location")
+        if (
+            not isinstance(filename, str)
+            or not filename
+            or (code is not None and (not isinstance(code, str) or not code))
+            or not isinstance(message, str)
+            or not isinstance(location, dict)
+            or type(location.get("row")) is not int
+        ):
+            raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
+        file = _relative_posix(filename, cwd)
+        seen_files.add(file)
         if not code or code == "invalid-syntax":
-            location = item.get("location") or {}
             unattributed.append(
                 UnattributedFinding(
-                    file=file, line=int(location.get("row") or 0), message=str(item.get("message", ""))
+                    file=file,
+                    line=location["row"],
+                    message=message,
                 )
             )
             continue

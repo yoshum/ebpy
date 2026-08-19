@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -100,3 +101,28 @@ def test_the_known_counter_cannot_be_omitted() -> None:
             lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
             counters={},
         )
+
+
+def test_measurement_copies_and_freezes_counter_observations() -> None:
+    counters = {MYPY_COUNTER: Measured(tool="mypy", value=3)}
+    result = measurement.Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters=counters,
+    )
+
+    counters[MYPY_COUNTER] = Measured(tool="mypy", value=0)
+
+    assert result.counters[MYPY_COUNTER] == Measured(tool="mypy", value=3)
+    with pytest.raises(TypeError):
+        cast(Any, result.counters)[MYPY_COUNTER] = Measured(tool="mypy", value=0)
+
+
+def test_measurement_copies_and_deeply_freezes_lint_cells() -> None:
+    cells = {"src/a.py": {"F401": 1}}
+    result = LintMeasurement(cells=cells)
+
+    cells["src/a.py"]["F401"] = 2
+
+    assert result.cells["src/a.py"]["F401"] == 1
+    with pytest.raises(TypeError):
+        cast(Any, result.cells["src/a.py"])["F401"] = 2

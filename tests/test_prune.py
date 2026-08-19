@@ -88,3 +88,20 @@ def test_prune_leaves_an_unmeasured_counter_unchanged() -> None:
     decision = prune_measurement(previous, {}, measurement)
 
     assert decision.state.counters[MYPY_COUNTER] == Counter(baseline=4, current=4)
+    assert "was not measured" in decision.message
+    assert "existing ceiling was left unchanged" in decision.message
+    assert "mypy is not installed" in decision.message
+
+
+def test_prune_names_an_unmeasured_counter_when_no_ceiling_exists() -> None:
+    measurement = Measurement(
+        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
+    )
+
+    decision = prune_measurement(empty_state(), {}, measurement)
+
+    assert MYPY_COUNTER not in decision.state.counters
+    assert "was not measured" in decision.message
+    assert "no type-error ceiling was recorded" in decision.message
+    assert "mypy is not installed" in decision.message

@@ -17,8 +17,6 @@ from .util import ExecResult, run
 # because the summary is absent under --no-error-summary and localised under others.
 _ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 
-_FATAL_EXIT = 2
-
 # Long enough for a config error or a missing-stubs line, short enough to stay one line.
 _REASON_LIMIT = 200
 
@@ -72,8 +70,9 @@ def run_mypy_check(cwd: Path) -> int:
         result = run([*argv, ".", "--no-error-summary"], cwd)
     except OSError as error:
         raise MypyFailedError(f"mypy could not run: {error}") from error
-    # 0 = clean, 1 = errors found; both mean mypy actually ran. 2 is mypy itself failing
-    # (bad config, missing stubs package aborting the run) — not a number.
-    if result.code >= _FATAL_EXIT:
+    # 0 = clean, 1 = errors found; only those two mean mypy actually ran. Positive
+    # alternatives are mypy failures, while a negative return code means a signal
+    # terminated the process — neither produced a trustworthy number.
+    if result.code not in (0, 1):
         raise MypyFailedError(f"mypy failed (exit {result.code}){_reason(result)}")
     return count_errors(result.stdout)

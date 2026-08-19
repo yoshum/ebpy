@@ -7,7 +7,7 @@ import pytest
 
 from ebpy import mypy_runner
 from ebpy.mypy_runner import MypyFailedError, count_errors, run_mypy_check
-from ebpy.ruff_runner import parse_ruff_json
+from ebpy.ruff_runner import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
 
 
@@ -62,6 +62,11 @@ def test_a_clean_repository_parses_to_nothing(tmp_path: Path) -> None:
     assert result.files_with_findings == 0
 
 
+def test_an_invalid_ruff_diagnostic_is_not_reported_as_clean(tmp_path: Path) -> None:
+    with pytest.raises(RuffInvalidOutputError, match="index 0"):
+        parse_ruff_json("[123]", tmp_path)
+
+
 def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:
     output = (
         "src/a.py:12: error: Incompatible return value type\n"
@@ -75,12 +80,17 @@ def test_clean_mypy_output_counts_zero() -> None:
     assert count_errors("") == 0
 
 
-def fatal_mypy(monkeypatch: pytest.MonkeyPatch, stderr: str, stdout: str = "") -> None:
+def fatal_mypy(
+    monkeypatch: pytest.MonkeyPatch,
+    stderr: str,
+    stdout: str = "",
+    code: int = 2,
+) -> None:
     monkeypatch.setattr(mypy_runner, "find_mypy", lambda _cwd: ["mypy"])
     monkeypatch.setattr(
         mypy_runner,
         "run",
-        lambda _argv, _cwd: ExecResult(code=2, stdout=stdout, stderr=stderr),
+        lambda _argv, _cwd: ExecResult(code=code, stdout=stdout, stderr=stderr),
     )
 
 
@@ -131,4 +141,13 @@ def test_a_fatal_mypy_without_output_claims_no_reason_it_does_not_have(
     fatal_mypy(monkeypatch, "")
 
     with pytest.raises(MypyFailedError, match=r"^mypy failed \(exit 2\)$"):
+        run_mypy_check(tmp_path)
+
+
+def test_a_signal_terminated_mypy_is_not_reported_as_clean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fatal_mypy(monkeypatch, "Killed", code=-9)
+
+    with pytest.raises(MypyFailedError, match=r"exit -9"):
         run_mypy_check(tmp_path)

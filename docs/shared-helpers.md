@@ -27,14 +27,14 @@ notices once the copies are textually similar — and independently written ones
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
 | `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
 | `copy_state` | src/ebpy/state.py:253 | A caller's own State, safe to hand to the helpers below. |
-| `count_errors` | src/ebpy/mypy_runner.py:44 |  |
+| `count_errors` | src/ebpy/mypy_runner.py:42 |  |
 | `count_importers` | src/ebpy/fan_in.py:114 |  |
 | `diagnose` | src/ebpy/diagnose.py:176 |  |
-| `diagnosis_from_dict` | src/ebpy/models.py:152 |  |
+| `diagnosis_from_dict` | src/ebpy/models.py:159 |  |
 | `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `empty_state` | src/ebpy/state.py:59 |  |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
-| `find_mypy` | src/ebpy/mypy_runner.py:34 |  |
+| `find_mypy` | src/ebpy/mypy_runner.py:32 |  |
 | `find_regressions` | src/ebpy/state.py:291 | The gate. |
 | `find_ruff` | src/ebpy/ruff_runner.py:31 |  |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
@@ -51,7 +51,7 @@ notices once the copies are textually similar — and independently written ones
 | `log_of_kind` | src/ebpy/state.py:238 |  |
 | `main` | src/ebpy/cli.py:201 |  |
 | `matrix_from_cells` | src/ebpy/lint_report.py:82 |  |
-| `measure_repository` | src/ebpy/measurement.py:87 | Measure every independent capability, retaining partial success as data. |
+| `measure_repository` | src/ebpy/measurement.py:89 | Measure every independent capability, retaining partial success as data. |
 | `next_baseline` | src/ebpy/state.py:247 |  |
 | `parse_cells` | src/ebpy/baseline.py:28 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
 | `parse_ruff_json` | src/ebpy/ruff_runner.py:49 |  |
@@ -65,8 +65,8 @@ notices once the copies are textually similar — and independently written ones
 | `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
 | `rule_totals` | src/ebpy/baseline.py:129 |  |
 | `run` | src/ebpy/util.py:17 |  |
-| `run_mypy_check` | src/ebpy/mypy_runner.py:64 | Today's mypy error total, raising when no number was measured. |
-| `run_ruff_check` | src/ebpy/ruff_runner.py:78 |  |
+| `run_mypy_check` | src/ebpy/mypy_runner.py:62 | Today's mypy error total, raising when no number was measured. |
+| `run_ruff_check` | src/ebpy/ruff_runner.py:91 |  |
 | `set_counter` | src/ebpy/state.py:279 |  |
 | `split_against_baseline` | src/ebpy/baseline.py:107 | Divide today's violations into (new, grandfathered) per rule. |
 | `state_from_dict` | src/ebpy/state.py:131 |  |
@@ -98,7 +98,7 @@ notices once the copies are textually similar — and independently written ones
 | `run_install` | src/ebpy/commands/install.py:444 |  |
 | `run_log` | src/ebpy/commands/log.py:25 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:22 |  |
-| `run_prune` | src/ebpy/commands/prune.py:70 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
+| `run_prune` | src/ebpy/commands/prune.py:76 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:66 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
