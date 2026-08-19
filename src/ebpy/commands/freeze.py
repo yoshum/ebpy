@@ -63,7 +63,7 @@ def _unattributed_report(analyzer: str, result: AnalysisMeasurement) -> list[str
         *samples,
         *([f"  + {more} more"] if more > 0 else []),
         "These cannot be grandfathered: a file that does not parse has no violations to count.",
-        "Fix them, or add them to Ruff's exclude / extend-exclude if deliberately unparseable.",
+        f"Fix them, or exclude them in {analyzer}'s configuration if deliberately unparseable.",
         "Then re-run freeze so those files enter the baseline.",
     ]
 
@@ -137,7 +137,7 @@ def _refusal_reason(
             "that it could not lint:",
             *samples,
             *([f"  + {more} more"] if more > 0 else []),
-            "Fix the files, or add them to Ruff's exclude / extend-exclude if deliberately unparseable.",
+            f"Fix the files, or exclude them in {analyzer}'s configuration if deliberately unparseable.",
         ]
     )
 

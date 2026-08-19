@@ -218,7 +218,7 @@ def test_an_incomplete_analyzer_refuses_a_normal_freeze_and_writes_nothing() -> 
     assert "Nothing was written" in str(exc_info.value)
 
 
-def test_the_incomplete_refusal_names_fixing_the_file_and_ruffs_exclude() -> None:
+def test_the_incomplete_refusal_names_fixing_the_file_and_the_analyzers_exclude() -> None:
     incomplete_ruff = Measured(
         tool="ruff",
         value=AnalysisMeasurement(
@@ -239,6 +239,32 @@ def test_the_incomplete_refusal_names_fixing_the_file_and_ruffs_exclude() -> Non
     msg = str(exc_info.value)
     assert "exclude" in msg
     assert "src/bad.py" in msg
+
+
+def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> None:
+    """The refusal and unattributed remediation were generalized to any analyzer, so a
+    mypy syntax error must not tell the user to edit Ruff's exclude — the advice names the
+    analyzer that actually could not parse the file."""
+    incomplete_mypy = Measured(
+        tool="mypy",
+        value=AnalysisMeasurement(
+            cells={},
+            unattributed=(UnattributedFinding(file="src/bad.py", line=1, message="SyntaxError"),),
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": incomplete_mypy,
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    msg = str(exc_info.value)
+    assert "Ruff" not in msg and "ruff's" not in msg.lower()
+    assert "mypy" in msg
 
 
 def test_an_unavailable_analyzer_refuses_a_normal_freeze_and_names_bootstrap() -> None:
