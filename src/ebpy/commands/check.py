@@ -53,13 +53,14 @@ def _worst(cells: CellCounts) -> list[str]:
     return [f"  {file}  {rule}  +{count}" for file, rule, count in ranked[:_WORST_SAMPLE]]
 
 
-def _excess_reason(excess: CellCounts) -> str:
+def _excess_reason(analyzer: str, excess: CellCounts) -> str:
     return "\n".join(
         [
             f"{finding_total(excess)} finding(s) beyond the ceiling — these are new since the baseline:",
             *_worst(excess),
             "",
-            "Fix them, or if a rule was genuinely reconfigured, re-freeze with --force.",
+            f"Fix them, or if a {analyzer} rule was genuinely reconfigured, re-pin only that",
+            f"namespace with `ebpy freeze --force --analyzer {analyzer}`.",
         ]
     )
 
@@ -118,7 +119,7 @@ def _gate_analyzer(
         cells_for(observation.value.cells, analyzer), cells_for(baseline, analyzer)
     )
     state = apply_analyzer_rule_counts(state, analyzer, held, "observe")
-    return state, _excess_reason(excess) if excess else None
+    return state, _excess_reason(analyzer, excess) if excess else None
 
 
 def _non_contract_note(analyzer: str, status: AnalyzerStatus) -> str:

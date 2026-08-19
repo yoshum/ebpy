@@ -97,5 +97,7 @@ The run where the gate has just failed is the run where the backlog is worth mos
 ## When it fails on your pull request
 
 Either the code introduced a violation — fix it — or a rule was genuinely reconfigured, which is the
-one case for [`freeze --force`](freeze.md#freezing-twice-is-refused). Do not add `# noqa`: a
-suppression comment is a ceiling that never drains and that nothing reports.
+one case for a forced re-pin. Re-pin only the analyzer whose rule changed with
+[`freeze --force --analyzer NAME`](freeze.md#freezing-twice-is-refused); a global `freeze --force`
+rebaselines every namespace and would grandfather unrelated analyzers' new violations. Do not add
+`# noqa`: a suppression comment is a ceiling that never drains and that nothing reports.

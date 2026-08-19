@@ -212,6 +212,18 @@ def test_the_excess_message_names_the_file_and_the_rule() -> None:
     assert "  src/widget.py  mypy:arg-type  +3" in decision.result.message
 
 
+def test_the_excess_message_suggests_a_scoped_refreeze_for_that_analyzer() -> None:
+    """A rule genuinely reconfigured is recovered by re-pinning only its analyzer. A global
+    `freeze --force` would rebaseline every namespace, grandfathering unrelated analyzers'
+    new violations, so the guidance names the analyzer and its scoped freeze."""
+    previous = _state(frozen_analyzers=("mypy",))
+    measurement = Measurement(analyzers={"mypy": _measured("mypy", {"src/widget.py": {"mypy:arg-type": 3}})})
+
+    decision = check_measurement(previous, {}, measurement)
+
+    assert "freeze --force --analyzer mypy" in decision.result.message
+
+
 def test_a_mypy_error_cascading_into_untouched_files_names_each_of_them() -> None:
     previous = _state(frozen_analyzers=("mypy",))
     measurement = Measurement(

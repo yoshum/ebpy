@@ -55,10 +55,13 @@ prevent — so ebpy refuses it. Two legitimate ways forward:
 
 - **`ebpy prune`** — after fixing violations, reclaims exactly what was fixed and lowers the
   ceiling. This is the normal path and can be run any time.
-- **`ebpy freeze --force`** — only when a rule was genuinely reconfigured (a tier added, a rule's
-  settings changed) and its old ceiling no longer describes the same measurement, or when recovering
-  from an invalid artifact pair. This is the only operation that can move a ceiling up. Say in the
-  commit message which rule changed and why.
+- **`ebpy freeze --force --analyzer NAME`** — when a rule was genuinely reconfigured (a tier added, a
+  rule's settings changed) and its old ceiling no longer describes the same measurement. Re-pins only
+  that analyzer's namespace, leaving every other ceiling in place. Prefer this over a global re-pin.
+- **`ebpy freeze --force`** — the global re-pin: rebaselines every namespace at once. Use it only when
+  recovering from an invalid artifact pair (scoped freeze cannot), since it grandfathers whatever each
+  analyzer reports today. This is the only operation that can move a ceiling up. Say in the commit
+  message which rule changed and why.
 
 ## What to tell the user afterwards
 
