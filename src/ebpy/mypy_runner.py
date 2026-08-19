@@ -16,7 +16,16 @@ from .errors import ToolError
 from .models import AnalysisMeasurement, CellCounts
 from .util import run
 
-# A parseable error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: <message>  [<code>]`.
+# The location prefix of an error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: `.
+# This is what marks a line as an error mypy is reporting, as opposed to a `note:` whose own
+# message text happens to contain the substring `: error: `. Screening on the substring alone
+# would drag such a note into the strict parse below and refuse the whole measurement over a
+# line that was never an error. The filename group is non-greedy; see `_MYPY_ERROR_LINE`.
+_MYPY_ERROR_PREFIX = re.compile(
+    r"^.+?:\d+(?::\d+)?(?::\d+:\d+)?: error: ",
+)
+
+# A fully parseable error line: the prefix above followed by `<message>  [<code>]`.
 # The filename group is non-greedy. mypy's own filenames can contain a colon — a Windows
 # drive letter, or a literal colon in the path — so a greedy group would swallow the first
 # `: error: ` it could find instead of the real one. Backtracking from the left lets the
@@ -60,7 +69,7 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     cells: CellCounts = {}
     seen_files: set[str] = set()
     for line in output.splitlines():
-        if ": error: " not in line:
+        if _MYPY_ERROR_PREFIX.match(line) is None:
             continue
         match = _MYPY_ERROR_LINE.match(line)
         if match is None:

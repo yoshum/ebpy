@@ -271,6 +271,19 @@ def test_mypy_parser_takes_the_trailing_code_when_the_message_has_brackets(tmp_p
     assert parse_mypy_output(output, tmp_path).cells == {"src/a.py": {"mypy:arg-type": 1}}
 
 
+def test_mypy_parser_ignores_a_note_whose_message_body_contains_error_prefix(tmp_path: Path) -> None:
+    """A note is not an error, even when its own text spells one out. Only a diagnostic
+    whose category directly after the location is `error:` counts, so a note quoting an
+    expected type of `error: T` must not refuse the whole measurement."""
+    output = "\n".join(
+        [
+            "src/a.py:7: error: boom  [arg-type]",
+            "src/a.py:7: note: Expected type: error: T  [misc]",
+        ]
+    )
+    assert parse_mypy_output(output, tmp_path).cells == {"src/a.py": {"mypy:arg-type": 1}}
+
+
 def test_mypy_parser_refuses_an_error_line_with_no_code(tmp_path: Path) -> None:
     """A dropped code would silently become zero findings, which is the failure to avoid."""
     with pytest.raises(MypyInvalidOutputError):
