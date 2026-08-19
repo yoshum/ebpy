@@ -7,11 +7,8 @@
 ### Breaking Changes
 
 - Baseline and state files are now **version 2**. Rule IDs are namespaced: `ruff:F401`,
-  `mypy:arg-type`. Version 1 artifacts are read and upgraded in memory on the next write.
-
-- A non-zero v1 `mypy:errors` counter is refused on read — the scalar cannot be decomposed into
-  per-file per-rule cells. Restore both matching artifacts from version control, or discard the old
-  contract with `ebpy freeze --force`.
+  `mypy:arg-type`. Version 1 artifacts are no longer read: a repository frozen with an earlier
+  ebpy reads as invalid, and its contract must be re-pinned with `ebpy freeze --force`.
 
 - mypy is now gated per file per rule, not as a global total. A type error moving from one file to
   another fails `check` even when the repository-wide count is unchanged.
@@ -25,8 +22,8 @@
   analyzer. A repository whose toolchain is incomplete finishes `ebpy bootstrap` first.
 
 - New `freeze --analyzer NAME` adds one analyzer to a contract whose roster is narrower than what
-  ebpy knows — a v1 artifact pair frozen while mypy could not be measured is the case that exists
-  today. It adds mypy without disturbing the Ruff ceiling.
+  ebpy knows — a contract pinned while an analyzer could not be measured. It adds that analyzer
+  without disturbing the other ceilings.
 
 - `report --json` schema replaced: `mypyErrors`, the global `filesWithFindings` scalar,
   `lintFailure`, and `mypyFailure` are gone, replaced by an `analyzers` object with per-analyzer
@@ -35,9 +32,6 @@
 
 - `status --json` gains `frozenAnalyzers` and loses `counters`. `QUALITY.md` loses the
   `## Other counters` table and the regression verdict; it now lists analyzers by name.
-
-- The first `check --write` in a v1 repository upgrades `.ebpy/state.json` to version 2 only,
-  leaving `.ebpy/baseline.json` at version 1 until the next `freeze` or `prune`.
 
 - `check` now names the file of every finding beyond the ceiling, not just the rule.
 

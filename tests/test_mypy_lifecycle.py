@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from ebpy.baseline import read_ceiling, write_cells
+from ebpy.baseline import write_cells
 from ebpy.cli import main
 from ebpy.models import RuleBaseline, State
 from ebpy.state import write_state
@@ -89,7 +89,7 @@ select = ["F", "E"]
 strict = true
 """
 
-_V1_FROZEN_AT = "2026-01-01T00:00:00Z"
+_FROZEN_AT = "2026-01-01T00:00:00Z"
 
 
 # ---------------------------------------------------------------------------
@@ -115,17 +115,17 @@ def _init_repo(tmp_path: Path) -> Path:
 
 
 def _write_ruff_only_v2_artifacts(repo: Path) -> None:
-    """Write a frozen v2 artifact pair covering only the ruff namespace.
+    """Write a frozen artifact pair covering only the ruff namespace.
 
     The normal CLI cannot produce a ruff-only contract because ANALYZER_NAMES always
-    includes mypy; this helper simulates the state that results from migrating a v1
-    artifact pair that had no mypy:errors counter.
+    includes mypy; this helper writes the state a scoped freeze is meant to extend — a
+    contract pinned while mypy could not be measured.
     """
     ruff_cells: dict[str, dict[str, int]] = {"src/app.py": {"ruff:F401": 1}}
     write_cells(repo, ruff_cells)
     state = State(
         phase="drain",
-        frozen_at=_V1_FROZEN_AT,
+        frozen_at=_FROZEN_AT,
         frozen_analyzers=("ruff",),
         rules={"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
     )
@@ -257,69 +257,6 @@ def test_a_ruff_only_contract_accepts_a_scoped_mypy_freeze_without_moving_ruff_c
 
     assert ruff_cells_before == ruff_cells_after, "ruff cells must be byte-identical after scoped mypy freeze"
     assert mypy_cells_after, "expected at least one mypy: cell after scoped freeze"
-
-
-def test_a_v1_pair_frozen_without_mypy_accepts_a_scoped_mypy_freeze(tmp_path: Path) -> None:
-    """A migrated v1 contract (ruff-only roster) accepts freeze --analyzer mypy.
-
-    v1 state gains "mypy" in its frozen_analyzers only when the counters dict carries a
-    ``mypy:errors`` entry with {baseline: 0, current: 0}.  Omitting that counter migrates
-    to frozen_analyzers == ("ruff",) — the precondition for scoped mypy freeze.
-    """
-    repo = _init_repo(tmp_path)
-    (repo / "src" / "app.py").write_text(DIRTY_BOTH, encoding="utf-8")
-    git(repo, "add", "-A")
-    git(repo, "commit", "-qm", "initial")
-
-    # Write a v1 artifact pair WITHOUT the mypy:errors counter: the migrated state will
-    # have frozen_analyzers == ("ruff",), making this a ruff-only contract.
-    v1_state: dict[str, Any] = {
-        "version": 1,
-        "tool": "ebpy",
-        "phase": "drain",
-        "updatedAt": _V1_FROZEN_AT,
-        "frozenAt": _V1_FROZEN_AT,
-        "diagnosedAt": None,
-        "diagnosedCommit": None,
-        "diagnosis": None,
-        "rules": {"F401": {"baseline": 1, "current": 1, "status": "draining"}},
-        "counters": {},
-        "log": [],
-    }
-    # v1 baselines use bare (unnamespaced) rule keys.
-    v1_baseline: dict[str, Any] = {"src/app.py": {"F401": {"count": 1}}}
-
-    ebpy_dir = repo / ".ebpy"
-    ebpy_dir.mkdir(parents=True, exist_ok=True)
-    (ebpy_dir / "state.json").write_text(json.dumps(v1_state) + "\n", encoding="utf-8")
-    (ebpy_dir / "baseline.json").write_text(json.dumps(v1_baseline) + "\n", encoding="utf-8")
-
-    # Snapshot the ruff cells from the migrated baseline before the scoped freeze.
-    # read_ceiling returns parsed counts as plain ints; compare using the same reader after.
-    ceiling_before = read_ceiling(repo)
-    assert ceiling_before.cells is not None
-    ruff_cells_before = {
-        file: {k: v for k, v in rules.items() if k.startswith("ruff:")}
-        for file, rules in ceiling_before.cells.items()
-    }
-
-    # freeze --analyzer mypy must succeed on a ruff-only (v1-migrated) contract.
-    assert run(repo, "freeze", "--analyzer", "mypy") == 0
-
-    ceiling_after = read_ceiling(repo)
-    assert ceiling_after.cells is not None
-    ruff_cells_after = {
-        file: {k: v for k, v in rules.items() if k.startswith("ruff:")}
-        for file, rules in ceiling_after.cells.items()
-    }
-    mypy_cells_after = {
-        file: {k: v for k, v in rules.items() if k.startswith("mypy:")}
-        for file, rules in ceiling_after.cells.items()
-        if any(k.startswith("mypy:") for k in rules)
-    }
-
-    assert ruff_cells_before == ruff_cells_after, "ruff cells must be unchanged after scoped mypy freeze"
-    assert mypy_cells_after, "expected at least one mypy: cell after freeze --analyzer mypy"
 
 
 def test_a_repository_with_an_unparseable_file_cannot_be_frozen_by_any_invocation(

@@ -8,20 +8,8 @@ from ebpy.cell_key import (
     is_rule_id,
     normalize_analyzer_path,
     qualify_rule,
-    qualify_v1_rule,
     split_rule,
 )
-
-
-def test_qualify_v1_rule_namespaces_a_bare_code_as_ruff() -> None:
-    assert qualify_v1_rule("F401") == "ruff:F401"
-
-
-@pytest.mark.parametrize("local_code", ["mypy:errors", "F401:extra", "F401\nX", "F401\rX", ""])
-def test_qualify_v1_rule_rejects_a_key_that_is_not_a_bare_code(local_code: str) -> None:
-    """A v1 key carries no namespace, so a separator or newline in it cannot be upgraded
-    to a real rule id — the caller must treat it as unreadable rather than forge one."""
-    assert qualify_v1_rule(local_code) is None
 
 
 def test_qualify_and_split_round_trip_every_valid_rule() -> None:

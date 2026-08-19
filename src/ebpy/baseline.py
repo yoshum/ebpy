@@ -9,12 +9,12 @@ files, so reading it whole is safe in a way reading a log never is.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .cell_key import analyzer_of, is_rule_id, normalize_analyzer_path, qualify_v1_rule
+from .cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
 from .models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"
@@ -37,47 +37,29 @@ def _valid_count(entry: object) -> int | None:
     return count
 
 
-def _parse_file_rules(
-    rules: object, namespace: Callable[[object], RuleId | None]
-) -> dict[RuleId, int] | None:
-    """One file's rule map, however its rule keys must be validated for this version.
-
-    `namespace` turns a raw stored key into a namespaced rule ID, or rejects it: every
-    v1 key is bare and gets the same analyzer stitched on, while a v2 key is rejected
-    outright unless it is already namespaced.
-    """
+def _parse_file_rules(rules: object) -> dict[RuleId, int] | None:
+    """One file's rule map, rejecting any key that is not already a namespaced rule ID."""
     if not isinstance(rules, dict) or not rules:
         return None
     parsed: dict[RuleId, int] = {}
     for rule, entry in rules.items():
-        qualified = namespace(rule)
-        if qualified is None:
+        if not is_rule_id(rule):
             return None
         count = _valid_count(entry)
         if count is None:
             return None
-        parsed[qualified] = count
+        parsed[rule] = count
     return parsed
 
 
-def _v1_rule(rule: object) -> RuleId | None:
-    return qualify_v1_rule(rule) if isinstance(rule, str) else None
-
-
-def _v2_rule(rule: object) -> RuleId | None:
-    return rule if isinstance(rule, str) and is_rule_id(rule) else None
-
-
-def _parse_files(
-    raw_cells: object, cwd: Path, namespace: Callable[[object], RuleId | None]
-) -> CellCounts | None:
+def _parse_files(raw_cells: object, cwd: Path) -> CellCounts | None:
     if not isinstance(raw_cells, dict):
         return None
     cells: CellCounts = {}
     for file, rules in raw_cells.items():
         if not isinstance(file, str) or not file:
             return None
-        parsed_rules = _parse_file_rules(rules, namespace)
+        parsed_rules = _parse_file_rules(rules)
         if parsed_rules is None:
             return None
         normalised = normalize_analyzer_path(file, cwd)
@@ -90,18 +72,14 @@ def _parse_files(
 def parse_cells(raw: Any, cwd: Path) -> CellCounts | None:
     """Parse the complete baseline, rejecting rather than skipping any bad cell.
 
-    A bare object with no ``version`` key is v1: every rule key held no namespace because
-    v1 only ever recorded Ruff, so it becomes ``ruff:<key>`` whatever it looks like. Only
-    ``{"version": 2, "cells": {...}}`` is v2, and any other top-level key makes the whole
-    artifact unreadable rather than silently ignored.
+    Only ``{"version": 2, "cells": {...}}`` is accepted, and any other top-level key makes
+    the whole artifact unreadable rather than silently ignored.
     """
     if not isinstance(raw, dict):
         return None
-    if "version" not in raw:
-        return _parse_files(raw, cwd, _v1_rule)
     if set(raw) != {"version", "cells"} or raw["version"] != BASELINE_VERSION:
         return None
-    return _parse_files(raw["cells"], cwd, _v2_rule)
+    return _parse_files(raw["cells"], cwd)
 
 
 @dataclass(frozen=True)

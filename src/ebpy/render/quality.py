@@ -138,9 +138,9 @@ def _unratcheted_marker(state: State, roster: set[str]) -> str:
 
     Skipped when there is no diagnosis to compare against — a repository that never ran
     `diagnose` has nothing to compare against, and inventing a complaint from missing
-    data is exactly what "absence and zero are different" forbids. A v1 pair frozen while
-    mypy could not be measured normalizes to a roster of `("ruff",)` alone, so without this
-    note such a repository is never told its type errors are unratcheted.
+    data is exactly what "absence and zero are different" forbids. A contract with a
+    narrower roster than the repository configures — a ruff-only freeze in a repository
+    that also runs mypy — is never told its type errors are unratcheted without this note.
     """
     if state.diagnosis is None:
         return ""

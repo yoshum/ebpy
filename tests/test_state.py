@@ -85,92 +85,10 @@ def test_a_rule_seen_for_the_first_time_starts_at_todays_count() -> None:
     assert next_baseline(None, 7, "observe") == 7
 
 
-def test_v1_rules_and_log_rules_are_read_as_ruff_namespaced() -> None:
-    raw = _v1_raw(
-        rules={"F401": {"baseline": 2, "current": 1, "status": "draining"}},
-        log=[{"at": "2026-08-19T00:00:00Z", "kind": "note", "text": "seen", "rule": "C901"}],
-    )
-
-    state = state_from_dict(raw)
-
-    assert state is not None
-    assert "ruff:F401" in state.rules
-    assert state.rules["ruff:F401"] == RuleBaseline(baseline=2, current=1, status="draining")
-    assert state.log[0].rule == "ruff:C901"
-
-
-def test_a_v1_rule_key_with_a_separator_makes_the_state_unreadable() -> None:
-    """A v1 rule code is bare, so a colon in it would forge a double-namespaced id
-    (`ruff:mypy:errors`). The whole state is refused rather than carried in mangled."""
-    raw = _v1_raw(rules={"mypy:errors": {"baseline": 1, "current": 1, "status": "draining"}})
-
-    assert state_from_dict(raw) is None
-
-
-def test_a_v1_log_rule_with_a_newline_makes_the_state_unreadable() -> None:
-    """A malformed log rule forges an id no producer emits; the state is refused rather
-    than upgraded with a rule string that later breaks `analyzer_of`."""
-    raw = _v1_raw(
-        rules={"F401": {"baseline": 1, "current": 1, "status": "draining"}},
-        log=[{"at": "2026-08-19T00:00:00Z", "kind": "note", "text": "x", "rule": "F401\nX"}],
-    )
-
-    assert state_from_dict(raw) is None
-
-
-def test_a_v1_current_above_its_baseline_is_clamped_rather_than_carried_over() -> None:
-    raw = _v1_raw(rules={"F401": {"baseline": 2, "current": 5, "status": "draining"}})
-
-    state = state_from_dict(raw)
-
-    assert state is not None
-    assert state.rules["ruff:F401"].current == 2
-
-
-def test_a_v1_zero_mypy_counter_becomes_roster_membership_on_a_frozen_state() -> None:
-    raw = _v1_raw(
-        counters={"mypy:errors": {"baseline": 0, "current": 0}},
-        frozen_at="2026-08-19T00:00:00Z",
-    )
-
-    state = state_from_dict(raw)
-
-    assert state is not None
-    assert "mypy" in state.frozen_analyzers
-    assert "ruff" in state.frozen_analyzers
-
-
-def test_a_v1_zero_mypy_counter_on_an_unfrozen_state_leaves_the_roster_empty() -> None:
-    raw = _v1_raw(counters={"mypy:errors": {"baseline": 0, "current": 0}}, frozen_at=None)
-
-    state = state_from_dict(raw)
-
-    assert state is not None
-    assert state.frozen_analyzers == ()
-
-
-def test_a_v1_mypy_counter_with_a_nonzero_baseline_makes_the_state_unreadable() -> None:
-    raw = _v1_raw(counters={"mypy:errors": {"baseline": 3, "current": 3}})
-
-    assert state_from_dict(raw) is None
-
-
-def test_a_v1_mypy_counter_with_a_nonzero_current_makes_the_state_unreadable() -> None:
-    raw = _v1_raw(counters={"mypy:errors": {"baseline": 0, "current": 2}})
-
-    assert state_from_dict(raw) is None
-
-
-def test_a_v1_mypy_counter_that_improved_to_zero_still_makes_the_state_unreadable() -> None:
-    # A scalar total that fell to zero this run still cannot be decomposed into the file x
-    # rule cells v2 requires -- the nonzero baseline is what makes it unreadable, not the current.
-    raw = _v1_raw(counters={"mypy:errors": {"baseline": 5, "current": 0}})
-
-    assert state_from_dict(raw) is None
-
-
-def test_a_v1_counter_of_an_unknown_name_makes_the_state_unreadable() -> None:
-    raw = _v1_raw(counters={"other:thing": {"baseline": 0, "current": 0}})
+def test_a_version_one_state_reads_as_unreadable() -> None:
+    """Version 1 is no longer upgraded in memory; a state still at version 1 is refused so
+    the reader never reconstructs a contract from a format it no longer understands."""
+    raw = _v1_raw(rules={"F401": {"baseline": 2, "current": 1, "status": "draining"}})
 
     assert state_from_dict(raw) is None
 
@@ -280,19 +198,6 @@ def test_replace_analyzer_rules_replaces_only_the_named_namespace() -> None:
         "ruff:F401": RuleBaseline(baseline=0, current=0, status="enforced"),
         "mypy:arg-type": RuleBaseline(baseline=2, current=2, status="draining"),
     }
-
-
-def test_reading_a_v1_state_leaves_the_file_untouched(tmp_path: Path) -> None:
-    path = tmp_path / ".ebpy" / "state.json"
-    path.parent.mkdir(parents=True)
-    raw = _v1_raw(rules={"F401": {"baseline": 2, "current": 1, "status": "draining"}})
-    original_bytes = (json.dumps(raw) + "\n").encode("utf-8")
-    path.write_bytes(original_bytes)
-
-    ledger = read_ledger(tmp_path)
-
-    assert ledger.state is not None
-    assert path.read_bytes() == original_bytes
 
 
 def test_missing_state_reads_as_none(tmp_path: Path) -> None:

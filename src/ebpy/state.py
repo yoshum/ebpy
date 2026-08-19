@@ -7,14 +7,14 @@ the work log, and the diagnosis provenance. Everything QUALITY.md shows is rende
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, TypeGuard
 
-from .cell_key import analyzer_of, is_analyzer_name, is_rule_id, qualify_v1_rule
+from .cell_key import analyzer_of, is_analyzer_name, is_rule_id
 from .models import (
     LOG_KINDS,
     PHASE_ORDER,
@@ -74,10 +74,6 @@ def _entry_from_dict(raw: dict[str, Any]) -> LogEntry:
     )
 
 
-def _is_count(value: Any) -> bool:
-    return type(value) is int and value >= 0
-
-
 def _is_optional_string(value: Any) -> bool:
     return value is None or isinstance(value, str)
 
@@ -96,48 +92,15 @@ def _valid_common_fields(raw: dict[str, Any]) -> bool:
     )
 
 
-def _valid_log(log: Any, rule_ok: Callable[[Any], bool]) -> bool:
+def _valid_log(log: Any) -> bool:
     return isinstance(log, list) and all(
         isinstance(entry, dict)
         and isinstance(entry.get("at"), str)
         and _is_optional_string(entry.get("commit"))
         and entry.get("kind") in LOG_KINDS
         and isinstance(entry.get("text"), str)
-        and rule_ok(entry.get("rule"))
+        and (entry.get("rule") is None or is_rule_id(entry.get("rule")))
         for entry in log
-    )
-
-
-def _valid_v1_rules(rules: Any) -> bool:
-    return isinstance(rules, dict) and all(
-        isinstance(name, str)
-        and name
-        and isinstance(rule, dict)
-        and _is_count(rule.get("baseline"))
-        and _is_count(rule.get("current"))
-        and rule.get("status") in RULE_STATUSES
-        for name, rule in rules.items()
-    )
-
-
-def _valid_v1_counters(counters: Any) -> bool:
-    return isinstance(counters, dict) and all(
-        isinstance(name, str)
-        and name
-        and isinstance(counter, dict)
-        and _is_count(counter.get("baseline"))
-        and _is_count(counter.get("current"))
-        for name, counter in counters.items()
-    )
-
-
-def _has_valid_v1_shape(raw: dict[str, Any]) -> bool:
-    return (
-        raw.get("version") == 1
-        and _valid_common_fields(raw)
-        and _valid_v1_rules(raw.get("rules"))
-        and _valid_v1_counters(raw.get("counters"))
-        and _valid_log(raw.get("log", []), _is_optional_string)
     )
 
 
@@ -180,89 +143,13 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
         and "counters" not in raw
         and _valid_common_fields(raw)
         and _valid_v2_rules(raw.get("rules"), frozen_analyzers)
-        and _valid_log(raw.get("log", []), lambda rule: rule is None or is_rule_id(rule))
+        and _valid_log(raw.get("log", []))
     )
 
 
-def _require_v1_rule(local_code: str) -> str:
-    """Namespace a bare v1 code, raising when it cannot be upgraded to a real rule id.
-
-    Raises rather than returns None so the broad ``except`` in the caller collapses a
-    malformed key into an unreadable state, the same as any other corrupt v1 field.
-    """
-    qualified = qualify_v1_rule(local_code)
-    if qualified is None:
-        raise ValueError(f"not a bare v1 rule code: {local_code!r}")
-    return qualified
-
-
-def _v1_rules(raw_rules: dict[str, Any]) -> dict[str, RuleBaseline]:
-    return {
-        _require_v1_rule(local_code): RuleBaseline(
-            baseline=rule["baseline"],
-            # v1 persisted raw counts that could exceed the ceiling; v2 stores only held
-            # counts, so a v1 excess is clamped rather than carried forward.
-            current=min(rule["current"], rule["baseline"]),
-            status=rule["status"],
-        )
-        for local_code, rule in raw_rules.items()
-    }
-
-
-def _v1_log(raw_log: list[Any]) -> list[LogEntry]:
-    return [
-        LogEntry(
-            at=str(entry.get("at", "")),
-            commit=entry.get("commit"),
-            kind=entry.get("kind", "note"),
-            text=str(entry.get("text", "")),
-            rule=_require_v1_rule(entry["rule"]) if entry.get("rule") else None,
-        )
-        for entry in raw_log
-    ]
-
-
-def _state_from_v1_dict(raw: dict[str, Any]) -> State | None:
-    if not _has_valid_v1_shape(raw):
+def state_from_dict(raw: dict[str, Any]) -> State | None:
+    if not _has_valid_v2_shape(raw):
         return None
-    frozen_at = raw.get("frozenAt")
-    mypy_measured = False
-    for name, counter in raw["counters"].items():
-        # A scalar total cannot be decomposed back into file x rule cells; inventing a
-        # distribution would be the one thing this tool must never do, so any counter that
-        # is not the untouched zero this tool always wrote makes the whole state unreadable.
-        if name != "mypy:errors" or counter["baseline"] != 0 or counter["current"] != 0:
-            return None
-        mypy_measured = True
-
-    frozen_analyzers: set[str] = set()
-    if frozen_at is not None:
-        frozen_analyzers.add("ruff")
-        if mypy_measured:
-            frozen_analyzers.add("mypy")
-
-    try:
-        rules = _v1_rules(raw["rules"])
-        log = _v1_log(raw.get("log", []))
-        diagnosis_raw = raw.get("diagnosis")
-        return State(
-            version=2,
-            tool=str(raw.get("tool", "ebpy")),
-            phase=raw.get("phase", "diagnose"),
-            updated_at=str(raw.get("updatedAt", "")),
-            frozen_at=frozen_at,
-            diagnosed_at=raw.get("diagnosedAt"),
-            diagnosed_commit=raw.get("diagnosedCommit"),
-            diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
-            frozen_analyzers=tuple(sorted(frozen_analyzers)),
-            rules=rules,
-            log=log,
-        )
-    except (AttributeError, OverflowError, TypeError, ValueError):
-        return None
-
-
-def _state_from_v2_dict(raw: dict[str, Any]) -> State | None:
     try:
         diagnosis_raw = raw.get("diagnosis")
         return State(
@@ -283,14 +170,6 @@ def _state_from_v2_dict(raw: dict[str, Any]) -> State | None:
         )
     except (AttributeError, OverflowError, TypeError, ValueError):
         return None
-
-
-def state_from_dict(raw: dict[str, Any]) -> State | None:
-    if raw.get("version") == 1:
-        return _state_from_v1_dict(raw)
-    if not _has_valid_v2_shape(raw):
-        return None
-    return _state_from_v2_dict(raw)
 
 
 def state_to_dict(state: State) -> dict[str, Any]:

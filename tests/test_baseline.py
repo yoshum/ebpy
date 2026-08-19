@@ -23,11 +23,6 @@ from ebpy.models import CellCountsView
 from ebpy.ruff_runner import parse_ruff_json
 
 
-def test_a_v1_bare_baseline_reads_as_ruff_namespaced_cells(tmp_path: Path) -> None:
-    cells = parse_cells({"src/a.py": {"E501": {"count": 3}, "F401": {"count": 1}}}, tmp_path)
-    assert cells == {"src/a.py": {"ruff:E501": 3, "ruff:F401": 1}}
-
-
 def test_a_v2_baseline_round_trips_through_write_and_read(tmp_path: Path) -> None:
     write_cells(tmp_path, {"src/a.py": {"ruff:E501": 3}, "src/b.py": {"mypy:arg-type": 2}})
     on_disk = json.loads((tmp_path / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
@@ -68,15 +63,13 @@ def test_a_v2_rule_without_a_namespace_makes_the_whole_baseline_unreadable(tmp_p
     assert parse_cells(raw, tmp_path) is None
 
 
-@pytest.mark.parametrize("local_code", ["F401\nX", "F401\rX", "F401:extra", ""])
-def test_a_malformed_v1_rule_key_makes_the_baseline_unreadable_not_a_crash(
-    tmp_path: Path, local_code: str
-) -> None:
-    """A v1 key is bare and gets `ruff:` stitched on, but a key carrying a newline or a
-    colon would forge a rule id no producer could ever emit — `ruff:F401\\nX` or the
-    double-namespaced `ruff:F401:extra`. Persistence readers must return None for corrupt
-    input, never construct an id that makes a later `analyzer_of` raise mid-command."""
-    assert parse_cells({"src/a.py": {local_code: {"count": 1}}}, tmp_path) is None
+@pytest.mark.parametrize("rule", ["ruff:F401\nX", "ruff:F401\rX", "ruff:", ":F401", "F401", ""])
+def test_a_malformed_rule_key_makes_the_baseline_unreadable_not_a_crash(tmp_path: Path, rule: str) -> None:
+    """A rule key that is not a well-formed namespaced id — carrying a newline, an empty
+    half, or no namespace at all — must make the reader return None for corrupt input, never
+    a key that makes a later `analyzer_of` raise mid-command."""
+    raw = {"version": 2, "cells": {"src/a.py": {rule: {"count": 1}}}}
+    assert parse_cells(raw, tmp_path) is None
 
 
 @pytest.mark.parametrize("count", [0, -1, True])
@@ -89,8 +82,11 @@ def test_a_zero_or_negative_or_boolean_count_makes_the_baseline_unreadable(
 
 def test_two_file_keys_that_collide_after_separator_normalization_are_rejected(tmp_path: Path) -> None:
     raw = {
-        "src\\a.py": {"F401": {"count": 1}},
-        "src/a.py": {"F401": {"count": 1}},
+        "version": 2,
+        "cells": {
+            "src\\a.py": {"ruff:F401": {"count": 1}},
+            "src/a.py": {"ruff:F401": {"count": 1}},
+        },
     }
     assert parse_cells(raw, tmp_path) is None
 
@@ -116,18 +112,6 @@ def test_the_writer_always_emits_version_two(tmp_path: Path) -> None:
     write_cells(tmp_path, {})
     on_disk = json.loads((tmp_path / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
     assert on_disk == {"version": 2, "cells": {}}
-
-
-def test_reading_a_v1_baseline_leaves_the_file_untouched(tmp_path: Path) -> None:
-    path = baseline_path(tmp_path)
-    path.parent.mkdir(parents=True)
-    v1_text = json.dumps({"src/a.py": {"E501": {"count": 1}}})
-    path.write_text(v1_text, encoding="utf-8")
-
-    ceiling = read_ceiling(tmp_path)
-
-    assert ceiling.cells == {"src/a.py": {"ruff:E501": 1}}
-    assert path.read_text(encoding="utf-8") == v1_text
 
 
 def test_merge_cells_unions_two_namespaces_and_rejects_a_repeated_cell() -> None:
@@ -251,7 +235,7 @@ def test_ruff_runner_and_baseline_reader_agree_on_the_cell_key_for_an_absolute_p
     )
 
     measured = parse_ruff_json(stdout, tmp_path)
-    stored = parse_cells({absolute_file: {"F401": {"count": 1}}}, tmp_path)
+    stored = parse_cells({"version": 2, "cells": {absolute_file: {"ruff:F401": {"count": 1}}}}, tmp_path)
 
     assert stored is not None
     assert {file: dict(rules) for file, rules in measured.cells.items()} == stored

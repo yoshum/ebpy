@@ -62,8 +62,8 @@ everything and starts fresh.
 ## Adding an analyzer to an existing contract
 
 `freeze --analyzer NAME` exists for a contract whose roster is narrower than the analyzers ebpy
-knows — the case that arises when a v1 artifact pair was frozen while mypy could not be measured.
-It adds mypy's cells to the contract without touching the Ruff ceiling.
+knows — the case that arises when a contract was pinned while an analyzer could not be measured.
+It adds that analyzer's cells to the contract without touching the other ceilings.
 
 ## Commit all three artifacts together
 

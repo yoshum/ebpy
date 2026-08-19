@@ -44,9 +44,6 @@ def invalid_artifacts_message(artifacts: CeilingArtifacts) -> str:
 
 
 def _fresh_state(state: State) -> bool:
-    # A v1 state that was never frozen but carried a zero mypy:errors counter normalizes
-    # to an empty roster (see state.py), so the roster clause here still classifies it as
-    # fresh rather than as a state that mysteriously already holds ceiling data.
     return (
         state.frozen_at is None
         and not state.rules

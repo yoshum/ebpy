@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ebpy.baseline import baseline_path, write_cells
+from ebpy.baseline import write_cells
 from ebpy.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.cell_key import analyzer_of
 from ebpy.models import RuleBaseline
@@ -110,27 +110,20 @@ def test_a_frozen_ledger_with_an_empty_roster_is_invalid(tmp_path: Path) -> None
     assert artifacts.detail is not None and "no analyzers" in artifacts.detail
 
 
-def test_a_mixed_v1_baseline_and_v2_state_that_agree_logically_are_frozen(tmp_path: Path) -> None:
-    """A v1 baseline holds only bare, unnamespaced rule keys; read-time normalization
-    stitches on `ruff:` before it is ever compared against a (v2) ledger."""
-    baseline_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
-    baseline_path(tmp_path).write_text(json.dumps({"src/app.py": {"F401": {"count": 2}}}), encoding="utf-8")
-    frozen_state(tmp_path, {"ruff:F401": 2})
-
-    assert read_ceiling_artifacts(tmp_path).kind == "frozen"
-
-
-def test_a_pre_freeze_ledger_with_populated_rules_is_invalid(tmp_path: Path) -> None:
-    """Isolates `_fresh_state`'s `not state.rules` clause: `frozenAt` is absent (so
-    `frozen_at is None` holds) and the roster normalizes to empty (so `not
-    state.frozen_analyzers` holds too) — only a non-empty `rules` map breaks freshness."""
+def test_a_ledger_with_rules_but_no_frozen_at_is_invalid_not_fresh(tmp_path: Path) -> None:
+    """A ledger holding ceiling rules but missing `frozenAt` records no valid freeze, so it
+    is neither fresh (a fresh state has no rules) nor a usable contract — it is invalid."""
     state_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
     state_path(tmp_path).write_text(
         json.dumps(
             {
-                "version": 1,
-                "rules": {"F401": {"baseline": 2, "current": 2, "status": "draining"}},
-                "counters": {},
+                "version": 2,
+                "tool": "ebpy",
+                "phase": "drain",
+                "updatedAt": "2026-08-19T00:00:00Z",
+                "frozenAt": None,
+                "frozenAnalyzers": ["ruff"],
+                "rules": {"ruff:F401": {"baseline": 2, "current": 2, "status": "draining"}},
                 "log": [],
             }
         ),
@@ -141,27 +134,3 @@ def test_a_pre_freeze_ledger_with_populated_rules_is_invalid(tmp_path: Path) -> 
 
     assert artifacts.kind == "invalid"
     assert artifacts.detail is not None and "contains ceiling data" in artifacts.detail
-
-
-def test_a_v1_pair_migrated_by_this_repository_reads_as_frozen(tmp_path: Path) -> None:
-    """A v1 baseline and a v1 ledger, both written before this repository's ceiling moved
-    to namespaced cells, still normalize to a coherent frozen pair."""
-    baseline_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
-    baseline_path(tmp_path).write_text(json.dumps({"src/app.py": {"F401": {"count": 2}}}), encoding="utf-8")
-    state_path(tmp_path).write_text(
-        json.dumps(
-            {
-                "version": 1,
-                "tool": "ebpy",
-                "phase": "drain",
-                "updatedAt": "2026-08-19T00:00:00Z",
-                "frozenAt": "2026-08-19T00:00:00Z",
-                "rules": {"F401": {"baseline": 2, "current": 2, "status": "draining"}},
-                "counters": {},
-                "log": [],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    assert read_ceiling_artifacts(tmp_path).kind == "frozen"
