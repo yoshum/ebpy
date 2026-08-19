@@ -11,6 +11,10 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, TypeAlias
 
+AnalyzerName: TypeAlias = str
+
+RuleId: TypeAlias = str
+
 PackageManager = Literal["uv", "poetry", "pdm", "pipenv", "pip"]
 
 Framework = Literal["django", "fastapi", "flask", "none"]
@@ -25,13 +29,8 @@ LogKind = Literal["drained", "deferred", "issue", "note"]
 
 LOG_KINDS: tuple[LogKind, ...] = ("drained", "deferred", "issue", "note")
 
-# Ruff violations ratchet per file per rule through the baseline file. mypy has no
-# suppression mechanism at all, so its errors would be free to accumulate — their
-# total gets the same ratchet through a plain counter.
-MYPY_COUNTER = "mypy:errors"
-
-CellCounts = dict[str, dict[str, int]]
-CellCountsView: TypeAlias = Mapping[str, Mapping[str, int]]
+CellCounts = dict[str, dict[RuleId, int]]
+CellCountsView: TypeAlias = Mapping[str, Mapping[RuleId, int]]
 
 
 @dataclass(frozen=True)
@@ -211,10 +210,7 @@ class RuleBaseline:
     status: RuleStatus
 
 
-@dataclass(frozen=True)
-class Counter:
-    baseline: int
-    current: int
+STATE_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -229,7 +225,7 @@ class LogEntry:
 
 @dataclass
 class State:
-    version: int = 1
+    version: int = STATE_VERSION
     tool: str = "ebpy"
     phase: Phase = "diagnose"
     updated_at: str = ""
@@ -238,8 +234,11 @@ class State:
     diagnosed_at: str | None = None
     diagnosed_commit: str | None = None
     diagnosis: Diagnosis | None = None
+    # Cells alone cannot distinguish "the analyzer ran and found no violations" from "the analyzer
+    # never ran". For example, a ceiling of zero is only verifiable if we know which analyzers
+    # contributed to that measurement.
+    frozen_analyzers: tuple[str, ...] = ()
     rules: dict[str, RuleBaseline] = field(default_factory=dict)
-    counters: dict[str, Counter] = field(default_factory=dict)
     log: list[LogEntry] = field(default_factory=list)
 
 

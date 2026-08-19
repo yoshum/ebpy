@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ebpy.drain_order import build_drain_plan
 from ebpy.freshness import Freshness
-from ebpy.models import MYPY_COUNTER, Counter, RuleBaseline, Suppression
+from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolingPresence
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.worklist import build_worklist, render_worklist
@@ -10,6 +10,36 @@ from ebpy.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")
 STALE = Freshness(stale=True, reason="42 commits since the diagnosis")
+
+
+def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
+    return Diagnosis(
+        package_manager="uv",
+        requires_python=None,
+        framework="none",
+        tooling=ToolingPresence(
+            ruff=True,
+            formatter=False,
+            mypy=mypy_configured,
+            mypy_strict=False,
+            pytest=False,
+            vulture=False,
+            pre_commit=False,
+            secret_scanning=False,
+            agent_instructions=(),
+        ),
+        ci=CiCoverage(
+            present=False,
+            runners=(),
+            unpinned_actions=(),
+            runs_lint=False,
+            runs_typecheck=False,
+            runs_test=False,
+            runs_ebpy_check=False,
+        ),
+        sizes=SizeDistribution(total=0, over_file_limit=0, largest=()),
+        gaps=(),
+    )
 
 
 def test_notes_survive_a_re_render() -> None:
@@ -42,10 +72,48 @@ def test_the_ratchet_table_shows_the_change_against_the_ceiling() -> None:
     assert "| `E501` | 10 | 4 | -6 | draining |" in rendered
 
 
-def test_counters_get_their_own_table() -> None:
+def test_quality_renders_namespaced_rules_and_no_counters_table() -> None:
     state = empty_state()
-    state.counters = {MYPY_COUNTER: Counter(baseline=9, current=9)}
-    assert f"| {MYPY_COUNTER} | 9 | 9 |" in render_quality(state, "", CURRENT)
+    state.rules = {"ruff:E501": RuleBaseline(baseline=10, current=4, status="draining")}
+    rendered = render_quality(state, "", CURRENT)
+    assert "| `ruff:E501` | 10 | 4 | -6 | draining |" in rendered
+    assert "## Other counters" not in rendered
+
+
+def test_quality_names_the_analyzers_whose_ceiling_it_holds() -> None:
+    state = empty_state()
+    state.frozen_analyzers = ("mypy", "ruff")
+    assert "- Analyzers: **mypy, ruff**" in render_quality(state, "", CURRENT)
+
+
+def test_quality_says_none_when_no_analyzer_ceiling_is_held() -> None:
+    assert "- Analyzers: **none**" in render_quality(empty_state(), "", CURRENT)
+
+
+def test_quality_flags_a_configured_analyzer_the_contract_does_not_hold() -> None:
+    state = empty_state()
+    state.frozen_analyzers = ("ruff",)
+    state.diagnosis = _diagnosis(mypy_configured=True)
+    rendered = render_quality(state, "", CURRENT)
+    assert "- Analyzers: **ruff** (mypy is configured but not ratcheted)" in rendered
+
+
+def test_quality_omits_the_marker_once_the_roster_covers_every_configured_analyzer() -> None:
+    state = empty_state()
+    state.frozen_analyzers = ("mypy", "ruff")
+    state.diagnosis = _diagnosis(mypy_configured=True)
+    rendered = render_quality(state, "", CURRENT)
+    assert "configured but not ratcheted" not in rendered
+
+
+def test_quality_never_invents_the_marker_without_a_diagnosis_to_compare_against() -> None:
+    # A repository that never ran `diagnose` has nothing to compare its roster against —
+    # inventing a complaint from missing data is what "absence and zero are different" forbids.
+    state = empty_state()
+    state.frozen_analyzers = ("ruff",)
+    assert state.diagnosis is None
+    rendered = render_quality(state, "", CURRENT)
+    assert "configured but not ratcheted" not in rendered
 
 
 def test_deferred_work_carries_the_commit_it_was_seen_at() -> None:

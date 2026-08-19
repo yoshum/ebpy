@@ -1,8 +1,8 @@
-"""Counts mypy errors, when mypy is there to count them.
+"""Runs the target repo's own mypy and turns its findings into cells, like Ruff's.
 
-Type errors have no suppression file and no ``--suppress-all``: they cannot be
-grandfathered per file per rule the way lint violations are. Their total gets a
-plain ratcheted counter instead, so the number can fall but never rise.
+Each error line becomes one cell keyed `mypy:<code>`, aggregated per file — the same
+shape Ruff's runner produces — so a type error can share a per-file per-rule ceiling
+with lint violations instead of being tracked as a single undifferentiated total.
 """
 
 from __future__ import annotations
@@ -15,10 +15,6 @@ from .cell_key import normalize_analyzer_path, qualify_rule
 from .errors import ToolError
 from .models import AnalysisMeasurement, CellCounts
 from .util import run
-
-# "path.py:12: error: ..." — counting these rather than trusting the summary line,
-# because the summary is absent under --no-error-summary and localised under others.
-_ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 
 # A parseable error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: <message>  [<code>]`.
 # The filename group is non-greedy. mypy's own filenames can contain a colon — a Windows
@@ -59,10 +55,6 @@ def find_mypy(cwd: Path) -> list[str] | None:
     return [on_path] if on_path else None
 
 
-def count_errors(output: str) -> int:
-    return len(_ERROR_LINE.findall(output))
-
-
 def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     """Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace."""
     cells: CellCounts = {}
@@ -78,7 +70,8 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
         file = normalize_analyzer_path(match["file"], cwd)
         rule = qualify_rule("mypy", match["code"])
         seen_files.add(file)
-        cells.setdefault(file, {})[rule] = cells.get(file, {}).get(rule, 0) + 1
+        file_cells = cells.setdefault(file, {})
+        file_cells[rule] = file_cells.get(rule, 0) + 1
     return AnalysisMeasurement(cells=cells, files_with_findings=len(seen_files))
 
 
@@ -97,20 +90,31 @@ def _summary_clause(output: str) -> str:
     return f": {(errors[-1] if errors else lines[0])[:_SUMMARY_LIMIT]}"
 
 
-def run_mypy_check(cwd: Path) -> int:
-    """Today's mypy error total, raising when no number was measured."""
+def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
+    """Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured."""
     argv = find_mypy(cwd)
     if not argv:
         raise MypyNotFoundError(
             "mypy is not installed here (looked in .venv, venv and PATH). Run `ebpy bootstrap` first."
         )
     try:
-        result = run([*argv, ".", "--no-error-summary"], cwd)
+        result = run(
+            [
+                *argv,
+                ".",
+                "--no-error-summary",  # drops a localised trailer that is not itself a finding
+                "--show-error-codes",  # overrides a repo's own `hide_error_codes = true`
+                "--no-pretty",  # keeps one finding on one line, so the parser can line-match it
+                "--no-color-output",  # keeps ANSI escapes out of codes and messages
+            ],
+            cwd,
+        )
     except OSError as error:
         raise MypyFailedError(f"mypy could not run: {error}") from error
-    # 0 = clean, 1 = errors found; only those two mean mypy actually ran. Positive
-    # alternatives are mypy failures, while a negative return code means a signal
-    # terminated the process — neither produced a trustworthy number.
+    # 0 = clean, 1 = errors found; only those two mean mypy actually completed a run. A
+    # positive code beyond that is a mypy failure, and a negative one means a signal
+    # terminated the process — neither produced output worth parsing, so cells found in
+    # it (e.g. a valid-looking `[syntax]` line) are discarded rather than trusted.
     if result.code not in (0, 1):
         headline = f"mypy failed (exit {result.code})"
         output = (result.stderr or result.stdout).strip()
@@ -118,4 +122,13 @@ def run_mypy_check(cwd: Path) -> int:
             f"{headline}{_summary_clause(output)}",
             detail=f"{headline}:\n{output}" if output else headline,
         )
-    return count_errors(result.stdout)
+    measured = parse_mypy_output(result.stdout, cwd)
+    if result.code == 0 and measured.cells:
+        raise MypyInvalidOutputError(
+            "mypy exited 0 (clean) but its output reported findings; exit code and output disagree"
+        )
+    if result.code == 1 and not measured.cells:
+        raise MypyInvalidOutputError(
+            "mypy exited 1 (errors found) but no error line could be parsed from its output"
+        )
+    return measured

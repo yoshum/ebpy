@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from ebpy import mypy_runner
+from ebpy.cell_key import normalize_analyzer_path
 from ebpy.mypy_runner import (
     MypyFailedError,
     MypyInvalidOutputError,
-    count_errors,
     parse_mypy_output,
     run_mypy_check,
 )
@@ -35,13 +35,26 @@ def test_violations_are_counted_per_file_per_rule(tmp_path: Path) -> None:
         ]
     )
     result = parse_ruff_json(payload, tmp_path)
-    assert result.cells == {"src/a.py": {"E501": 2}, "src/b.py": {"F401": 1}}
+    assert result.cells == {"src/a.py": {"ruff:E501": 2}, "src/b.py": {"ruff:F401": 1}}
     assert result.files_with_findings == 2
+
+
+def test_ruff_findings_are_namespaced_under_ruff(tmp_path: Path) -> None:
+    result = parse_ruff_json(json.dumps([diagnostic(str(tmp_path / "a.py"), "F401")]), tmp_path)
+    assert result.cells == {"a.py": {"ruff:F401": 1}}
 
 
 def test_paths_are_reported_relative_and_posix(tmp_path: Path) -> None:
     result = parse_ruff_json(json.dumps([diagnostic(str(tmp_path / "pkg" / "mod.py"), "E501")]), tmp_path)
     assert list(result.cells) == ["pkg/mod.py"]
+
+
+def test_ruff_delegates_path_normalization_to_cell_key(tmp_path: Path) -> None:
+    """The runner calls cell_key.normalize_analyzer_path rather than reimplementing it, so a
+    later change to that shared normalization is felt here too instead of silently diverging."""
+    raw = str(tmp_path / "pkg" / "mod.py")
+    result = parse_ruff_json(json.dumps([diagnostic(raw, "E501")]), tmp_path)
+    assert list(result.cells) == [normalize_analyzer_path(raw, tmp_path)]
 
 
 def test_a_syntax_error_is_not_a_rule_the_baseline_can_grandfather(tmp_path: Path) -> None:
@@ -73,19 +86,6 @@ def test_an_invalid_ruff_diagnostic_is_not_reported_as_clean(tmp_path: Path) -> 
         parse_ruff_json("[123]", tmp_path)
 
 
-def test_mypy_errors_are_counted_from_the_lines_not_the_summary() -> None:
-    output = (
-        "src/a.py:12: error: Incompatible return value type\n"
-        "src/a.py:19:4: error: Missing type parameters\n"
-        "src/b.py:3: note: See https://example.invalid\n"
-    )
-    assert count_errors(output) == 2
-
-
-def test_clean_mypy_output_counts_zero() -> None:
-    assert count_errors("") == 0
-
-
 def fatal_mypy(
     monkeypatch: pytest.MonkeyPatch,
     stderr: str,
@@ -98,6 +98,25 @@ def fatal_mypy(
         "run",
         lambda _argv, _cwd: ExecResult(code=code, stdout=stdout, stderr=stderr),
     )
+
+
+def test_mypy_argv_fixes_codes_pretty_colour_and_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[list[str]] = []
+
+    def fake_run(argv: list[str], _cwd: Path) -> ExecResult:
+        captured.append(argv)
+        return ExecResult(code=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mypy_runner, "find_mypy", lambda _cwd: ["mypy"])
+    monkeypatch.setattr(mypy_runner, "run", fake_run)
+
+    run_mypy_check(tmp_path)
+
+    assert captured == [
+        ["mypy", ".", "--no-error-summary", "--show-error-codes", "--no-pretty", "--no-color-output"]
+    ]
 
 
 def test_a_fatal_mypy_carries_its_reason_on_the_failure_line(
@@ -158,13 +177,44 @@ def test_a_fatal_mypy_without_output_claims_no_reason_it_does_not_have(
         run_mypy_check(tmp_path)
 
 
-def test_a_signal_terminated_mypy_is_not_reported_as_clean(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_mypy_signal_exit_is_a_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fatal_mypy(monkeypatch, "Killed", code=-9)
 
     with pytest.raises(MypyFailedError, match=r"exit -9"):
         run_mypy_check(tmp_path)
+
+
+def test_mypy_exit_zero_with_an_error_line_is_invalid_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exit 0 promises no errors; an error line in the output contradicts that promise."""
+    fatal_mypy(monkeypatch, "", stdout="src/a.py:7: error: boom  [arg-type]\n", code=0)
+
+    with pytest.raises(MypyInvalidOutputError):
+        run_mypy_check(tmp_path)
+
+
+def test_mypy_exit_one_with_no_parsed_error_is_invalid_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exit 1 promises at least one error; parsing none from the output is a contract violation."""
+    fatal_mypy(monkeypatch, "", stdout="", code=1)
+
+    with pytest.raises(MypyInvalidOutputError):
+        run_mypy_check(tmp_path)
+
+
+def test_mypy_exit_two_discards_parsed_cells_even_with_a_syntax_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exit 2 means mypy did not complete, so even a well-formed error line is not measurement —
+    the asymmetry with Ruff's syntax errors (which stay measured-but-unattributed) is deliberate."""
+    fatal_mypy(monkeypatch, "", stdout="src/a.py:7: error: bad syntax  [syntax]\n", code=2)
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    assert not isinstance(caught.value, MypyInvalidOutputError)
 
 
 def test_mypy_parser_reads_line_column_and_end_position_forms(tmp_path: Path) -> None:

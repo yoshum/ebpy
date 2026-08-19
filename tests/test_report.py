@@ -4,64 +4,78 @@ from pathlib import Path
 
 import pytest
 
+from ebpy.analysis_report import report_from_measurement
 from ebpy.commands import report as report_command
-from ebpy.commands.report import report_from_measurement, run_report
+from ebpy.commands.report import run_report
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import MYPY_COUNTER, AnalysisMeasurement
-from ebpy.render.lint_report import render_lint_report
+from ebpy.models import AnalysisMeasurement
+from ebpy.render.analysis_report import render_analysis_report
 
 
-def test_report_keeps_mypy_when_lint_fails() -> None:
+def test_report_keeps_contract_backlog_when_one_analyzer_fails() -> None:
+    """A failed contract analyzer falls back to its baseline cells; the report still builds."""
     measurement = Measurement(
-        lint=Failed(tool="ruff", failure_kind="execution-failed", detail="ruff check failed"),
-        counters={MYPY_COUNTER: Measured(tool="mypy", value=3)},
+        analyzers={
+            "ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff check failed"),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={}, files_with_findings=0)),
+        }
     )
 
-    report = report_from_measurement({"src/a.py": {"F401": 2}}, measurement)
+    report = report_from_measurement({"src/a.py": {"ruff:F401": 2}}, ("ruff", "mypy"), measurement)
 
-    assert report.lint_failure == "ruff check failed"
+    # ruff failed → falls back to its baseline cells unchanged
     assert report.backlog_total == 2
-    assert report.mypy_errors == 3
+    rendered = render_analysis_report(report)
+    assert "ruff did not run" in rendered
+    assert "ruff check failed" in rendered
 
 
-def test_report_names_why_mypy_was_not_measured() -> None:
+def test_report_names_why_an_analyzer_was_not_measured() -> None:
+    """An unavailable analyzer shows its detail, not a zero or a blank."""
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-        counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed here")},
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed here"),
+        }
     )
 
-    report = report_from_measurement({}, measurement)
+    report = report_from_measurement({}, ("ruff", "mypy"), measurement)
 
-    assert report.mypy_errors is None
-    assert report.mypy_failure == "mypy is not installed here"
-    rendered = render_lint_report(report)
-    assert "- mypy errors: **not measured**" in rendered
-    assert "> **mypy did not run**\n> mypy is not installed here" in rendered
-    assert report.to_dict()["mypyFailure"] == "mypy is not installed here"
+    _, mypy_summary = next((name, s) for name, s in report.analyzers if name == "mypy")
+    assert mypy_summary.findings is None
+    assert mypy_summary.failure == "mypy is not installed here"
+    rendered = render_analysis_report(report)
+    assert "not measured" in rendered
+    assert "mypy is not installed here" in rendered
 
 
-def test_report_compares_measured_lint_with_the_ceiling() -> None:
+def test_report_compares_measured_cells_with_the_ceiling() -> None:
+    """Excess above the per-file ceiling is counted as new; what remains is the backlog."""
     measurement = Measurement(
-        lint=Measured(
-            tool="ruff",
-            value=AnalysisMeasurement(cells={"src/a.py": {"F401": 3}}, files_with_findings=1),
-        ),
-        counters={MYPY_COUNTER: Failed(tool="mypy", failure_kind="execution-failed", detail="bad config")},
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 3}}, files_with_findings=1),
+            ),
+            "mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="bad config"),
+        }
     )
 
-    report = report_from_measurement({"src/a.py": {"F401": 2}}, measurement)
+    report = report_from_measurement({"src/a.py": {"ruff:F401": 2}}, ("ruff", "mypy"), measurement)
 
     assert report.new_total == 1
     assert report.backlog_total == 2
-    assert report.files_with_findings == 1
-    assert report.mypy_failure == "bad config"
+    _, mypy_summary = next((name, s) for name, s in report.analyzers if name == "mypy")
+    assert mypy_summary.failure == "bad config"
 
 
 def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[Path] = []
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-        counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
     )
 
     def gather(cwd: Path) -> Measurement:
@@ -70,41 +84,67 @@ def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pyt
 
     monkeypatch.setattr(report_command, "measure_repository", gather)
 
-    assert "# Lint report" in run_report(tmp_path, as_json=False)
+    assert "# Analysis report" in run_report(tmp_path, as_json=False)
     assert calls == [tmp_path]
 
 
-def test_a_failed_type_check_is_named_rather_than_rendered_as_zero() -> None:
+def test_a_failed_analyzer_is_named_rather_than_rendered_as_zero() -> None:
+    """A failed analyzer shows 'not measured', not a zero count."""
     report = report_from_measurement(
         {},
+        ("mypy",),
         Measurement(
-            lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-            counters={
-                MYPY_COUNTER: Failed(
+            analyzers={
+                "mypy": Failed(
                     tool="mypy",
                     failure_kind="execution-failed",
                     detail="mypy failed (exit 2): mypy.ini: Unrecognized option",
                 )
-            },
+            }
         ),
     )
 
-    assert report.mypy_errors is None
-    assert report.to_dict()["mypyFailure"] == "mypy failed (exit 2): mypy.ini: Unrecognized option"
-    # The bullet stays a bullet; the tool's own words go where every line of them fits.
-    rendered = render_lint_report(report)
-    assert "- mypy errors: **not measured**" in rendered
-    assert "> **mypy did not run**\n> mypy failed (exit 2): mypy.ini: Unrecognized option" in rendered
+    _, mypy_summary = next((name, s) for name, s in report.analyzers if name == "mypy")
+    assert mypy_summary.findings is None
+    assert mypy_summary.failure == "mypy failed (exit 2): mypy.ini: Unrecognized option"
+    rendered = render_analysis_report(report)
+    assert "not measured" in rendered
+    assert "mypy did not run" in rendered
+    assert "mypy failed (exit 2): mypy.ini: Unrecognized option" in rendered
 
 
-def test_a_measured_type_check_carries_no_failure() -> None:
+def test_a_measured_analyzer_carries_no_failure() -> None:
+    """A successfully measured analyzer has failure=None."""
     report = report_from_measurement(
         {},
+        ("mypy",),
         Measurement(
-            lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-            counters={MYPY_COUNTER: Measured(tool="mypy", value=3)},
+            analyzers={
+                "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+            }
         ),
     )
 
-    assert report.to_dict()["mypyFailure"] is None
-    assert "mypy errors: **3**" in render_lint_report(report)
+    payload = report.to_dict()
+    assert payload["analyzers"]["mypy"]["failure"] is None
+    rendered = render_analysis_report(report)
+    assert "mypy did not run" not in rendered
+
+
+def test_report_exits_zero_when_every_analyzer_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_report exits 0 even when every analyzer failed; only invalid artifacts raise."""
+    measurement = Measurement(
+        analyzers={
+            "ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff gone"),
+            "mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="mypy gone"),
+        }
+    )
+
+    monkeypatch.setattr(report_command, "measure_repository", lambda _cwd: measurement)
+
+    # run_report returns a string (not raises) for any non-invalid artifact pair
+    result = run_report(tmp_path, as_json=False)
+    assert isinstance(result, str)
+    assert "# Analysis report" in result

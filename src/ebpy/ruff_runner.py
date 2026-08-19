@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import json
 import shutil
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
+from .cell_key import normalize_analyzer_path, qualify_rule
 from .errors import ToolError
 from .models import AnalysisMeasurement, CellCounts, UnattributedFinding
 from .util import run
@@ -56,14 +57,6 @@ def find_ruff(cwd: Path) -> list[str] | None:
     return [on_path] if on_path else None
 
 
-def _relative_posix(filename: str, cwd: Path) -> str:
-    try:
-        rel = Path(filename).resolve().relative_to(cwd.resolve())
-    except ValueError:
-        rel = Path(filename)
-    return str(PurePosixPath(*rel.parts))
-
-
 def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
     raw: Any = json.loads(stdout or "[]")
     if not isinstance(raw, list):
@@ -87,7 +80,7 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
             or type(location.get("row")) is not int
         ):
             raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
-        file = _relative_posix(filename, cwd)
+        file = normalize_analyzer_path(filename, cwd)
         seen_files.add(file)
         if not code or code == "invalid-syntax":
             unattributed.append(
@@ -98,7 +91,9 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
                 )
             )
             continue
-        cells.setdefault(file, {})[str(code)] = cells.get(file, {}).get(str(code), 0) + 1
+        rule = qualify_rule("ruff", str(code))
+        file_cells = cells.setdefault(file, {})
+        file_cells[rule] = file_cells.get(rule, 0) + 1
     return AnalysisMeasurement(
         cells=cells,
         unattributed=tuple(unattributed),

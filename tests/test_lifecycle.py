@@ -27,7 +27,10 @@ def handler(payload, unused_argument):
 """
 
 CLEAN = """\
-def handler(payload):
+from typing import Any
+
+
+def handler(payload: dict[str, Any]) -> Any:
     return payload["value"]
 """
 
@@ -94,7 +97,7 @@ def test_the_full_ratchet_cycle(repo: Path, capsys: pytest.CaptureFixture[str]) 
     assert run(repo, "freeze") == 0
     assert "grandfathered" in capsys.readouterr().out
     baseline = json.loads((repo / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
-    assert baseline["src/app.py"]
+    assert baseline["cells"]["src/app.py"]
 
     # Today's violations are exactly the ceiling, so the gate passes.
     assert run(repo, "check") == 0
@@ -115,10 +118,10 @@ def test_the_full_ratchet_cycle(repo: Path, capsys: pytest.CaptureFixture[str]) 
     assert run(repo, "prune") == 0
     assert "Reclaimed" in capsys.readouterr().out
     after = json.loads((repo / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
-    assert after.get("src/app.py", {}) == {}
+    assert after["cells"].get("src/app.py", {}) == {}
 
     # And the reclaimed ceiling holds: reintroducing the same code now fails.
-    assert sum(entry["count"] for rules in before.values() for entry in rules.values()) > 0
+    assert sum(entry["count"] for rules in before["cells"].values() for entry in rules.values()) > 0
     (repo / "src" / "app.py").write_text(DIRTY, encoding="utf-8")
     assert run(repo, "check") == 1
 
@@ -156,11 +159,11 @@ def test_report_survives_a_repository_that_cannot_lint(
 ) -> None:
     # A report is not a gate: no Ruff config and no baseline still produces output.
     assert main(["--cwd", str(tmp_path), "report"]) == 0
-    assert "# Lint report" in capsys.readouterr().out
+    assert "# Analysis report" in capsys.readouterr().out
 
 
 def test_log_writes_the_work_log_nothing_else_does(repo: Path) -> None:
-    assert run(repo, "log", "--kind", "deferred", "--rule", "C901", "router.py is its own project") == 0
+    assert run(repo, "log", "--kind", "deferred", "--rule", "ruff:C901", "router.py is its own project") == 0
     quality = (repo / "QUALITY.md").read_text(encoding="utf-8")
     assert "## Carried over" in quality
     assert "router.py is its own project" in quality

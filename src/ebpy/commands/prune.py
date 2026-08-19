@@ -5,16 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..baseline import prune_cells, rule_totals, write_cells
+from ..baseline import cells_for, finding_total, merge_cells, prune_cells, rule_totals, write_cells
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
-from ..measurement import Measured, Measurement, measure_repository
-from ..models import MYPY_COUNTER, CellCounts, State
+from ..measurement import (
+    Failed,
+    Measured,
+    Measurement,
+    Observation,
+    Unavailable,
+    classify,
+    measure_repository,
+)
+from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
 from ..state import (
-    apply_rule_counts,
+    apply_analyzer_rule_counts,
     copy_state,
-    set_counter,
     total_violations,
     write_state,
 )
@@ -34,45 +41,99 @@ class PruneDecision:
     message: str
 
 
+def _analyzer_note(analyzer: str, reclaimed: int, baseline_total: int, pruned_total: int) -> str:
+    if reclaimed > 0:
+        return f"  {analyzer}: {baseline_total} -> {pruned_total} (-{reclaimed})"
+    return f"  {analyzer}: {baseline_total} (unchanged)"
+
+
+def _carry_reason(analyzer: str, observation: Observation[AnalysisMeasurement] | None) -> str:
+    """Why this analyzer's ceiling could not be lowered — for the message that says so.
+
+    The observation is None for a contract analyzer this build has no runner for, an
+    Unavailable/Failed for a tool that could not run, or a Measured that left a file
+    unparsed. Each carries a different reason a reader needs to see it verbatim.
+    """
+    if observation is None:
+        return f"{analyzer} has no runner in this ebpy build"
+    if isinstance(observation, Unavailable | Failed):
+        return observation.detail
+    return f"{analyzer} left a file unparsed, so its ceiling could not be verified"
+
+
 def prune_measurement(
     previous: State,
     baseline: CellCounts,
     measurement: Measurement,
 ) -> PruneDecision:
-    """Lower one complete ceiling contract from measured facts without writing it."""
-    lint = measurement.lint
-    if not isinstance(lint, Measured):
-        raise CommandError(lint.detail)
+    """Lower each complete analyzer's ceiling from measured facts without writing it.
 
-    before = sum(count for rules in baseline.values() for count in rules.values())
-    pruned = prune_cells(baseline, lint.value.cells)
-    after = sum(count for rules in pruned.values() for count in rules.values())
+    Analyzers that could not be measured carry their baseline cells and state rules
+    through unchanged — their ceilings are not lowered and not lost.
+    """
+    state = copy_state(previous)
+    output_parts: list[CellCounts] = []
+    analyzer_notes: list[str] = []
+    incomplete_reasons: list[str] = []
+    total_before = 0
+    total_after = 0
 
-    state = apply_rule_counts(copy_state(previous), rule_totals(pruned), "freeze")
-    mypy = measurement.counters[MYPY_COUNTER]
-    if isinstance(mypy, Measured):
-        state = set_counter(state, MYPY_COUNTER, mypy.value, "freeze")
-        mypy_note = None
-    elif MYPY_COUNTER in previous.counters:
-        mypy_note = (
-            f"{MYPY_COUNTER} was not measured; its existing ceiling was left unchanged: {mypy.summary}"
-        )
+    for analyzer in sorted(previous.frozen_analyzers):
+        observation = measurement.analyzers.get(analyzer)
+        status = classify(observation)
+        baseline_cells = cells_for(baseline, analyzer)
+        baseline_total = finding_total(baseline_cells)
+
+        if status == "complete":
+            assert isinstance(observation, Measured)
+            current_cells = cells_for(observation.value.cells, analyzer)
+            pruned = prune_cells(baseline_cells, current_cells)
+            pruned_total = finding_total(pruned)
+            reclaimed = baseline_total - pruned_total
+            total_before += baseline_total
+            total_after += pruned_total
+            output_parts.append(pruned)
+            state = apply_analyzer_rule_counts(state, analyzer, rule_totals(pruned), "freeze")
+            analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
+        else:
+            # Carry the existing ceiling: a ceiling nobody re-measured cannot be lowered.
+            output_parts.append(baseline_cells)
+            total_before += baseline_total
+            total_after += baseline_total
+            incomplete_reasons.append(f"  {analyzer}: not measured — {_carry_reason(analyzer, observation)}")
+            analyzer_notes.append(f"  {analyzer}: {baseline_total} (not measured)")
+
+    cells = merge_cells(output_parts)
+    reclaimed = total_before - total_after
+
+    if incomplete_reasons and reclaimed == 0:
+        # Nothing came down and some analyzer went unmeasured: lead with why the ceiling held.
+        summary_lines = [
+            f"Nothing reclaimed. {total_violations(previous)} still grandfathered.",
+            "Some analyzers could not be measured; their ceilings were left unchanged:",
+            *incomplete_reasons,
+        ]
+        return PruneDecision(cells, state, "\n".join(summary_lines))
+
+    if reclaimed <= 0:
+        message = f"Nothing to reclaim. {total_violations(state)} still grandfathered."
     else:
-        mypy_note = f"{MYPY_COUNTER} was not measured; no type-error ceiling was recorded: {mypy.summary}"
-
-    reclaimed = before - after
-    summary = (
-        f"Nothing to reclaim. {total_violations(state)} still grandfathered."
-        if reclaimed <= 0
-        else "\n".join(
+        message = "\n".join(
             [
-                f"Reclaimed {reclaimed} violations. Ceiling: {before} -> {after}.",
+                f"Reclaimed {reclaimed} violations. Ceiling: {total_before} -> {total_after}.",
+                *analyzer_notes,
                 "Commit .ebpy/baseline.json together with the fix — the ceiling just came down.",
             ]
         )
-    )
-    message = "\n".join([summary, *([mypy_note] if mypy_note is not None else [])])
-    return PruneDecision(pruned, state, message)
+    if incomplete_reasons:
+        message = "\n".join(
+            [
+                message,
+                "Some analyzers could not be measured; their ceilings were left unchanged:",
+                *incomplete_reasons,
+            ]
+        )
+    return PruneDecision(cells, state, message)
 
 
 def run_prune(cwd: Path) -> str:

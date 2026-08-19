@@ -59,7 +59,7 @@ def build_worklist(state: State) -> list[WorklistItem]:
         WorklistItem(
             done=state.frozen_at is not None and backlog == 0,
             label="P3 drain",
-            detail="backlog empty" if backlog == 0 else f"{backlog} violations across {rule_count} rules",
+            detail="backlog empty" if backlog == 0 else f"{backlog} findings across {rule_count} rules",
             children=_smallest_backlogs(state),
         ),
         WorklistItem(

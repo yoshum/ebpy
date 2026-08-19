@@ -1,27 +1,29 @@
 """The ledger: ``.ebpy/state.json``.
 
-Counts per rule, plain counters, the work log, and the diagnosis provenance.
-Everything QUALITY.md shows is rendered from here.
+Counts per namespaced rule, the roster of analyzers that have contributed to those counts,
+the work log, and the diagnosis provenance. Everything QUALITY.md shows is rendered from here.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeGuard
 
+from .cell_key import analyzer_of, is_analyzer_name, is_rule_id, qualify_rule
 from .models import (
     LOG_KINDS,
     PHASE_ORDER,
-    Counter,
     LogEntry,
     LogKind,
     Phase,
     Regression,
     RuleBaseline,
+    RuleId,
     State,
     diagnosis_from_dict,
 )
@@ -35,6 +37,8 @@ STATE_FILE = "state.json"
 # `rebaseline` is the explicit `--force` escape for when a ceiling genuinely has to
 # move up (a rule was reconfigured).
 BaselineMode = Literal["observe", "freeze", "rebaseline"]
+
+RULE_STATUSES = ("off", "draining", "enforced")
 
 # Kept bounded: this file is read whole on every command, and a log is the thing that grows.
 MAX_LOG_ENTRIES = 200
@@ -78,66 +82,171 @@ def _is_optional_string(value: Any) -> bool:
     return value is None or isinstance(value, str)
 
 
-def _has_valid_state_shape(raw: dict[str, Any]) -> bool:
-    rules = raw.get("rules")
-    counters = raw.get("counters")
-    log = raw.get("log", [])
+def _valid_common_fields(raw: dict[str, Any]) -> bool:
     phase = raw.get("phase", "diagnose")
     frozen_at = raw.get("frozenAt")
-    if (
-        raw.get("version") != 1
-        or raw.get("tool", "ebpy") != "ebpy"
-        or phase not in PHASE_ORDER
-        or ("updatedAt" in raw and not isinstance(raw["updatedAt"], str))
-        or (frozen_at is not None and (not isinstance(frozen_at, str) or not frozen_at))
-        or not _is_optional_string(raw.get("diagnosedAt"))
-        or not _is_optional_string(raw.get("diagnosedCommit"))
-        or (raw.get("diagnosis") is not None and not isinstance(raw.get("diagnosis"), dict))
-        or not isinstance(rules, dict)
-        or not isinstance(counters, dict)
-        or not isinstance(log, list)
-    ):
-        return False
-    if any(
-        not isinstance(name, str)
-        or not name
-        or not isinstance(rule, dict)
-        or not _is_count(rule.get("baseline"))
-        or not _is_count(rule.get("current"))
-        or rule.get("status") not in ("off", "draining", "enforced")
-        for name, rule in rules.items()
-    ):
-        return False
-    if any(
-        not isinstance(name, str)
-        or not name
-        or not isinstance(counter, dict)
-        or not _is_count(counter.get("baseline"))
-        or not _is_count(counter.get("current"))
-        for name, counter in counters.items()
-    ):
-        return False
-    return all(
+    return (
+        raw.get("tool", "ebpy") == "ebpy"
+        and phase in PHASE_ORDER
+        and ("updatedAt" not in raw or isinstance(raw["updatedAt"], str))
+        and (frozen_at is None or (isinstance(frozen_at, str) and frozen_at != ""))
+        and _is_optional_string(raw.get("diagnosedAt"))
+        and _is_optional_string(raw.get("diagnosedCommit"))
+        and (raw.get("diagnosis") is None or isinstance(raw.get("diagnosis"), dict))
+    )
+
+
+def _valid_log(log: Any, rule_ok: Callable[[Any], bool]) -> bool:
+    return isinstance(log, list) and all(
         isinstance(entry, dict)
         and isinstance(entry.get("at"), str)
         and _is_optional_string(entry.get("commit"))
         and entry.get("kind") in LOG_KINDS
         and isinstance(entry.get("text"), str)
-        and _is_optional_string(entry.get("rule"))
+        and rule_ok(entry.get("rule"))
         for entry in log
     )
 
 
-def state_from_dict(raw: dict[str, Any]) -> State | None:
-    if not _has_valid_state_shape(raw):
+def _valid_v1_rules(rules: Any) -> bool:
+    return isinstance(rules, dict) and all(
+        isinstance(name, str)
+        and name
+        and isinstance(rule, dict)
+        and _is_count(rule.get("baseline"))
+        and _is_count(rule.get("current"))
+        and rule.get("status") in RULE_STATUSES
+        for name, rule in rules.items()
+    )
+
+
+def _valid_v1_counters(counters: Any) -> bool:
+    return isinstance(counters, dict) and all(
+        isinstance(name, str)
+        and name
+        and isinstance(counter, dict)
+        and _is_count(counter.get("baseline"))
+        and _is_count(counter.get("current"))
+        for name, counter in counters.items()
+    )
+
+
+def _has_valid_v1_shape(raw: dict[str, Any]) -> bool:
+    return (
+        raw.get("version") == 1
+        and _valid_common_fields(raw)
+        and _valid_v1_rules(raw.get("rules"))
+        and _valid_v1_counters(raw.get("counters"))
+        and _valid_log(raw.get("log", []), _is_optional_string)
+    )
+
+
+def _valid_frozen_analyzers(value: Any) -> TypeGuard[list[str]]:
+    return (
+        isinstance(value, list)
+        and all(isinstance(name, str) and is_analyzer_name(name) for name in value)
+        and len(set(value)) == len(value)
+    )
+
+
+def _valid_v2_rule(rule: Any) -> bool:
+    baseline = rule.get("baseline") if isinstance(rule, dict) else None
+    current = rule.get("current") if isinstance(rule, dict) else None
+    return (
+        isinstance(rule, dict)
+        and type(baseline) is int
+        and type(current) is int
+        and 0 <= current <= baseline
+        and rule.get("status") in RULE_STATUSES
+    )
+
+
+def _valid_v2_rules(rules: Any, frozen_analyzers: list[str]) -> bool:
+    if not isinstance(rules, dict):
+        return False
+    roster = set(frozen_analyzers)
+    return all(
+        is_rule_id(name) and analyzer_of(name) in roster and _valid_v2_rule(rule)
+        for name, rule in rules.items()
+    )
+
+
+def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
+    frozen_analyzers = raw.get("frozenAnalyzers")
+    if not _valid_frozen_analyzers(frozen_analyzers):
+        return False
+    return (
+        raw.get("version") == 2
+        and "counters" not in raw
+        and _valid_common_fields(raw)
+        and _valid_v2_rules(raw.get("rules"), frozen_analyzers)
+        and _valid_log(raw.get("log", []), lambda rule: rule is None or is_rule_id(rule))
+    )
+
+
+def _state_from_v1_dict(raw: dict[str, Any]) -> State | None:
+    if not _has_valid_v1_shape(raw):
         return None
-    rules_raw = raw["rules"]
-    counters_raw = raw["counters"]
-    log_raw = raw.get("log", [])
-    diagnosis_raw = raw.get("diagnosis")
+    frozen_at = raw.get("frozenAt")
+    mypy_measured = False
+    for name, counter in raw["counters"].items():
+        # A scalar total cannot be decomposed back into file x rule cells; inventing a
+        # distribution would be the one thing this tool must never do, so any counter that
+        # is not the untouched zero this tool always wrote makes the whole state unreadable.
+        if name != "mypy:errors" or counter["baseline"] != 0 or counter["current"] != 0:
+            return None
+        mypy_measured = True
+
+    frozen_analyzers: set[str] = set()
+    if frozen_at is not None:
+        frozen_analyzers.add("ruff")
+        if mypy_measured:
+            frozen_analyzers.add("mypy")
+
     try:
+        rules = {
+            qualify_rule("ruff", local_code): RuleBaseline(
+                baseline=rule["baseline"],
+                # v1 persisted raw counts that could exceed the ceiling; v2 stores only
+                # held counts, so a v1 excess is clamped rather than carried forward.
+                current=min(rule["current"], rule["baseline"]),
+                status=rule["status"],
+            )
+            for local_code, rule in raw["rules"].items()
+        }
+        log = [
+            LogEntry(
+                at=str(entry.get("at", "")),
+                commit=entry.get("commit"),
+                kind=entry.get("kind", "note"),
+                text=str(entry.get("text", "")),
+                rule=qualify_rule("ruff", entry["rule"]) if entry.get("rule") else None,
+            )
+            for entry in raw.get("log", [])
+        ]
+        diagnosis_raw = raw.get("diagnosis")
         return State(
-            version=1,
+            version=2,
+            tool=str(raw.get("tool", "ebpy")),
+            phase=raw.get("phase", "diagnose"),
+            updated_at=str(raw.get("updatedAt", "")),
+            frozen_at=frozen_at,
+            diagnosed_at=raw.get("diagnosedAt"),
+            diagnosed_commit=raw.get("diagnosedCommit"),
+            diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
+            frozen_analyzers=tuple(sorted(frozen_analyzers)),
+            rules=rules,
+            log=log,
+        )
+    except (AttributeError, OverflowError, TypeError, ValueError):
+        return None
+
+
+def _state_from_v2_dict(raw: dict[str, Any]) -> State | None:
+    try:
+        diagnosis_raw = raw.get("diagnosis")
+        return State(
+            version=2,
             tool=str(raw.get("tool", "ebpy")),
             phase=raw.get("phase", "diagnose"),
             updated_at=str(raw.get("updatedAt", "")),
@@ -145,30 +254,28 @@ def state_from_dict(raw: dict[str, Any]) -> State | None:
             diagnosed_at=raw.get("diagnosedAt"),
             diagnosed_commit=raw.get("diagnosedCommit"),
             diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
+            frozen_analyzers=tuple(raw["frozenAnalyzers"]),
             rules={
-                name: RuleBaseline(
-                    baseline=int(rule.get("baseline") or 0),
-                    current=int(rule.get("current") or 0),
-                    status=rule.get("status", "draining"),
-                )
-                for name, rule in rules_raw.items()
+                name: RuleBaseline(baseline=rule["baseline"], current=rule["current"], status=rule["status"])
+                for name, rule in raw["rules"].items()
             },
-            counters={
-                name: Counter(
-                    baseline=int(counter.get("baseline") or 0),
-                    current=int(counter.get("current") or 0),
-                )
-                for name, counter in counters_raw.items()
-            },
-            log=[_entry_from_dict(entry) for entry in log_raw],
+            log=[_entry_from_dict(entry) for entry in raw.get("log", [])],
         )
     except (AttributeError, OverflowError, TypeError, ValueError):
         return None
 
 
+def state_from_dict(raw: dict[str, Any]) -> State | None:
+    if raw.get("version") == 1:
+        return _state_from_v1_dict(raw)
+    if not _has_valid_v2_shape(raw):
+        return None
+    return _state_from_v2_dict(raw)
+
+
 def state_to_dict(state: State) -> dict[str, Any]:
     return {
-        "version": state.version,
+        "version": 2,
         "tool": state.tool,
         "phase": state.phase,
         "updatedAt": state.updated_at,
@@ -176,13 +283,10 @@ def state_to_dict(state: State) -> dict[str, Any]:
         "diagnosedAt": state.diagnosed_at,
         "diagnosedCommit": state.diagnosed_commit,
         "diagnosis": state.diagnosis.to_dict() if state.diagnosis else None,
+        "frozenAnalyzers": sorted(state.frozen_analyzers),
         "rules": {
             name: {"baseline": rule.baseline, "current": rule.current, "status": rule.status}
-            for name, rule in state.rules.items()
-        },
-        "counters": {
-            name: {"baseline": counter.baseline, "current": counter.current}
-            for name, counter in state.counters.items()
+            for name, rule in sorted(state.rules.items(), key=lambda item: item[0])
         },
         "log": [
             {
@@ -253,52 +357,59 @@ def next_baseline(existing: int | None, current: int, mode: BaselineMode) -> int
 def copy_state(state: State) -> State:
     """A caller's own State, safe to hand to the helpers below.
 
-    `State` is deliberately the one mutable value in the codebase, so `apply_rule_counts`,
-    `set_counter` and `with_phase` rewrite the object they are given. A decision function
-    that is pure over its arguments has to copy first, and every one of them needs the
-    same copy — so it is spelled once, here, rather than open-coded at each call site.
+    `State` is deliberately the one mutable value in the codebase, so `apply_analyzer_rule_counts`,
+    `replace_analyzer_rules` and `with_phase` rewrite the object they are given. A decision function
+    that is pure over its arguments has to copy first, and every one of them needs the same copy —
+    so it is spelled once, here, rather than open-coded at each call site.
     """
     return deepcopy(state)
 
 
-def apply_rule_counts(state: State, counts: dict[str, int], mode: BaselineMode) -> State:
-    names = set(state.rules) | set(counts)
-    rules: dict[str, RuleBaseline] = {}
-    for name in sorted(names):
-        current = counts.get(name, 0)
-        existing = state.rules.get(name)
-        rules[name] = RuleBaseline(
-            baseline=next_baseline(existing.baseline if existing else None, current, mode),
+def apply_analyzer_rule_counts(
+    state: State, analyzer: str, counts: Mapping[RuleId, int], mode: BaselineMode
+) -> State:
+    """Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched.
+
+    A rule in the namespace that this run no longer reports is drained to `current = 0` with
+    its baseline held — not run back through `next_baseline`, which would let a `freeze` collapse
+    the ceiling to zero from a mere absence rather than an explicit decision to drain it.
+    """
+    untouched = {name: rule for name, rule in state.rules.items() if analyzer_of(name) != analyzer}
+    namespace_existing = {name: rule for name, rule in state.rules.items() if analyzer_of(name) == analyzer}
+
+    updated: dict[str, RuleBaseline] = {}
+    for name in sorted(set(namespace_existing) | set(counts)):
+        existing = namespace_existing.get(name)
+        if name in counts:
+            current = counts[name]
+            baseline = next_baseline(existing.baseline if existing else None, current, mode)
+        else:
+            current = 0
+            baseline = namespace_existing[name].baseline
+        updated[name] = RuleBaseline(
+            baseline=baseline,
             current=current,
             status="enforced" if current == 0 else (existing.status if existing else "draining"),
         )
-    state.rules = rules
+
+    state.rules = {**untouched, **updated}
     return state
 
 
-def set_counter(state: State, name: str, current: int, mode: BaselineMode) -> State:
-    existing = state.counters.get(name)
-    state.counters = {
-        **state.counters,
-        name: Counter(
-            baseline=next_baseline(existing.baseline if existing else None, current, mode),
-            current=current,
-        ),
+def replace_analyzer_rules(state: State, analyzer: str, counts: Mapping[RuleId, int]) -> State:
+    """Drop every rule in `analyzer`'s namespace and install `counts` as a fresh ceiling.
+
+    Used by scoped freeze: unlike `apply_analyzer_rule_counts`, a rule this run does not report
+    is simply gone from the namespace rather than drained to zero — there is no previous baseline
+    to hold onto, since the whole namespace is being (re)frozen from today's measurement.
+    """
+    untouched = {name: rule for name, rule in state.rules.items() if analyzer_of(name) != analyzer}
+    replaced = {
+        name: RuleBaseline(baseline=count, current=count, status="enforced" if count == 0 else "draining")
+        for name, count in counts.items()
     }
+    state.rules = {**untouched, **replaced}
     return state
-
-
-def find_regressions(state: State) -> list[Regression]:
-    """The gate. Anything whose count rose above its ceiling, rule and plain counter alike."""
-    entries = [
-        *((name, rule.baseline, rule.current) for name, rule in state.rules.items()),
-        *((name, counter.baseline, counter.current) for name, counter in state.counters.items()),
-    ]
-    return [
-        Regression(name=name, baseline=baseline, current=current)
-        for name, baseline, current in entries
-        if current > baseline
-    ]
 
 
 def improvements(state: State) -> list[Regression]:

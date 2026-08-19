@@ -1,8 +1,7 @@
-"""What `freeze` refuses, and on what evidence.
+"""What `freeze` does, what it refuses, and on what evidence.
 
-None of these need Ruff: the refusal has to be decided before anything is
-measured, or a repository whose ledger is unreadable would have its ceiling
-raised by the very run that was supposed to protect it.
+Artifact-precondition checks happen before any measurement, so a repository
+that must not be frozen cannot have its ceiling raised by the run that discovers it.
 """
 
 from __future__ import annotations
@@ -18,18 +17,53 @@ from ebpy.commands import freeze
 from ebpy.commands.freeze import freeze_measurement, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import MYPY_COUNTER, AnalysisMeasurement
-from ebpy.state import Ledger, apply_rule_counts, empty_state, set_counter, state_path
+from ebpy.models import AnalysisMeasurement, UnattributedFinding
+from ebpy.state import Ledger, apply_analyzer_rule_counts, empty_state, state_path, with_phase
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+_FROZEN_AT = "2026-08-19T00:00:00Z"
 
 
-def clean_measurement() -> Measurement:
+def _ruff_only_measurement(cells: dict[str, dict[str, int]] | None = None) -> Measurement:
+    """Both analyzers complete; cells defaults to empty for a clean zero-finding contract."""
     return Measurement(
-        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-        counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells=cells or {}),
+            ),
+            "mypy": Measured(
+                tool="mypy",
+                value=AnalysisMeasurement(cells={}),
+            ),
+        }
     )
 
 
-@pytest.mark.parametrize("cells", [{}, {"src/app.py": {"F401": 1}}])
+def _fresh_artifacts() -> CeilingArtifacts:
+    return CeilingArtifacts(kind="fresh", cells={}, ledger=Ledger(exists=False, state=None))
+
+
+def _frozen_artifacts_ruff_only() -> CeilingArtifacts:
+    """A valid frozen pair that contains only ruff (simulates a v1-migrated contract)."""
+    cells: dict[str, dict[str, int]] = {"src/a.py": {"ruff:F401": 1}}
+    state = empty_state()
+    state = apply_analyzer_rule_counts(state, "ruff", {"ruff:F401": 1}, "freeze")
+    state.frozen_at = _FROZEN_AT
+    state.frozen_analyzers = ("ruff",)
+    state = with_phase(state, "drain")
+    return CeilingArtifacts(kind="frozen", cells=cells, ledger=Ledger(exists=True, state=state))
+
+
+# ---------------------------------------------------------------------------
+# Write-safety / symlink tests (original tests adapted to the new model)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("cells", [{}, {"src/app.py": {"ruff:F401": 1}}])
 def test_freeze_refuses_a_baseline_without_its_ledger(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -54,11 +88,11 @@ def test_freeze_refuses_a_baseline_without_its_ledger(
 def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    write_cells(tmp_path, {"src/old.py": {"F401": 1}})
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
+    write_cells(tmp_path, {"src/old.py": {"ruff:F401": 1}})
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
-    run_freeze(tmp_path, force=True)
+    run_freeze(tmp_path, force=True, analyzer=None)
 
     assert read_ceiling_artifacts(tmp_path).kind == "frozen"
 
@@ -79,10 +113,10 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     state_path(tmp_path).symlink_to(state_target)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
-    run_freeze(tmp_path, force=True)
+    run_freeze(tmp_path, force=True, analyzer=None)
 
     assert not baseline_path(tmp_path).is_symlink()
     assert not state_path(tmp_path).is_symlink()
@@ -103,10 +137,10 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     (tmp_path / ".ebpy").symlink_to(outside, target_is_directory=True)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: clean_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
-    run_freeze(tmp_path, force=True)
+    run_freeze(tmp_path, force=True, analyzer=None)
 
     assert not (tmp_path / ".ebpy").is_symlink()
     assert (outside / "baseline.json").read_text(encoding="utf-8") == baseline_text
@@ -114,72 +148,441 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     assert read_ceiling_artifacts(tmp_path).kind == "frozen"
 
 
-def test_failed_lint_cannot_build_a_frozen_contract() -> None:
-    previous = empty_state()
-    measurement = Measurement(
-        lint=Failed(tool="ruff", failure_kind="execution-failed", detail="ruff failed"),
-        counters={MYPY_COUNTER: Measured(tool="mypy", value=2)},
-    )
-
-    with pytest.raises(CommandError, match="ruff failed"):
-        freeze_measurement(previous, measurement, "freeze", "2026-08-19T00:00:00Z")
-
-    assert previous.frozen_at is None
-    assert previous.counters == {}
-
-
-def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> None:
-    decision = freeze_measurement(
-        empty_state(),
-        Measurement(
-            lint=Measured(
-                tool="ruff",
-                value=AnalysisMeasurement(cells={"src/a.py": {"F401": 2}}),
-            ),
-            counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed.")},
-        ),
-        "freeze",
-        "2026-08-19T00:00:00Z",
-    )
-
-    assert decision.cells == {"src/a.py": {"F401": 2}}
-    assert decision.state.frozen_at == "2026-08-19T00:00:00Z"
-    assert decision.state.rules["F401"].baseline == 2
-    assert MYPY_COUNTER not in decision.state.counters
-    assert "mypy did not run: mypy is not installed" in decision.message
-    assert "installed.." not in decision.message
-
-
-@pytest.mark.parametrize(
-    "detail",
-    ["mypy is not installed.", "mypy failed (exit 2): bad config:", "mypy could not run,"],
-)
-def test_a_tool_detail_is_punctuated_once_inside_our_sentence(detail: str) -> None:
-    """Runners end a message however reads best alone; the sentence around it owns the stop."""
-    decision = freeze_measurement(
-        empty_state(),
-        Measurement(
-            lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-            counters={MYPY_COUNTER: Failed(tool="mypy", failure_kind="execution-failed", detail=detail)},
-        ),
-        "freeze",
-        "2026-08-19T00:00:00Z",
-    )
-
-    line = next(line for line in decision.message.splitlines() if line.startswith("mypy did not run"))
-    assert line.endswith(". No type-error ceiling was recorded.")
-    for stutter in ("..", ":.", ",."):
-        assert stutter not in line
-
-
 def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
-    """`--force` clears rules and counters to pin a new contract — on its own copy."""
-    on_disk = set_counter(apply_rule_counts(empty_state(), {"F401": 2}, "freeze"), MYPY_COUNTER, 5, "freeze")
+    """`--force` clears rules to pin a new contract — on its own copy, not the on-disk state."""
+    on_disk = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 2}, "freeze")
+    on_disk.frozen_analyzers = ("ruff",)
     artifacts = CeilingArtifacts(kind="frozen", cells={}, ledger=Ledger(exists=True, state=on_disk))
 
     previous = freeze._previous_state(artifacts, force=True)
 
     assert previous.rules == {}
-    assert previous.counters == {}
-    assert on_disk.rules["F401"].baseline == 2
-    assert on_disk.counters[MYPY_COUNTER].baseline == 5
+    assert previous.frozen_analyzers == ()
+    assert on_disk.rules["ruff:F401"].baseline == 2
+    assert on_disk.frozen_analyzers == ("ruff",)
+
+
+# ---------------------------------------------------------------------------
+# 18 new tests (verbatim names from the brief)
+# ---------------------------------------------------------------------------
+
+
+def test_a_first_freeze_records_every_analyzer_including_a_clean_one() -> None:
+    decision = freeze_measurement(
+        empty_state(),
+        {},
+        Measurement(
+            analyzers={
+                "ruff": Measured(
+                    tool="ruff",
+                    value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 2}}),
+                ),
+                "mypy": Measured(
+                    tool="mypy",
+                    value=AnalysisMeasurement(cells={}),
+                ),
+            }
+        ),
+        scope=None,
+        force=False,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
+    assert "ruff:F401" in decision.state.rules
+    assert decision.state.frozen_at == _FROZEN_AT
+    # mypy with zero findings joins the roster — a 0 ceiling is only verifiable
+    # if we know mypy actually ran and found nothing.
+    assert "mypy" in decision.state.frozen_analyzers
+    assert decision.cells == {"src/a.py": {"ruff:F401": 2}}
+
+
+def test_an_incomplete_analyzer_refuses_a_normal_freeze_and_writes_nothing() -> None:
+    incomplete_ruff = Measured(
+        tool="ruff",
+        value=AnalysisMeasurement(
+            cells={},
+            unattributed=(UnattributedFinding(file="src/bad.py", line=1, message="SyntaxError"),),
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": incomplete_ruff,
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_the_incomplete_refusal_names_fixing_the_file_and_ruffs_exclude() -> None:
+    incomplete_ruff = Measured(
+        tool="ruff",
+        value=AnalysisMeasurement(
+            cells={},
+            unattributed=(UnattributedFinding(file="src/bad.py", line=1, message="SyntaxError"),),
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": incomplete_ruff,
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    msg = str(exc_info.value)
+    assert "exclude" in msg
+    assert "src/bad.py" in msg
+
+
+def test_an_unavailable_analyzer_refuses_a_normal_freeze_and_names_bootstrap() -> None:
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    assert "bootstrap" in str(exc_info.value)
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_a_failed_analyzer_refuses_a_normal_freeze_and_quotes_its_detail() -> None:
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="mypy crashed: exit 2"),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    assert "mypy crashed: exit 2" in str(exc_info.value)
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_force_refuses_an_unavailable_analyzer_because_force_never_shrinks_the_contract() -> None:
+    """--force re-pins every analyzer's ceiling; an unavailable one is still refused."""
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=True, frozen_at=_FROZEN_AT)
+
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_force_refuses_an_incomplete_analyzer_too() -> None:
+    incomplete_ruff = Measured(
+        tool="ruff",
+        value=AnalysisMeasurement(
+            cells={},
+            unattributed=(UnattributedFinding(file="src/bad.py", line=1, message="SyntaxError"),),
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": incomplete_ruff,
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=True, frozen_at=_FROZEN_AT)
+
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_the_unavailable_refusal_points_at_bootstrap() -> None:
+    measurement = Measurement(
+        analyzers={
+            "ruff": Unavailable(tool="ruff", detail="ruff not found"),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    assert "bootstrap" in str(exc_info.value)
+
+
+def test_scoped_freeze_is_refused_on_a_fresh_pair() -> None:
+    artifacts = _fresh_artifacts()
+
+    precondition = freeze._check_scope_preconditions(artifacts, "mypy", force=False)
+
+    assert precondition is not None
+    assert "freeze" in precondition.lower()
+
+
+def test_scoped_freeze_ignores_another_analyzers_failure() -> None:
+    """freeze --force --analyzer ruff succeeds even when mypy failed."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}}),
+            ),
+            "mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="mypy crashed"),
+        }
+    )
+
+    # ruff is already in the roster, so --force is required to replace it
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    # mypy failure is irrelevant when scope is ruff
+    assert "ruff:F401" in decision.state.rules
+
+
+def test_scoped_freeze_adds_mypy_and_leaves_the_ruff_ceiling_identical() -> None:
+    """freeze --analyzer mypy on a ruff-only contract extends the roster without touching ruff."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}}),
+            ),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 3}})
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="mypy",
+        force=False,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "mypy" in decision.state.frozen_analyzers
+    assert "ruff" in decision.state.frozen_analyzers
+    assert decision.state.rules["ruff:F401"].baseline == 1
+    assert decision.state.rules["mypy:arg-type"].baseline == 3
+    assert decision.cells == {"src/a.py": {"ruff:F401": 1}, "src/b.py": {"mypy:arg-type": 3}}
+
+
+def test_scoped_force_replaces_only_the_named_namespace() -> None:
+    """freeze --force --analyzer ruff replaces ruff cells; mypy cells are untouched."""
+    state = empty_state()
+    state = apply_analyzer_rule_counts(state, "ruff", {"ruff:F401": 5}, "freeze")
+    state = apply_analyzer_rule_counts(state, "mypy", {"mypy:arg-type": 3}, "freeze")
+    state.frozen_at = _FROZEN_AT
+    state.frozen_analyzers = ("mypy", "ruff")
+    state = with_phase(state, "drain")
+
+    baseline_cells: dict[str, dict[str, int]] = {
+        "src/a.py": {"ruff:F401": 5},
+        "src/b.py": {"mypy:arg-type": 3},
+    }
+    artifacts = CeilingArtifacts(kind="frozen", cells=baseline_cells, ledger=Ledger(exists=True, state=state))
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 2}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 3}})
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert decision.state.rules["ruff:F401"].baseline == 2
+    assert decision.state.rules["mypy:arg-type"].baseline == 3
+    assert decision.cells == {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
+
+
+def test_scoped_freeze_refuses_an_analyzer_already_in_the_contract() -> None:
+    artifacts = _frozen_artifacts_ruff_only()
+
+    # ruff is already in the roster; adding it again without --force is refused
+    precondition = freeze._check_scope_preconditions(artifacts, "ruff", force=False)
+
+    assert precondition is not None
+    assert "already" in precondition
+    assert "--force" in precondition
+
+
+def test_scoped_freeze_refuses_a_target_that_is_not_complete() -> None:
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Unavailable(tool="mypy", detail="mypy not installed"),
+        }
+    )
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(
+            artifacts.ledger.state,
+            artifacts.cells,
+            measurement,
+            scope="mypy",
+            force=False,
+            frozen_at=_FROZEN_AT,
+        )
+
+    assert "Nothing was written" in str(exc_info.value)
+
+
+def test_scoped_freeze_refuses_an_invalid_pair_even_with_force() -> None:
+    artifacts = CeilingArtifacts(
+        kind="invalid",
+        cells={},
+        ledger=Ledger(exists=True, state=None),
+        detail="baseline and state disagree",
+    )
+
+    precondition = freeze._check_scope_preconditions(artifacts, "mypy", force=True)
+
+    assert precondition is not None
+
+
+def test_scoped_freeze_keeps_the_global_frozen_at() -> None:
+    """A scoped freeze extends the roster but does not reset the global frozen_at."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+    original_frozen_at = artifacts.ledger.state.frozen_at
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="mypy",
+        force=False,
+        frozen_at="2026-09-01T00:00:00Z",  # a later timestamp — must not overwrite frozen_at
+    )
+
+    assert decision.state.frozen_at == original_frozen_at
+
+
+def test_no_invocation_can_remove_an_analyzer_from_the_roster() -> None:
+    """A scoped --force replaces one namespace but must not drop the other from the roster."""
+    state = empty_state()
+    state = apply_analyzer_rule_counts(state, "ruff", {"ruff:F401": 1}, "freeze")
+    state = apply_analyzer_rule_counts(state, "mypy", {"mypy:arg-type": 1}, "freeze")
+    state.frozen_at = _FROZEN_AT
+    state.frozen_analyzers = ("mypy", "ruff")
+    state = with_phase(state, "drain")
+
+    baseline_cells: dict[str, dict[str, int]] = {
+        "src/a.py": {"ruff:F401": 1},
+        "src/b.py": {"mypy:arg-type": 1},
+    }
+    artifacts = CeilingArtifacts(kind="frozen", cells=baseline_cells, ledger=Ledger(exists=True, state=state))
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 1}})
+            ),
+        }
+    )
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "mypy" in decision.state.frozen_analyzers
+    assert "ruff" in decision.state.frozen_analyzers
+
+
+def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
+    """The 'across N rules' figure must be the count of distinct rule IDs, not
+    the number of file x rule cell pairs.  A single rule appearing in multiple
+    files is still one rule."""
+    # F401 appears in two files (2 cells) and arg-type appears in one file —
+    # that is 3 cells but only 2 distinct rules.
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(
+                    cells={
+                        "src/a.py": {"ruff:F401": 3},
+                        "src/b.py": {"ruff:F401": 1},
+                    }
+                ),
+            ),
+            "mypy": Measured(
+                tool="mypy",
+                value=AnalysisMeasurement(cells={"src/c.py": {"mypy:arg-type": 2}}),
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT
+    )
+
+    assert "across 2 rules" in decision.message
+
+
+def test_freeze_measurement_does_not_mutate_its_input_state() -> None:
+    original = empty_state()
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    freeze_measurement(original, {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+
+    assert original.frozen_at is None
+    assert original.rules == {}
+    assert original.frozen_analyzers == ()

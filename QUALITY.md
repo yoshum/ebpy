@@ -3,11 +3,14 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
+> **The diagnosis below is stale** — 84 commits since the diagnosis; re-run diagnose before trusting it.
+> Numbers and file names may describe code that has since moved.
+
 - Phase: **drain**
 - Frozen: 2026-08-18T00:07:45Z
 - Open violations: **0**
 - Rules improved since the ceiling: **0**
-- Everything is at or below its ceiling.
+- Analyzers: **mypy, ruff**
 
 ## Worklist
 
@@ -25,12 +28,6 @@ Top to bottom. An unattended run works this list and nothing else.
 Ceiling is the count at the last freeze. It may fall and must never rise.
 
 Nothing to grandfather — the freeze found no violations.
-
-## Other counters
-
-| Counter | Ceiling | Now |
-| --- | ---: | ---: |
-| mypy:errors | 0 | 0 |
 
 ## Outstanding
 

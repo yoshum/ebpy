@@ -8,9 +8,15 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Generic, Literal, TypeAlias, TypeVar
 
+from .cell_key import analyzer_of, is_analyzer_name
 from .errors import ToolError
-from .models import MYPY_COUNTER, AnalysisMeasurement
-from .mypy_runner import MypyFailedError, MypyNotFoundError, run_mypy_check
+from .models import AnalysisMeasurement
+from .mypy_runner import (
+    MypyFailedError,
+    MypyInvalidOutputError,
+    MypyNotFoundError,
+    run_mypy_check,
+)
 from .ruff_runner import (
     RuffFailedError,
     RuffInvalidOutputError,
@@ -20,6 +26,10 @@ from .ruff_runner import (
 
 T = TypeVar("T")
 FailureKind = Literal["execution-failed", "invalid-output"]
+
+# The shipped analyzers, sorted — not a registry. Adding a third means adding it here
+# and teaching measure_repository to attempt it; nothing discovers analyzers dynamically.
+ANALYZER_NAMES: tuple[str, ...] = ("mypy", "ruff")
 
 # A tool's own diagnostic block fits; a runaway trace is cut, and the marker says it was.
 # A truncated detail that looked complete would be a report claiming more than it holds.
@@ -65,18 +75,40 @@ class Failed:
 
 Observation: TypeAlias = Measured[T] | Unavailable | Failed
 
+# Whether an observation is usable as a verified ceiling. `None` stands for a ledger
+# contract naming an analyzer this ebpy build has no runner for at all — that must fail
+# closed rather than default to "unmeasured but fine", so it classifies as failed too.
+AnalyzerStatus = Literal["complete", "incomplete", "unavailable", "failed"]
+
+
+def classify(observation: Observation[AnalysisMeasurement] | None) -> AnalyzerStatus:
+    if observation is None or isinstance(observation, Failed):
+        return "failed"
+    if isinstance(observation, Unavailable):
+        return "unavailable"
+    return "incomplete" if observation.value.unattributed else "complete"
+
 
 @dataclass(frozen=True)
 class Measurement:
-    lint: Observation[AnalysisMeasurement]
     # Mapping, not dict: a frozen dataclass holding a mutable dict is frozen in name only,
     # and a measurement edited after the fact is no longer a record of what was measured.
-    counters: Mapping[str, Observation[int]]
+    analyzers: Mapping[str, Observation[AnalysisMeasurement]]
 
     def __post_init__(self) -> None:
-        if MYPY_COUNTER not in self.counters:
-            raise ValueError(f"Measurement requires an observation for {MYPY_COUNTER}")
-        object.__setattr__(self, "counters", MappingProxyType(dict(self.counters)))
+        for name, observation in self.analyzers.items():
+            if not is_analyzer_name(name):
+                raise ValueError(f"not a valid analyzer name: {name!r}")
+            if observation.tool != name:
+                raise ValueError(f"observation for {name!r} carries tool {observation.tool!r}, not {name!r}")
+            if isinstance(observation, Measured):
+                for rules in observation.value.cells.values():
+                    for rule in rules:
+                        if analyzer_of(rule) != name:
+                            raise ValueError(f"rule {rule!r} does not belong to analyzer {name!r}")
+        # AnalysisMeasurement.__post_init__ already deep-froze each cell mapping; only
+        # the outer analyzer -> observation mapping still needs freezing here.
+        object.__setattr__(self, "analyzers", MappingProxyType(dict(self.analyzers)))
 
 
 def _summary(error: BaseException) -> str:
@@ -103,7 +135,7 @@ def _detail(error: BaseException) -> str:
     return kept if kept == text else f"{kept}\n{_TRUNCATION_MARK}"
 
 
-def _measure_lint(cwd: Path) -> Observation[AnalysisMeasurement]:
+def _measure_ruff(cwd: Path) -> Observation[AnalysisMeasurement]:
     try:
         return Measured(tool="ruff", value=run_ruff_check(cwd))
     except RuffNotFoundError as error:
@@ -124,11 +156,20 @@ def _measure_lint(cwd: Path) -> Observation[AnalysisMeasurement]:
         )
 
 
-def _measure_mypy(cwd: Path) -> Observation[int]:
+def _measure_mypy(cwd: Path) -> Observation[AnalysisMeasurement]:
     try:
         return Measured(tool="mypy", value=run_mypy_check(cwd))
     except MypyNotFoundError as error:
         return Unavailable(tool="mypy", detail=_detail(error), summary=_summary(error))
+    # MypyInvalidOutputError subclasses MypyFailedError, so it must be caught first —
+    # otherwise every invalid-output failure would be misreported as execution-failed.
+    except MypyInvalidOutputError as error:
+        return Failed(
+            tool="mypy",
+            failure_kind="invalid-output",
+            detail=_detail(error),
+            summary=_summary(error),
+        )
     except (MypyFailedError, OSError) as error:
         return Failed(
             tool="mypy",
@@ -140,6 +181,6 @@ def _measure_mypy(cwd: Path) -> Observation[int]:
 
 def measure_repository(cwd: Path) -> Measurement:
     """Measure every independent capability, retaining partial success as data."""
-    lint = _measure_lint(cwd)
+    ruff = _measure_ruff(cwd)
     mypy = _measure_mypy(cwd)
-    return Measurement(lint=lint, counters={MYPY_COUNTER: mypy})
+    return Measurement(analyzers={"ruff": ruff, "mypy": mypy})

@@ -23,6 +23,7 @@ from .commands.secrets import run_secrets
 from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
+from .measurement import ANALYZER_NAMES
 
 USAGE_EPILOG = f"""\
 commands:
@@ -111,7 +112,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     freeze = add("freeze", "pin today's violations as the ceiling")
-    freeze.add_argument("--force", action="store_true", help="allow a ceiling to move up")
+    freeze.add_argument("--force", action="store_true", help="re-pin over an existing or unreadable contract")
+    freeze.add_argument(
+        "--analyzer",
+        choices=sorted(ANALYZER_NAMES),
+        default=None,
+        help="pin one analyzer's ceiling, leaving every other analyzer untouched",
+    )
 
     add("prune", "reclaim the ceiling you earned")
 
@@ -157,7 +164,13 @@ def _log_outcome(args: argparse.Namespace, cwd: Path) -> Outcome:
     text = " ".join(args.text).strip()
     if not text:
         return Outcome('log needs text: ebpy log --kind deferred "..."', 1)
-    return Outcome(run_log(cwd, args.kind, text, args.rule), 0)
+    # An outcome command carries its exit status as data rather than raising, so a
+    # malformed --rule — refused by run_log itself, closer to the concept it names — is
+    # converted here rather than left to propagate past this function's declared return type.
+    try:
+        return Outcome(run_log(cwd, args.kind, text, args.rule), 0)
+    except CommandError as error:
+        return Outcome(str(error), 1)
 
 
 # Text commands return normally on success and raise CommandError when a request must
@@ -166,7 +179,7 @@ _TEXT_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], str]] = {
     "bootstrap": lambda args, cwd: run_bootstrap(cwd, args.dry_run, args.python),
     "catalog": lambda _args, cwd: run_catalog(cwd),
     "diagnose": lambda args, cwd: run_diagnose(cwd, args.json, args.write),
-    "freeze": lambda args, cwd: run_freeze(cwd, args.force),
+    "freeze": lambda args, cwd: run_freeze(cwd, args.force, args.analyzer),
     "prune": lambda _args, cwd: run_prune(cwd),
     "status": lambda args, cwd: run_status(cwd, args.json),
     "next": lambda args, cwd: run_next(cwd, args.json, args.fan_in),

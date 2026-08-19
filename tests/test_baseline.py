@@ -7,7 +7,11 @@ import pytest
 
 from ebpy.baseline import (
     Ceiling,
+    analyzers_in,
     baseline_path,
+    cells_for,
+    finding_total,
+    merge_cells,
     parse_cells,
     prune_cells,
     read_ceiling,
@@ -15,58 +19,32 @@ from ebpy.baseline import (
     split_against_baseline,
     write_cells,
 )
+from ebpy.models import CellCountsView
+from ebpy.ruff_runner import parse_ruff_json
 
 
-def test_parse_reads_the_file_rule_count_shape() -> None:
-    cells = parse_cells({"src/a.py": {"E501": {"count": 3}, "F401": {"count": 1}}})
-    assert cells == {"src/a.py": {"E501": 3, "F401": 1}}
+def test_a_v1_bare_baseline_reads_as_ruff_namespaced_cells(tmp_path: Path) -> None:
+    cells = parse_cells({"src/a.py": {"E501": {"count": 3}, "F401": {"count": 1}}}, tmp_path)
+    assert cells == {"src/a.py": {"ruff:E501": 3, "ruff:F401": 1}}
 
 
-def test_windows_paths_normalise_so_a_repo_groups_the_same_either_way() -> None:
-    assert parse_cells({"src\\pkg\\a.py": {"E501": {"count": 2}}}) == {"src/pkg/a.py": {"E501": 2}}
+def test_a_v2_baseline_round_trips_through_write_and_read(tmp_path: Path) -> None:
+    write_cells(tmp_path, {"src/a.py": {"ruff:E501": 3}, "src/b.py": {"mypy:arg-type": 2}})
+    on_disk = json.loads((tmp_path / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
+    assert on_disk == {
+        "version": 2,
+        "cells": {
+            "src/a.py": {"ruff:E501": {"count": 3}},
+            "src/b.py": {"mypy:arg-type": {"count": 2}},
+        },
+    }
+    assert read_ceiling(tmp_path).cells == {
+        "src/a.py": {"ruff:E501": 3},
+        "src/b.py": {"mypy:arg-type": 2},
+    }
 
 
-def test_the_ratchet_is_per_file_and_per_rule() -> None:
-    # 3 in a.py is at its ceiling; 1 in b.py has no ceiling at all, so it is new —
-    # even though the rule's repo-wide total (4) equals the repo-wide ceiling.
-    current = {"a.py": {"E501": 3}, "b.py": {"E501": 1}}
-    baseline = {"a.py": {"E501": 4}}
-    new, grandfathered = split_against_baseline(current, baseline)
-    assert new == {"E501": 1}
-    assert grandfathered == {"E501": 3}
-
-
-def test_a_count_below_its_ceiling_is_not_new() -> None:
-    new, grandfathered = split_against_baseline({"a.py": {"E501": 1}}, {"a.py": {"E501": 4}})
-    assert new == {}
-    assert grandfathered == {"E501": 1}
-
-
-def test_prune_lowers_a_cell_to_what_still_exists() -> None:
-    pruned = prune_cells({"a.py": {"E501": 5}}, {"a.py": {"E501": 2}})
-    assert pruned == {"a.py": {"E501": 2}}
-
-
-def test_prune_never_raises_a_ceiling() -> None:
-    # New violations are the gate's business, not prune's: it can only ever take away.
-    pruned = prune_cells({"a.py": {"E501": 2}}, {"a.py": {"E501": 9}})
-    assert pruned == {"a.py": {"E501": 2}}
-
-
-def test_prune_drops_a_file_whose_violations_are_all_gone() -> None:
-    assert prune_cells({"a.py": {"E501": 3}}, {}) == {}
-
-
-def test_cells_round_trip_through_disk(tmp_path: Path) -> None:
-    write_cells(tmp_path, {"src/a.py": {"E501": 3}, "src/b.py": {"F401": 0}})
-    written = json.loads((tmp_path / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
-    # A zero cell is not a ceiling, it is the absence of one — writing it would
-    # grandfather a file that has nothing to grandfather.
-    assert written == {"src/a.py": {"E501": {"count": 3}}}
-    assert read_ceiling(tmp_path).cells == {"src/a.py": {"E501": 3}}
-
-
-def test_a_missing_baseline_and_an_empty_one_are_different_facts(tmp_path: Path) -> None:
+def test_a_clean_v2_baseline_is_distinguishable_from_a_missing_one(tmp_path: Path) -> None:
     """`freeze` decides from this: a repository frozen while clean has a baseline holding
     nothing, and re-freezing it would grandfather everything written since."""
     assert read_ceiling(tmp_path) == Ceiling(exists=False, cells=None)
@@ -74,12 +52,120 @@ def test_a_missing_baseline_and_an_empty_one_are_different_facts(tmp_path: Path)
     assert read_ceiling(tmp_path) == Ceiling(exists=True, cells={})
 
 
-def test_the_ceiling_carries_the_cells_it_validated(tmp_path: Path) -> None:
-    write_cells(tmp_path, {"a.py": {"E501": 2}, "b.py": {"F401": 3}})
-    assert read_ceiling(tmp_path) == Ceiling(
-        exists=True,
-        cells={"a.py": {"E501": 2}, "b.py": {"F401": 3}},
-    )
+@pytest.mark.parametrize("version", [1, 3, 99, "2"])
+def test_an_unknown_version_makes_the_whole_baseline_unreadable(tmp_path: Path, version: object) -> None:
+    """A `version` of 1 wrapped like v2 is unreadable too — v1 never carried the key at all."""
+    assert parse_cells({"version": version, "cells": {}}, tmp_path) is None
+
+
+def test_an_extra_top_level_key_makes_the_whole_baseline_unreadable(tmp_path: Path) -> None:
+    raw = {"version": 2, "cells": {"src/a.py": {"ruff:E501": {"count": 1}}}, "unexpected": True}
+    assert parse_cells(raw, tmp_path) is None
+
+
+def test_a_v2_rule_without_a_namespace_makes_the_whole_baseline_unreadable(tmp_path: Path) -> None:
+    raw = {"version": 2, "cells": {"src/a.py": {"E501": {"count": 1}}}}
+    assert parse_cells(raw, tmp_path) is None
+
+
+@pytest.mark.parametrize("count", [0, -1, True])
+def test_a_zero_or_negative_or_boolean_count_makes_the_baseline_unreadable(
+    tmp_path: Path, count: object
+) -> None:
+    raw = {"version": 2, "cells": {"src/a.py": {"ruff:F401": {"count": count}}}}
+    assert parse_cells(raw, tmp_path) is None
+
+
+def test_two_file_keys_that_collide_after_separator_normalization_are_rejected(tmp_path: Path) -> None:
+    raw = {
+        "src\\a.py": {"F401": {"count": 1}},
+        "src/a.py": {"F401": {"count": 1}},
+    }
+    assert parse_cells(raw, tmp_path) is None
+
+
+def test_split_against_baseline_keeps_the_file_of_every_excess_cell() -> None:
+    # a.py exceeds its ceiling by one; b.py has no ceiling for the rule at all, so its
+    # whole count is excess even though the rule's repo-wide total elsewhere is fine.
+    current = {"a.py": {"mypy:arg-type": 5}, "b.py": {"mypy:arg-type": 5}}
+    baseline = {"a.py": {"mypy:arg-type": 4}}
+    excess, _held = split_against_baseline(current, baseline)
+    assert excess == {"a.py": {"mypy:arg-type": 1}, "b.py": {"mypy:arg-type": 5}}
+
+
+def test_split_against_baseline_still_returns_held_totals_per_rule() -> None:
+    current = {"a.py": {"ruff:E501": 3}, "b.py": {"ruff:E501": 3}}
+    baseline = {"a.py": {"ruff:E501": 4}, "b.py": {"ruff:E501": 4}}
+    excess, held = split_against_baseline(current, baseline)
+    assert excess == {}
+    assert held == {"ruff:E501": 6}
+
+
+def test_the_writer_always_emits_version_two(tmp_path: Path) -> None:
+    write_cells(tmp_path, {})
+    on_disk = json.loads((tmp_path / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
+    assert on_disk == {"version": 2, "cells": {}}
+
+
+def test_reading_a_v1_baseline_leaves_the_file_untouched(tmp_path: Path) -> None:
+    path = baseline_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    v1_text = json.dumps({"src/a.py": {"E501": {"count": 1}}})
+    path.write_text(v1_text, encoding="utf-8")
+
+    ceiling = read_ceiling(tmp_path)
+
+    assert ceiling.cells == {"src/a.py": {"ruff:E501": 1}}
+    assert path.read_text(encoding="utf-8") == v1_text
+
+
+def test_merge_cells_unions_two_namespaces_and_rejects_a_repeated_cell() -> None:
+    ruff_cells: CellCountsView = {"a.py": {"ruff:E501": 2}}
+    mypy_cells: CellCountsView = {"a.py": {"mypy:arg-type": 1}, "b.py": {"mypy:arg-type": 3}}
+    assert merge_cells([ruff_cells, mypy_cells]) == {
+        "a.py": {"ruff:E501": 2, "mypy:arg-type": 1},
+        "b.py": {"mypy:arg-type": 3},
+    }
+
+    with pytest.raises(ValueError, match=r"a\.py.*ruff:E501"):
+        merge_cells([{"a.py": {"ruff:E501": 2}}, {"a.py": {"ruff:E501": 3}}])
+
+
+def test_cells_for_returns_only_one_analyzers_namespace() -> None:
+    cells = {
+        "a.py": {"ruff:E501": 2, "mypy:arg-type": 1},
+        "b.py": {"mypy:arg-type": 3},
+    }
+    assert cells_for(cells, "mypy") == {"a.py": {"mypy:arg-type": 1}, "b.py": {"mypy:arg-type": 3}}
+    assert cells_for(cells, "ruff") == {"a.py": {"ruff:E501": 2}}
+
+
+def test_analyzers_in_names_every_namespace_present() -> None:
+    cells = {"a.py": {"ruff:E501": 2, "mypy:arg-type": 1}}
+    assert analyzers_in(cells) == {"ruff", "mypy"}
+
+
+def test_finding_total_sums_every_cell() -> None:
+    cells = {
+        "a.py": {"ruff:E501": 2, "mypy:arg-type": 1},
+        "b.py": {"mypy:arg-type": 3},
+    }
+    assert finding_total(cells) == 6
+
+
+def test_prune_lowers_a_cell_to_what_still_exists() -> None:
+    pruned = prune_cells({"a.py": {"ruff:E501": 5}}, {"a.py": {"ruff:E501": 2}})
+    assert pruned == {"a.py": {"ruff:E501": 2}}
+
+
+def test_prune_never_raises_a_ceiling() -> None:
+    # New violations are the gate's business, not prune's: it can only ever take away.
+    pruned = prune_cells({"a.py": {"ruff:E501": 2}}, {"a.py": {"ruff:E501": 9}})
+    assert pruned == {"a.py": {"ruff:E501": 2}}
+
+
+def test_prune_drops_a_file_whose_violations_are_all_gone() -> None:
+    assert prune_cells({"a.py": {"ruff:E501": 3}}, {}) == {}
 
 
 def test_a_baseline_that_cannot_be_parsed_is_unreadable_not_empty(tmp_path: Path) -> None:
@@ -116,14 +202,12 @@ def test_a_baseline_symlink_is_always_unreadable(tmp_path: Path, target_exists: 
     [
         [],
         {"src/a.py": {}},
-        {"src/a.py": {"F401": {"count": 0}}},
-        {"src/a.py": {"F401": {"count": True}}},
-        {"src/a.py": {"F401": {"count": 1, "extra": "ignored"}}},
         {"src/a.py": {"F401": "one"}},
-        {
-            "src\\a.py": {"F401": {"count": 1}},
-            "src/a.py": {"F401": {"count": 1}},
-        },
+        {"src/a.py": {"F401": {"count": 1, "extra": "ignored"}}},
+        {"version": 2, "cells": {"src/a.py": {}}},
+        {"version": 2, "cells": {"src/a.py": {"ruff:F401": "one"}}},
+        {"version": 2, "cells": {"src/a.py": {"ruff:F401": {"count": "three"}}}},
+        {"version": 2, "cells": {"src/a.py": {"ruff:F401": {"count": True}}}},
     ],
 )
 def test_a_semantically_malformed_baseline_is_unreadable_as_a_whole(tmp_path: Path, raw: object) -> None:
@@ -135,5 +219,28 @@ def test_a_semantically_malformed_baseline_is_unreadable_as_a_whole(tmp_path: Pa
 
 
 def test_rule_totals_sum_across_files() -> None:
-    cells = {"a.py": {"E501": 2}, "b.py": {"E501": 3, "F401": 1}}
-    assert rule_totals(cells) == {"E501": 5, "F401": 1}
+    cells = {"a.py": {"ruff:E501": 2}, "b.py": {"ruff:E501": 3, "ruff:F401": 1}}
+    assert rule_totals(cells) == {"ruff:E501": 5, "ruff:F401": 1}
+
+
+def test_ruff_runner_and_baseline_reader_agree_on_the_cell_key_for_an_absolute_path(tmp_path: Path) -> None:
+    """Ruling F: the runner normalizes through `normalize_analyzer_path`, and so must the
+    reader, or the same raw finding would land as two different cells depending on which
+    side of the ratchet read it."""
+    absolute_file = str(tmp_path / "src" / "a.py")
+    stdout = json.dumps(
+        [
+            {
+                "filename": absolute_file,
+                "code": "F401",
+                "message": "unused import",
+                "location": {"row": 1},
+            }
+        ]
+    )
+
+    measured = parse_ruff_json(stdout, tmp_path)
+    stored = parse_cells({absolute_file: {"F401": {"count": 1}}}, tmp_path)
+
+    assert stored is not None
+    assert {file: dict(rules) for file, rules in measured.cells.items()} == stored
