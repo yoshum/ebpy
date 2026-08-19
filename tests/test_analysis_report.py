@@ -159,6 +159,29 @@ def test_a_failed_analyzer_falls_back_to_its_baseline_and_says_so() -> None:
     rendered = render_analysis_report(report)
     assert "ruff did not run" in rendered
     assert "ruff crashed" in rendered
+
+
+def test_an_incomplete_contract_analyzer_shows_its_syntax_errors_in_the_markdown() -> None:
+    """An analyzer left incomplete by a syntax error has failure=None, so the failure
+    banner alone would render only 'incomplete' in the table. The Markdown must still name
+    the unparsed files and warn that the backlog fell back to the baseline, matching what
+    the JSON carries."""
+    findings = (UnattributedFinding(file="src/broken.py", line=3, message="SyntaxError: bad token"),)
+    baseline = {"src/a.py": {"ruff:E501": 2}}
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={}, unattributed=findings, files_with_findings=0),
+            )
+        }
+    )
+
+    rendered = render_analysis_report(report_from_measurement(baseline, ("ruff",), measurement))
+
+    assert "src/broken.py:3" in rendered
+    assert "SyntaxError: bad token" in rendered
+    assert "baseline" in rendered.lower()
     assert ".ebpy/baseline.json" in rendered
 
 

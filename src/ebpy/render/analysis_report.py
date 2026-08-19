@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..analysis_report import AnalysisReport, ReportSection
+from ..analysis_report import AnalysisReport, AnalyzerSummary, ReportSection
 
 
 def _analyzer_table(report: AnalysisReport) -> list[str]:
@@ -35,21 +35,41 @@ def _banner(title: str, failure: str, consequence: str) -> list[str]:
     return [f"> **{title}**", *(f"> {line}" for line in failure.splitlines()), f"> {consequence}", ""]
 
 
-def _failure_banners(report: AnalysisReport) -> list[str]:
-    """One blockquote per failing contract analyzer.
+def _incomplete_detail(summary: AnalyzerSummary) -> str:
+    """The unparsed files an incomplete run left behind, named the way `check` names them.
 
-    "No debt" and "nobody looked" must not render the same way.
+    An incomplete analyzer has no `failure` string — the run started and produced cells —
+    so its complaint is the list of files it could not parse, not a tool error message.
+    """
+    samples = [f"{u.file}:{u.line}  {u.message}" for u in summary.unattributed]
+    more = summary.unattributed_total - len(samples)
+    lines = [f"{summary.unattributed_total} syntax error(s) left files unparsed:", *samples]
+    if more > 0:
+        lines.append(f"+ {more} more")
+    return "\n".join(lines)
+
+
+def _failure_banners(report: AnalysisReport) -> list[str]:
+    """One blockquote per contract analyzer that could not be fully measured.
+
+    "No debt" and "nobody looked" must not render the same way, so a failed run quotes its
+    tool error and an incomplete one names the files it could not parse. Both warn that the
+    backlog below fell back to the baseline rather than being measured this run.
     """
     lines: list[str] = []
     for name, summary in report.analyzers:
         if not summary.in_contract:
             continue
+        consequence = (
+            f"The backlog for {name} below is read from `.ebpy/baseline.json`;"
+            " new violations were not measured."
+        )
         if summary.failure is not None:
-            consequence = (
-                f"The backlog for {name} below is read from `.ebpy/baseline.json`;"
-                " new violations were not measured."
-            )
             lines.extend(_banner(f"{name} did not run", summary.failure, consequence))
+        elif summary.status == "incomplete":
+            lines.extend(
+                _banner(f"{name} could not lint every file", _incomplete_detail(summary), consequence)
+            )
     return lines
 
 
