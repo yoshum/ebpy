@@ -52,7 +52,7 @@ def _unverified_ceiling(previous: State, mypy: Observation[int]) -> str | None:
     return "\n".join(
         [
             f"{MYPY_COUNTER} could not be measured, so its ceiling of {ceiling} went unverified:",
-            f"  {mypy.detail}",
+            *(f"  {line}" for line in mypy.detail.splitlines()),
             "A counter nobody measured cannot be reported as held. Fix the tool, or drop the",
             "counter with `ebpy freeze --force` if it is genuinely gone.",
         ]
@@ -63,7 +63,7 @@ def _unmeasured_note(mypy: Observation[int]) -> list[str]:
     """Green, but say what was not looked at — "no errors" must not read like "nobody ran"."""
     if isinstance(mypy, Measured):
         return []
-    return [f"{MYPY_COUNTER} was not measured and has no ceiling here: {mypy.detail}"]
+    return [f"{MYPY_COUNTER} was not measured and has no ceiling here: {mypy.summary}"]
 
 
 def check_measurement(previous: State, baseline: CellCounts, measurement: Measurement) -> CheckDecision:

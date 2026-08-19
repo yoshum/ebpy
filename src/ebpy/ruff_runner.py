@@ -12,20 +12,38 @@ import shutil
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .errors import ToolError
 from .models import CellCounts, LintMeasurement, UnattributedFinding
 from .util import run
 
+# Long enough for a config error, short enough to stay one line.
+_SUMMARY_LIMIT = 200
 
-class RuffNotFoundError(RuntimeError):
+
+class RuffNotFoundError(ToolError):
     pass
 
 
-class RuffFailedError(RuntimeError):
+class RuffFailedError(ToolError):
     pass
 
 
 class RuffInvalidOutputError(RuffFailedError):
     pass
+
+
+def _summary_clause(output: str) -> str:
+    """The one line of Ruff's complaint a human acts on, for the summary reading.
+
+    Ruff prints a bare `ruff failed`, then indented `Cause:` lines from the outermost
+    cause inward. The first cause names what to go and fix; the ones below it explain
+    that cause in more depth and belong in the detail, which carries all of it.
+    """
+    lines = [text for line in output.splitlines() if (text := line.strip())]
+    if not lines:
+        return ""
+    causes = [line for line in lines if line.startswith("Cause:")]
+    return f": {(causes[0] if causes else lines[0])[:_SUMMARY_LIMIT]}"
 
 
 def find_ruff(cwd: Path) -> list[str] | None:
@@ -98,7 +116,12 @@ def run_ruff_check(cwd: Path) -> LintMeasurement:
     # exit then genuinely means Ruff itself could not run.
     result = run([*argv, "check", ".", "--output-format", "json", "--exit-zero"], cwd)
     if result.code != 0:
-        raise RuffFailedError(f"ruff check failed (exit {result.code}):\n{result.stderr[:4000]}")
+        headline = f"ruff check failed (exit {result.code})"
+        output = result.stderr.strip()
+        raise RuffFailedError(
+            f"{headline}{_summary_clause(output)}",
+            detail=f"{headline}:\n{output}" if output else headline,
+        )
     try:
         return parse_ruff_json(result.stdout, cwd)
     except json.JSONDecodeError as error:

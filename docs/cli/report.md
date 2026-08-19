@@ -43,7 +43,8 @@ for debt" must not render the same way — a report that quietly degraded to the
 worse than no report.
 
 The JSON form carries the same distinction in `lintFailure` and `mypyFailure`. Either is `null` when
-that capability was measured successfully.
+that capability was measured successfully, and otherwise holds everything the tool wrote — the same
+lines the human report quotes in its banner, which is usually where the fix is named.
 
 ## Reading it
 

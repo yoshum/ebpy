@@ -11,21 +11,22 @@ import re
 import shutil
 from pathlib import Path
 
-from .util import ExecResult, run
+from .errors import ToolError
+from .util import run
 
 # "path.py:12: error: ..." — counting these rather than trusting the summary line,
 # because the summary is absent under --no-error-summary and localised under others.
 _ERROR_LINE = re.compile(r"^.+?:\d+(?::\d+)?: error: ", re.MULTILINE)
 
 # Long enough for a config error or a missing-stubs line, short enough to stay one line.
-_REASON_LIMIT = 200
+_SUMMARY_LIMIT = 200
 
 
-class MypyNotFoundError(RuntimeError):
+class MypyNotFoundError(ToolError):
     pass
 
 
-class MypyFailedError(RuntimeError):
+class MypyFailedError(ToolError):
     pass
 
 
@@ -43,20 +44,19 @@ def count_errors(output: str) -> int:
     return len(_ERROR_LINE.findall(output))
 
 
-def _reason(result: ExecResult) -> str:
-    """The one line of mypy's complaint worth carrying, beside the failure itself.
+def _summary_clause(output: str) -> str:
+    """The one line of mypy's complaint a human acts on, for the summary reading.
 
-    The measurement seam keeps only a failure's first line, so a reason on any other line
-    is discarded before anyone reads it. Which line that is depends on how mypy failed:
-    a rejected argument prints a two-line usage banner and puts ``mypy: error: ...`` last,
-    while a bad config file prints its complaint alone. Preferring the last error line and
-    falling back to the first non-empty one covers both without parsing either.
+    Which line that is depends on how mypy failed: a rejected argument prints a two-line
+    usage banner and puts ``mypy: error: ...`` last, while a bad config file prints its
+    complaint alone. Preferring the last error line and falling back to the first covers
+    both without parsing either. The whole output still travels as the detail.
     """
-    lines = [text for line in (result.stderr or result.stdout).splitlines() if (text := line.strip())]
+    lines = [text for line in output.splitlines() if (text := line.strip())]
     if not lines:
         return ""
     errors = [line for line in lines if "error:" in line]
-    return f": {(errors[-1] if errors else lines[0])[:_REASON_LIMIT]}"
+    return f": {(errors[-1] if errors else lines[0])[:_SUMMARY_LIMIT]}"
 
 
 def run_mypy_check(cwd: Path) -> int:
@@ -74,5 +74,10 @@ def run_mypy_check(cwd: Path) -> int:
     # alternatives are mypy failures, while a negative return code means a signal
     # terminated the process — neither produced a trustworthy number.
     if result.code not in (0, 1):
-        raise MypyFailedError(f"mypy failed (exit {result.code}){_reason(result)}")
+        headline = f"mypy failed (exit {result.code})"
+        output = (result.stderr or result.stdout).strip()
+        raise MypyFailedError(
+            f"{headline}{_summary_clause(output)}",
+            detail=f"{headline}:\n{output}" if output else headline,
+        )
     return count_errors(result.stdout)

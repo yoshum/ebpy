@@ -27,16 +27,16 @@ notices once the copies are textually similar — and independently written ones
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
 | `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
 | `copy_state` | src/ebpy/state.py:253 | A caller's own State, safe to hand to the helpers below. |
-| `count_errors` | src/ebpy/mypy_runner.py:42 |  |
+| `count_errors` | src/ebpy/mypy_runner.py:43 |  |
 | `count_importers` | src/ebpy/fan_in.py:114 |  |
 | `diagnose` | src/ebpy/diagnose.py:176 |  |
 | `diagnosis_from_dict` | src/ebpy/models.py:159 |  |
 | `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `empty_state` | src/ebpy/state.py:59 |  |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
-| `find_mypy` | src/ebpy/mypy_runner.py:32 |  |
+| `find_mypy` | src/ebpy/mypy_runner.py:33 |  |
 | `find_regressions` | src/ebpy/state.py:291 | The gate. |
-| `find_ruff` | src/ebpy/ruff_runner.py:31 |  |
+| `find_ruff` | src/ebpy/ruff_runner.py:49 |  |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
 | `gather_facts` | src/ebpy/facts.py:111 |  |
 | `head_commit` | src/ebpy/git.py:25 |  |
@@ -51,10 +51,10 @@ notices once the copies are textually similar — and independently written ones
 | `log_of_kind` | src/ebpy/state.py:238 |  |
 | `main` | src/ebpy/cli.py:201 |  |
 | `matrix_from_cells` | src/ebpy/lint_report.py:82 |  |
-| `measure_repository` | src/ebpy/measurement.py:89 | Measure every independent capability, retaining partial success as data. |
+| `measure_repository` | src/ebpy/measurement.py:141 | Measure every independent capability, retaining partial success as data. |
 | `next_baseline` | src/ebpy/state.py:247 |  |
 | `parse_cells` | src/ebpy/baseline.py:28 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
-| `parse_ruff_json` | src/ebpy/ruff_runner.py:49 |  |
+| `parse_ruff_json` | src/ebpy/ruff_runner.py:67 |  |
 | `prune_cells` | src/ebpy/baseline.py:95 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
 | `read_ceiling` | src/ebpy/baseline.py:67 |  |
 | `read_ceiling_artifacts` | src/ebpy/ceiling_artifacts.py:91 | Read and classify both files without inferring missing contract data. |
@@ -66,7 +66,7 @@ notices once the copies are textually similar — and independently written ones
 | `rule_totals` | src/ebpy/baseline.py:129 |  |
 | `run` | src/ebpy/util.py:17 |  |
 | `run_mypy_check` | src/ebpy/mypy_runner.py:62 | Today's mypy error total, raising when no number was measured. |
-| `run_ruff_check` | src/ebpy/ruff_runner.py:91 |  |
+| `run_ruff_check` | src/ebpy/ruff_runner.py:109 |  |
 | `set_counter` | src/ebpy/state.py:279 |  |
 | `split_against_baseline` | src/ebpy/baseline.py:107 | Divide today's violations into (new, grandfathered) per rule. |
 | `state_from_dict` | src/ebpy/state.py:131 |  |
@@ -98,7 +98,7 @@ notices once the copies are textually similar — and independently written ones
 | `run_install` | src/ebpy/commands/install.py:444 |  |
 | `run_log` | src/ebpy/commands/log.py:25 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:22 |  |
-| `run_prune` | src/ebpy/commands/prune.py:76 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
+| `run_prune` | src/ebpy/commands/prune.py:78 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:66 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
@@ -136,7 +136,7 @@ notices once the copies are textually similar — and independently written ones
 | `build_worklist` | src/ebpy/render/worklist.py:39 |  |
 | `extract_notes` | src/ebpy/render/quality.py:160 |  |
 | `render_diagnosis` | src/ebpy/render/report.py:73 |  |
-| `render_lint_report` | src/ebpy/render/lint_report.py:66 |  |
+| `render_lint_report` | src/ebpy/render/lint_report.py:78 |  |
 | `render_next` | src/ebpy/render/next.py:76 |  |
 | `render_quality` | src/ebpy/render/quality.py:170 |  |
 | `render_worklist` | src/ebpy/render/worklist.py:78 |  |

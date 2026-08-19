@@ -54,9 +54,11 @@ def prune_measurement(
         state = set_counter(state, MYPY_COUNTER, mypy.value, "freeze")
         mypy_note = None
     elif MYPY_COUNTER in previous.counters:
-        mypy_note = f"{MYPY_COUNTER} was not measured; its existing ceiling was left unchanged: {mypy.detail}"
+        mypy_note = (
+            f"{MYPY_COUNTER} was not measured; its existing ceiling was left unchanged: {mypy.summary}"
+        )
     else:
-        mypy_note = f"{MYPY_COUNTER} was not measured; no type-error ceiling was recorded: {mypy.detail}"
+        mypy_note = f"{MYPY_COUNTER} was not measured; no type-error ceiling was recorded: {mypy.summary}"
 
     reclaimed = before - after
     summary = (

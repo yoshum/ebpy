@@ -34,7 +34,9 @@ def test_report_names_why_mypy_was_not_measured() -> None:
 
     assert report.mypy_errors is None
     assert report.mypy_failure == "mypy is not installed here"
-    assert "not measured** — mypy is not installed here" in render_lint_report(report)
+    rendered = render_lint_report(report)
+    assert "- mypy errors: **not measured**" in rendered
+    assert "> **mypy did not run**\n> mypy is not installed here" in rendered
     assert report.to_dict()["mypyFailure"] == "mypy is not installed here"
 
 
@@ -89,8 +91,10 @@ def test_a_failed_type_check_is_named_rather_than_rendered_as_zero() -> None:
 
     assert report.mypy_errors is None
     assert report.to_dict()["mypyFailure"] == "mypy failed (exit 2): mypy.ini: Unrecognized option"
+    # The bullet stays a bullet; the tool's own words go where every line of them fits.
     rendered = render_lint_report(report)
-    assert "mypy errors: **not measured** — mypy failed (exit 2): mypy.ini: Unrecognized option" in rendered
+    assert "- mypy errors: **not measured**" in rendered
+    assert "> **mypy did not run**\n> mypy failed (exit 2): mypy.ini: Unrecognized option" in rendered
 
 
 def test_a_measured_type_check_carries_no_failure() -> None:

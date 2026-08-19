@@ -29,10 +29,19 @@ The variants carry the producing tool's name. They do not carry a tool version: 
 always `None` cannot say whether the version was unprobed or absent, and the seam exists precisely
 to keep those two apart. It gets added when something actually probes for one.
 
-A failure detail is one line. `Measured` alone can be read for a number, so every other variant has
-to explain itself inside a report line or a sentence, and `_detail` keeps only the first line of the
-exception. Runners therefore put the reason on that line — a second line is discarded here rather
-than at the point somebody would notice it missing.
+A failure carries two readings of itself. `summary` is the single line a sentence or a table row can
+hold; `detail` is everything the tool wrote, bounded but not flattened, and says so when it had to be
+cut. Readers take whichever fits: `freeze` sets the summary inside a sentence, while `check`, a
+`CommandError` and `report --json` carry the detail whole.
+
+Keeping only one line at the seam would lose it for every reader at once, whereas a reader with room
+for one line can always take the summary. The cost is not hypothetical: a broken `pyproject.toml` and
+an unknown rule selector are different problems with different fixes, and one line of Ruff reports
+both as `ruff check failed (exit 2)`.
+
+Which line becomes the summary is the runner's decision, because only it knows its tool. mypy prints
+a usage banner before the `mypy: error:` line that explains it; Ruff prints a bare `ruff failed`
+before the `Cause:` lines that matter. A generic "first line" picks the wrong one for both.
 
 ## Stable vocabulary
 

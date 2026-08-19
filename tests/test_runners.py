@@ -103,8 +103,8 @@ def test_a_fatal_mypy_carries_its_reason_on_the_failure_line(
     with pytest.raises(MypyFailedError) as caught:
         run_mypy_check(tmp_path)
 
-    message = str(caught.value)
-    assert message == "mypy failed (exit 2): mypy.ini: [mypy]: Unrecognized option: bogus"
+    assert caught.value.summary == "mypy failed (exit 2): mypy.ini: [mypy]: Unrecognized option: bogus"
+    assert caught.value.detail == "mypy failed (exit 2):\nmypy.ini: [mypy]: Unrecognized option: bogus"
 
 
 def test_a_usage_banner_does_not_crowd_out_the_error_it_precedes(
@@ -121,9 +121,17 @@ def test_a_usage_banner_does_not_crowd_out_the_error_it_precedes(
     with pytest.raises(MypyFailedError) as caught:
         run_mypy_check(tmp_path)
 
-    assert str(caught.value) == (
+    # The summary skips the banner for the line a human acts on; the detail keeps both,
+    # because a reader with room for every line should not be handed the shorter reading.
+    assert caught.value.summary == (
         "mypy failed (exit 2): mypy: error: Mypy no longer supports checking Python 2 code."
     )
+    assert caught.value.detail.splitlines() == [
+        "mypy failed (exit 2):",
+        "usage: mypy [-h] [-v] [-V] [more options; see below]",
+        "            [-m MODULE] [-p PACKAGE] [files ...]",
+        "mypy: error: Mypy no longer supports checking Python 2 code.",
+    ]
 
 
 def test_a_fatal_mypy_falls_back_to_stdout_when_stderr_is_empty(

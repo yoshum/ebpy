@@ -7,26 +7,38 @@ from ..lint_report import LintReport, ReportSection
 
 def _headline(report: LintReport) -> list[str]:
     mypy = "not measured" if report.mypy_errors is None else str(report.mypy_errors)
-    mypy_detail = f" — {report.mypy_failure}" if report.mypy_failure is not None else ""
     return [
         f"- Files with findings: **{report.files_with_findings}**"
         if report.lint_failure is None
         else "- Lint did not run",
         f"- New violations beyond the ceiling: **{report.new_total}**",
         f"- Grandfathered backlog: **{report.backlog_total}**",
-        f"- mypy errors: **{mypy}**{mypy_detail}",
+        f"- mypy errors: **{mypy}**",
         "",
     ]
 
 
+def _banner(title: str, failure: str | None, consequence: str) -> list[str]:
+    """A tool's complaint quoted whole. A blockquote can hold every line it wrote, so the
+    reason a run failed does not have to survive being squeezed into one."""
+    if failure is None:
+        return []
+    return [f"> **{title}**", *(f"> {line}" for line in failure.splitlines()), f"> {consequence}", ""]
+
+
 def _failure_banner(report: LintReport) -> list[str]:
     """ "No debt" and "nobody looked for debt" must not render the same way."""
-    if report.lint_failure is None:
-        return []
     return [
-        f"> **Ruff did not run** — {report.lint_failure}",
-        "> The backlog below is read from `.ebpy/baseline.json`; new violations were not measured.",
-        "",
+        *_banner(
+            "Ruff did not run",
+            report.lint_failure,
+            "The backlog below is read from `.ebpy/baseline.json`; new violations were not measured.",
+        ),
+        *_banner(
+            "mypy did not run",
+            report.mypy_failure,
+            "The type-error count below is not a measurement.",
+        ),
     ]
 
 
