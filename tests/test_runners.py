@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from ebpy import mypy_runner
-from ebpy.mypy_runner import MypyFailedError, count_errors, run_mypy_check
+from ebpy.mypy_runner import (
+    MypyFailedError,
+    MypyInvalidOutputError,
+    count_errors,
+    parse_mypy_output,
+    run_mypy_check,
+)
 from ebpy.ruff_runner import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
 
@@ -159,3 +165,68 @@ def test_a_signal_terminated_mypy_is_not_reported_as_clean(
 
     with pytest.raises(MypyFailedError, match=r"exit -9"):
         run_mypy_check(tmp_path)
+
+
+def test_mypy_parser_reads_line_column_and_end_position_forms(tmp_path: Path) -> None:
+    output = "\n".join(
+        [
+            "src/a.py:7: error: Incompatible return value type  [return-value]",
+            "src/a.py:19:4: error: Missing type parameters  [type-arg]",
+            "src/a.py:19:4:19:12: error: Incompatible types  [assignment]",
+        ]
+    )
+    measurement = parse_mypy_output(output, tmp_path)
+    assert measurement.cells == {
+        "src/a.py": {"mypy:return-value": 1, "mypy:type-arg": 1, "mypy:assignment": 1}
+    }
+    assert measurement.files_with_findings == 1
+
+
+def test_mypy_parser_keeps_a_colon_that_belongs_to_the_filename(tmp_path: Path) -> None:
+    """Backtracking past a drive colon is what stops `C:` becoming the file."""
+    output = "\n".join(
+        [
+            "C:\\work\\src\\a.py:7:2: error: Incompatible argument  [arg-type]",
+            "weird:12:3.py:7: error: Incompatible argument  [arg-type]",
+        ]
+    )
+    measurement = parse_mypy_output(output, tmp_path)
+    assert set(measurement.cells) == {"C:/work/src/a.py", "weird:12:3.py"}
+
+
+def test_mypy_parser_aggregates_repeats_of_one_code_in_one_file(tmp_path: Path) -> None:
+    output = "\n".join(
+        [
+            "src/a.py:7: error: one  [arg-type]",
+            "src/a.py:9: error: two  [arg-type]",
+        ]
+    )
+    assert parse_mypy_output(output, tmp_path).cells == {"src/a.py": {"mypy:arg-type": 2}}
+
+
+def test_mypy_parser_ignores_notes_and_blank_lines(tmp_path: Path) -> None:
+    output = "\n".join(
+        [
+            "src/a.py:7: error: boom  [arg-type]",
+            "",
+            'src/a.py:7: note: Revealed type is "builtins.str"',
+        ]
+    )
+    measurement = parse_mypy_output(output, tmp_path)
+    assert measurement.cells == {"src/a.py": {"mypy:arg-type": 1}}
+
+
+def test_mypy_parser_takes_the_trailing_code_when_the_message_has_brackets(tmp_path: Path) -> None:
+    output = 'src/a.py:7: error: Argument has type "list[int]" [x]  [arg-type]'
+    assert parse_mypy_output(output, tmp_path).cells == {"src/a.py": {"mypy:arg-type": 1}}
+
+
+def test_mypy_parser_refuses_an_error_line_with_no_code(tmp_path: Path) -> None:
+    """A dropped code would silently become zero findings, which is the failure to avoid."""
+    with pytest.raises(MypyInvalidOutputError):
+        parse_mypy_output("src/a.py:7: error: Incompatible return value type", tmp_path)
+
+
+def test_mypy_parser_returns_nothing_for_clean_output(tmp_path: Path) -> None:
+    measurement = parse_mypy_output("", tmp_path)
+    assert measurement.cells == {} and measurement.files_with_findings == 0
