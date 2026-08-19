@@ -73,8 +73,9 @@ Commands decide what partial success means:
 | `freeze` | refuse and persist nothing | pin Ruff cells without creating a type-error ceiling |
 | `prune` | refuse and persist nothing | lower Ruff cells without changing the existing counter |
 
-`report --json` exposes the concise reasons as `lintFailure` and `mypyFailure`. Raw multi-line tool
-output is not part of the report contract.
+`report --json` exposes the bounded multi-line details as `lintFailure` and `mypyFailure`. Each is
+`null` when the capability was measured successfully; otherwise it contains the same detail the
+human report quotes. A detail that reaches the line or character bound ends with `... (truncated)`.
 
 ## Command shape
 
