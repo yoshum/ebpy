@@ -99,6 +99,25 @@ def test_v1_rules_and_log_rules_are_read_as_ruff_namespaced() -> None:
     assert state.log[0].rule == "ruff:C901"
 
 
+def test_a_v1_rule_key_with_a_separator_makes_the_state_unreadable() -> None:
+    """A v1 rule code is bare, so a colon in it would forge a double-namespaced id
+    (`ruff:mypy:errors`). The whole state is refused rather than carried in mangled."""
+    raw = _v1_raw(rules={"mypy:errors": {"baseline": 1, "current": 1, "status": "draining"}})
+
+    assert state_from_dict(raw) is None
+
+
+def test_a_v1_log_rule_with_a_newline_makes_the_state_unreadable() -> None:
+    """A malformed log rule forges an id no producer emits; the state is refused rather
+    than upgraded with a rule string that later breaks `analyzer_of`."""
+    raw = _v1_raw(
+        rules={"F401": {"baseline": 1, "current": 1, "status": "draining"}},
+        log=[{"at": "2026-08-19T00:00:00Z", "kind": "note", "text": "x", "rule": "F401\nX"}],
+    )
+
+    assert state_from_dict(raw) is None
+
+
 def test_a_v1_current_above_its_baseline_is_clamped_rather_than_carried_over() -> None:
     raw = _v1_raw(rules={"F401": {"baseline": 2, "current": 5, "status": "draining"}})
 

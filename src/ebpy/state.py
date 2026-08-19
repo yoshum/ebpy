@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, TypeGuard
 
-from .cell_key import analyzer_of, is_analyzer_name, is_rule_id, qualify_rule
+from .cell_key import analyzer_of, is_analyzer_name, is_rule_id, qualify_v1_rule
 from .models import (
     LOG_KINDS,
     PHASE_ORDER,
@@ -184,6 +184,44 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
     )
 
 
+def _require_v1_rule(local_code: str) -> str:
+    """Namespace a bare v1 code, raising when it cannot be upgraded to a real rule id.
+
+    Raises rather than returns None so the broad ``except`` in the caller collapses a
+    malformed key into an unreadable state, the same as any other corrupt v1 field.
+    """
+    qualified = qualify_v1_rule(local_code)
+    if qualified is None:
+        raise ValueError(f"not a bare v1 rule code: {local_code!r}")
+    return qualified
+
+
+def _v1_rules(raw_rules: dict[str, Any]) -> dict[str, RuleBaseline]:
+    return {
+        _require_v1_rule(local_code): RuleBaseline(
+            baseline=rule["baseline"],
+            # v1 persisted raw counts that could exceed the ceiling; v2 stores only held
+            # counts, so a v1 excess is clamped rather than carried forward.
+            current=min(rule["current"], rule["baseline"]),
+            status=rule["status"],
+        )
+        for local_code, rule in raw_rules.items()
+    }
+
+
+def _v1_log(raw_log: list[Any]) -> list[LogEntry]:
+    return [
+        LogEntry(
+            at=str(entry.get("at", "")),
+            commit=entry.get("commit"),
+            kind=entry.get("kind", "note"),
+            text=str(entry.get("text", "")),
+            rule=_require_v1_rule(entry["rule"]) if entry.get("rule") else None,
+        )
+        for entry in raw_log
+    ]
+
+
 def _state_from_v1_dict(raw: dict[str, Any]) -> State | None:
     if not _has_valid_v1_shape(raw):
         return None
@@ -204,26 +242,8 @@ def _state_from_v1_dict(raw: dict[str, Any]) -> State | None:
             frozen_analyzers.add("mypy")
 
     try:
-        rules = {
-            qualify_rule("ruff", local_code): RuleBaseline(
-                baseline=rule["baseline"],
-                # v1 persisted raw counts that could exceed the ceiling; v2 stores only
-                # held counts, so a v1 excess is clamped rather than carried forward.
-                current=min(rule["current"], rule["baseline"]),
-                status=rule["status"],
-            )
-            for local_code, rule in raw["rules"].items()
-        }
-        log = [
-            LogEntry(
-                at=str(entry.get("at", "")),
-                commit=entry.get("commit"),
-                kind=entry.get("kind", "note"),
-                text=str(entry.get("text", "")),
-                rule=qualify_rule("ruff", entry["rule"]) if entry.get("rule") else None,
-            )
-            for entry in raw.get("log", [])
-        ]
+        rules = _v1_rules(raw["rules"])
+        log = _v1_log(raw.get("log", []))
         diagnosis_raw = raw.get("diagnosis")
         return State(
             version=2,

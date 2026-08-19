@@ -28,6 +28,22 @@ def qualify_rule(analyzer: str, local_code: str) -> str:
     return f"{analyzer}:{local_code}"
 
 
+def qualify_v1_rule(local_code: str) -> str | None:
+    """Namespace a bare v1 rule code as Ruff, or reject it as unconvertible.
+
+    v1 keys carried no namespace of their own, so a colon in one would forge a
+    double-namespaced id (`ruff:F401:extra`) and a newline an id no producer emits.
+    Returns None rather than raising, because every caller is upgrading untrusted
+    persisted data and must treat a bad key as an unreadable artifact.
+    """
+    if ":" in local_code:
+        return None
+    try:
+        return qualify_rule("ruff", local_code)
+    except ValueError:
+        return None
+
+
 def _partition(rule: str) -> tuple[str, str] | None:
     analyzer, separator, local_code = rule.partition(":")
     if (

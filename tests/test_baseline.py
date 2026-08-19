@@ -68,6 +68,17 @@ def test_a_v2_rule_without_a_namespace_makes_the_whole_baseline_unreadable(tmp_p
     assert parse_cells(raw, tmp_path) is None
 
 
+@pytest.mark.parametrize("local_code", ["F401\nX", "F401\rX", "F401:extra", ""])
+def test_a_malformed_v1_rule_key_makes_the_baseline_unreadable_not_a_crash(
+    tmp_path: Path, local_code: str
+) -> None:
+    """A v1 key is bare and gets `ruff:` stitched on, but a key carrying a newline or a
+    colon would forge a rule id no producer could ever emit — `ruff:F401\\nX` or the
+    double-namespaced `ruff:F401:extra`. Persistence readers must return None for corrupt
+    input, never construct an id that makes a later `analyzer_of` raise mid-command."""
+    assert parse_cells({"src/a.py": {local_code: {"count": 1}}}, tmp_path) is None
+
+
 @pytest.mark.parametrize("count", [0, -1, True])
 def test_a_zero_or_negative_or_boolean_count_makes_the_baseline_unreadable(
     tmp_path: Path, count: object

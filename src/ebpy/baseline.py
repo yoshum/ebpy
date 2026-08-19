@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
+from .cell_key import analyzer_of, is_rule_id, normalize_analyzer_path, qualify_v1_rule
 from .models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"
@@ -61,9 +61,7 @@ def _parse_file_rules(
 
 
 def _v1_rule(rule: object) -> RuleId | None:
-    if not isinstance(rule, str) or not rule:
-        return None
-    return f"ruff:{rule}"
+    return qualify_v1_rule(rule) if isinstance(rule, str) else None
 
 
 def _v2_rule(rule: object) -> RuleId | None:
