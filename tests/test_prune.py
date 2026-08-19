@@ -16,7 +16,7 @@ from ebpy.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.commands.prune import prune_measurement, run_prune
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import MYPY_COUNTER, Counter, LintMeasurement
+from ebpy.models import MYPY_COUNTER, AnalysisMeasurement, Counter
 from ebpy.state import apply_rule_counts, empty_state, state_path, write_state
 
 
@@ -63,7 +63,7 @@ def test_prune_lowers_cells_and_measured_counters() -> None:
     previous = apply_rule_counts(empty_state(), {"F401": 2}, "freeze")
     previous.counters = {MYPY_COUNTER: Counter(baseline=4, current=4)}
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={"src/a.py": {"F401": 1}})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"F401": 1}})),
         counters={MYPY_COUNTER: Measured(tool="mypy", value=2)},
     )
 
@@ -81,7 +81,7 @@ def test_prune_leaves_an_unmeasured_counter_unchanged() -> None:
     previous = apply_rule_counts(empty_state(), {}, "freeze")
     previous.counters = {MYPY_COUNTER: Counter(baseline=4, current=4)}
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
     )
 
@@ -95,7 +95,7 @@ def test_prune_leaves_an_unmeasured_counter_unchanged() -> None:
 
 def test_prune_names_an_unmeasured_counter_when_no_ceiling_exists() -> None:
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
     )
 

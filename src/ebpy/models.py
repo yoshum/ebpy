@@ -48,8 +48,8 @@ class UnattributedFinding:
 
 
 @dataclass(frozen=True)
-class LintMeasurement:
-    """Today's per-file per-rule findings, in the shape the ratchet compares."""
+class AnalysisMeasurement:
+    """Today's per-file per-rule findings from one analyzer, in the shape the ratchet compares."""
 
     cells: CellCountsView
     # Syntax errors cannot be grandfathered: a file that does not parse is invisible

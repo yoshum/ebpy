@@ -14,7 +14,7 @@ from ..baseline import rule_totals, write_cells
 from ..ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
 from ..measurement import Measured, Measurement, measure_repository
-from ..models import MYPY_COUNTER, CellCountsView, LintMeasurement, State
+from ..models import MYPY_COUNTER, AnalysisMeasurement, CellCountsView, State
 from ..quality_file import write_quality_file
 from ..state import (
     BaselineMode,
@@ -45,7 +45,7 @@ def _as_clause(detail: str) -> str:
     return detail.rstrip(" .:;,")
 
 
-def _unattributed_report(result: LintMeasurement) -> list[str]:
+def _unattributed_report(result: AnalysisMeasurement) -> list[str]:
     """Syntax errors are not rule violations the baseline can grandfather: a file that
     does not parse is invisible to every rule, so recording a count for it would be a
     lie. Naming the files turns a mystery into a task."""

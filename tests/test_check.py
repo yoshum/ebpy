@@ -8,7 +8,7 @@ from ebpy.baseline import write_cells
 from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import MYPY_COUNTER, Counter, LintMeasurement
+from ebpy.models import MYPY_COUNTER, AnalysisMeasurement, Counter
 from ebpy.state import apply_rule_counts, empty_state, set_counter, write_state
 
 
@@ -38,7 +38,7 @@ def test_check_updates_only_measured_counters() -> None:
     previous = apply_rule_counts(empty_state(), {"F401": 1}, "freeze")
     previous.counters = {MYPY_COUNTER: Counter(baseline=4, current=4)}
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={"src/a.py": {"F401": 1}})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"F401": 1}})),
         counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
     )
 
@@ -54,7 +54,7 @@ def test_check_updates_only_measured_counters() -> None:
 def test_check_rejects_cells_beyond_the_ceiling() -> None:
     previous = apply_rule_counts(empty_state(), {"F401": 1}, "freeze")
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={"src/a.py": {"F401": 2}})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"F401": 2}})),
         counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
     )
 
@@ -90,7 +90,7 @@ def test_check_shell_does_not_write_after_lint_failure(
 def test_an_unmeasured_mypy_ceiling_cannot_be_reported_as_held() -> None:
     previous = set_counter(apply_rule_counts(empty_state(), {}, "freeze"), MYPY_COUNTER, 4, "freeze")
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={
             MYPY_COUNTER: Failed(
                 tool="mypy",
@@ -112,7 +112,7 @@ def test_an_unmeasured_mypy_ceiling_cannot_be_reported_as_held() -> None:
 
 def test_mypy_with_no_ceiling_passes_but_is_never_silent() -> None:
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed here")},
     )
 
@@ -125,7 +125,7 @@ def test_mypy_with_no_ceiling_passes_but_is_never_silent() -> None:
 
 def test_a_measured_mypy_leaves_the_clean_message_unadorned() -> None:
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
     )
 
@@ -138,7 +138,7 @@ def test_a_measured_mypy_leaves_the_clean_message_unadorned() -> None:
 def test_check_does_not_mutate_the_ledger_it_was_given() -> None:
     previous = apply_rule_counts(empty_state(), {"F401": 3}, "freeze")
     measurement = Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={"src/a.py": {"F401": 1}})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"F401": 1}})),
         counters={MYPY_COUNTER: Measured(tool="mypy", value=0)},
     )
 

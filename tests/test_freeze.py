@@ -18,13 +18,13 @@ from ebpy.commands import freeze
 from ebpy.commands.freeze import freeze_measurement, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import MYPY_COUNTER, LintMeasurement
+from ebpy.models import MYPY_COUNTER, AnalysisMeasurement
 from ebpy.state import Ledger, apply_rule_counts, empty_state, set_counter, state_path
 
 
 def clean_measurement() -> Measurement:
     return Measurement(
-        lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+        lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
         counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed")},
     )
 
@@ -134,7 +134,7 @@ def test_freeze_records_measured_values_and_names_an_unmeasured_counter() -> Non
         Measurement(
             lint=Measured(
                 tool="ruff",
-                value=LintMeasurement(cells={"src/a.py": {"F401": 2}}),
+                value=AnalysisMeasurement(cells={"src/a.py": {"F401": 2}}),
             ),
             counters={MYPY_COUNTER: Unavailable(tool="mypy", detail="mypy is not installed.")},
         ),
@@ -159,7 +159,7 @@ def test_a_tool_detail_is_punctuated_once_inside_our_sentence(detail: str) -> No
     decision = freeze_measurement(
         empty_state(),
         Measurement(
-            lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
+            lint=Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
             counters={MYPY_COUNTER: Failed(tool="mypy", failure_kind="execution-failed", detail=detail)},
         ),
         "freeze",

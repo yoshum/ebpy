@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .errors import ToolError
-from .models import CellCounts, LintMeasurement, UnattributedFinding
+from .models import AnalysisMeasurement, CellCounts, UnattributedFinding
 from .util import run
 
 # Long enough for a config error, short enough to stay one line.
@@ -64,7 +64,7 @@ def _relative_posix(filename: str, cwd: Path) -> str:
     return str(PurePosixPath(*rel.parts))
 
 
-def parse_ruff_json(stdout: str, cwd: Path) -> LintMeasurement:
+def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
     raw: Any = json.loads(stdout or "[]")
     if not isinstance(raw, list):
         raise RuffInvalidOutputError("ruff produced JSON of an unexpected shape")
@@ -99,14 +99,14 @@ def parse_ruff_json(stdout: str, cwd: Path) -> LintMeasurement:
             )
             continue
         cells.setdefault(file, {})[str(code)] = cells.get(file, {}).get(str(code), 0) + 1
-    return LintMeasurement(
+    return AnalysisMeasurement(
         cells=cells,
         unattributed=tuple(unattributed),
         files_with_findings=len(seen_files),
     )
 
 
-def run_ruff_check(cwd: Path) -> LintMeasurement:
+def run_ruff_check(cwd: Path) -> AnalysisMeasurement:
     argv = find_ruff(cwd)
     if not argv:
         raise RuffNotFoundError(

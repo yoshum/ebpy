@@ -9,7 +9,7 @@ from types import MappingProxyType
 from typing import Generic, Literal, TypeAlias, TypeVar
 
 from .errors import ToolError
-from .models import MYPY_COUNTER, LintMeasurement
+from .models import MYPY_COUNTER, AnalysisMeasurement
 from .mypy_runner import MypyFailedError, MypyNotFoundError, run_mypy_check
 from .ruff_runner import (
     RuffFailedError,
@@ -68,7 +68,7 @@ Observation: TypeAlias = Measured[T] | Unavailable | Failed
 
 @dataclass(frozen=True)
 class Measurement:
-    lint: Observation[LintMeasurement]
+    lint: Observation[AnalysisMeasurement]
     # Mapping, not dict: a frozen dataclass holding a mutable dict is frozen in name only,
     # and a measurement edited after the fact is no longer a record of what was measured.
     counters: Mapping[str, Observation[int]]
@@ -103,7 +103,7 @@ def _detail(error: BaseException) -> str:
     return kept if kept == text else f"{kept}\n{_TRUNCATION_MARK}"
 
 
-def _measure_lint(cwd: Path) -> Observation[LintMeasurement]:
+def _measure_lint(cwd: Path) -> Observation[AnalysisMeasurement]:
     try:
         return Measured(tool="ruff", value=run_ruff_check(cwd))
     except RuffNotFoundError as error:

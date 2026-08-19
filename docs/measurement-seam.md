@@ -16,7 +16,7 @@ Each capability has exactly one observation:
 
 ```text
 Measurement
-├── lint: Measured[LintMeasurement] | Unavailable | Failed
+├── lint: Measured[AnalysisMeasurement] | Unavailable | Failed
 └── counters
     └── mypy:errors: Measured[int] | Unavailable | Failed
 ```
@@ -55,7 +55,7 @@ The command layer sees ebpy concepts rather than tool output:
 
 Ruff currently produces the lint observation. mypy currently produces `mypy:errors`. Their runners
 own executable discovery, CLI arguments, exit-code interpretation and parsing. `CellCounts` and
-`LintMeasurement` live in `models.py` because both measurement and ceiling modules share them;
+`AnalysisMeasurement` live in `models.py` because both measurement and ceiling modules share them;
 measurement does not import the baseline persistence module.
 
 ## Independent capabilities
