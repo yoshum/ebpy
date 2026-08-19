@@ -20,8 +20,8 @@ from ..measurement import (
 from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
 from ..state import (
-    apply_analyzer_rule_counts,
     copy_state,
+    replace_analyzer_rules,
     total_violations,
     write_state,
 )
@@ -93,7 +93,11 @@ def prune_measurement(
             total_before += baseline_total
             total_after += pruned_total
             output_parts.append(pruned)
-            state = apply_analyzer_rule_counts(state, analyzer, rule_totals(pruned), "freeze")
+            # Replace, not lower rule-by-rule: a rule whose findings are all gone must leave
+            # the namespace so the ledger stops naming a ceiling the baseline file no longer
+            # carries. Holding its old baseline would make the two artifacts disagree, and the
+            # next command would read the pair as invalid.
+            state = replace_analyzer_rules(state, analyzer, rule_totals(pruned))
             analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
         else:
             # Carry the existing ceiling: a ceiling nobody re-measured cannot be lowered.

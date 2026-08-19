@@ -212,6 +212,10 @@ def test_reintroducing_the_same_error_fails_check_again(tmp_path: Path) -> None:
     (repo / "src" / "app.py").write_text(CLEAN, encoding="utf-8")
     assert run(repo, "prune") == 0
 
+    # A clean tree passes check, not merely a pair left invalid by the prune. Draining
+    # every finding must not desync baseline.json and state.json.
+    assert run(repo, "check") == 0
+
     # Reintroduce the exact same type error: the reclaimed ceiling must hold.
     (repo / "src" / "app.py").write_text(DIRTY_BOTH, encoding="utf-8")
     assert run(repo, "check") == 1
