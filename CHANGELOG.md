@@ -2,6 +2,48 @@
 
 <!-- version list -->
 
+## v0.3.2 (2026-08-19)
+
+### Bug Fixes
+
+- **freeze**: Normalize measurement failure detail
+  ([`d316eb0`](https://github.com/yoshum/ebpy/commit/d316eb01e1ee44dabc681a85b1a75a05d1d9776d))
+
+- **measurement**: Close the gaps the seam left open
+  ([`a545ae6`](https://github.com/yoshum/ebpy/commit/a545ae618fde07861fbacceb21c950fde54606f8))
+
+- **measurement**: Enforce failure and immutability contracts
+  ([`4785c46`](https://github.com/yoshum/ebpy/commit/4785c462318200d8a80cc3440de100a2c243e89e))
+
+- **measurement**: Keep a failure's detail, and choose its summary per tool
+  ([`33f157b`](https://github.com/yoshum/ebpy/commit/33f157b0379702af7096fe8550bffa859ce37ba8))
+
+### Code Style
+
+- Format measurement changes
+  ([`bed5369`](https://github.com/yoshum/ebpy/commit/bed536979f31e969e5505ce67da9d143b6dc81aa))
+
+### Refactoring
+
+- **check**: Decide from measurement values
+  ([`7d9122f`](https://github.com/yoshum/ebpy/commit/7d9122fdbb4f4eb1d2ee6501d3541940ba363c0d))
+
+- **freeze**: Build ceiling from measurement
+  ([`fd95b98`](https://github.com/yoshum/ebpy/commit/fd95b989b046fe1ba1ce2ed45ffac0d77b4a33be))
+
+- **measurement**: Add repository measurement seam
+  ([`3a7724f`](https://github.com/yoshum/ebpy/commit/3a7724f5d7ba9481eee6c5d66963c823d9505fd4))
+
+- **measurement**: Close direct runner interfaces
+  ([`2e7ba50`](https://github.com/yoshum/ebpy/commit/2e7ba509d4b6f08cc549e896a4171304125237cf))
+
+- **prune**: Lower ceiling from measurement
+  ([`dd21b7c`](https://github.com/yoshum/ebpy/commit/dd21b7c89e634748d301824086d5460ce81d5fc1))
+
+- **report**: Consume repository measurement
+  ([`c348e72`](https://github.com/yoshum/ebpy/commit/c348e72a6765ad2dd902d5d5d66ddb0875ca4005))
+
+
 ## v0.3.1 (2026-08-18)
 
 ### Bug Fixes
