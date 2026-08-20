@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 from ..measurement import (
+    ANALYZER_SPECS,
     AnalyzerStatus,
     Failed,
     Measured,
@@ -16,21 +16,13 @@ from ..measurement import (
     classify,
     measure_repository,
 )
-from ..models import AnalysisMeasurement, CellCounts, State, ToolingPresence
+from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
 from ..store.baseline import cells_for, finding_total, split_against_baseline
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
 
 _WORST_SAMPLE = 5
-
-# Mapped explicitly, not with getattr(tooling, name): the roster of analyzers this ebpy
-# ships is fixed and short, and a literal table keeps a typo in a name a mypy error rather
-# than a silently-always-false lookup. The noun is what the standing note says is unratcheted.
-_CONFIGURED_ANALYZERS: tuple[tuple[str, Callable[[ToolingPresence], bool], str], ...] = (
-    ("mypy", lambda tooling: tooling.mypy, "Type errors"),
-    ("ruff", lambda tooling: tooling.ruff, "Lint violations"),
-)
 
 
 @dataclass(frozen=True)
@@ -79,7 +71,7 @@ def _incomplete_reason(analyzer: str, result: AnalysisMeasurement) -> str:
 
 def _unmeasured_reason(analyzer: str, observation: Unavailable | Failed | None) -> str:
     # `observation` is None only for a contract analyzer this ebpy build has no runner for
-    # at all — classify()'s fail-closed case — so there is no tool detail to quote.
+    # at all — classify()'s "no-runner" case — so there is no tool detail to quote.
     detail = observation.detail if observation is not None else f"{analyzer} has no runner in this ebpy build"
     return "\n".join(
         [
@@ -96,7 +88,8 @@ def _unverified_reason(
     if status == "incomplete":
         assert isinstance(observation, Measured)
         return _incomplete_reason(analyzer, observation.value)
-    # `classify` only returns "unavailable" or "failed" for these two shapes (or None).
+    # `classify` only returns "unavailable", "failed", or "no-runner" here; the first two
+    # carry an observation to quote, "no-runner" carries None.
     assert observation is None or isinstance(observation, Unavailable | Failed)
     return _unmeasured_reason(analyzer, observation)
 
@@ -161,9 +154,9 @@ def _standing_notes(previous: State) -> list[str]:
     tooling = previous.diagnosis.tooling
     roster = set(previous.frozen_analyzers)
     return [
-        _standing_note(analyzer, noun)
-        for analyzer, configured, noun in _CONFIGURED_ANALYZERS
-        if analyzer not in roster and configured(tooling)
+        _standing_note(spec.name, spec.noun)
+        for spec in ANALYZER_SPECS
+        if spec.name not in roster and spec.configured(tooling)
     ]
 
 

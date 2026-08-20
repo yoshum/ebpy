@@ -183,6 +183,20 @@ def cells_for(cells: CellCountsView, analyzer: str) -> CellCounts:
     return result
 
 
+def cells_excluding(cells: CellCountsView, analyzer: str) -> CellCounts:
+    """Every cell except one analyzer's namespace, files left with none omitted.
+
+    The complement of `cells_for`: a scoped freeze re-pins one namespace by dropping the old
+    one here and merging the freshly measured cells back in.
+    """
+    result: CellCounts = {}
+    for file, rules in cells.items():
+        remaining = {rule: count for rule, count in rules.items() if analyzer_of(rule) != analyzer}
+        if remaining:
+            result[file] = remaining
+    return result
+
+
 def merge_cells(parts: Iterable[CellCountsView]) -> CellCounts:
     """Union several analyzers' cells into one baseline shape.
 

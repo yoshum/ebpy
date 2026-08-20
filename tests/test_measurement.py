@@ -7,6 +7,9 @@ import pytest
 
 from ebpy import measurement
 from ebpy.measurement import (
+    ANALYZER_NAMES,
+    ANALYZER_SPECS,
+    ANALYZER_SPECS_BY_NAME,
     Failed,
     Measured,
     Measurement,
@@ -16,7 +19,7 @@ from ebpy.measurement import (
 )
 from ebpy.measurement._mypy import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 from ebpy.measurement._ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
-from ebpy.models import AnalysisMeasurement, UnattributedFinding
+from ebpy.models import AnalysisMeasurement, ToolingPresence, UnattributedFinding
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -206,10 +209,46 @@ def test_classify_of_a_failed_observation_is_failed() -> None:
     assert classify(Failed(tool="mypy", failure_kind="execution-failed", detail="boom")) == "failed"
 
 
-def test_classify_of_no_observation_at_all_fails_closed() -> None:
-    """A ceiling contract naming an analyzer this ebpy build has no runner for must not
-    quietly pass as unmeasured-but-fine; it must fail the same way a broken tool does."""
-    assert classify(None) == "failed"
+def test_classify_of_no_observation_at_all_is_no_runner() -> None:
+    """A ceiling contract naming an analyzer this ebpy build has no runner for is its own
+    status, kept apart from a tool that broke so callers can word the unfixable case."""
+    assert classify(None) == "no-runner"
+
+
+def test_analyzer_names_are_derived_from_the_registry() -> None:
+    """The name list is the registry's keys, sorted, so the two cannot drift apart."""
+    assert tuple(sorted(spec.name for spec in ANALYZER_SPECS)) == ANALYZER_NAMES
+    assert set(ANALYZER_SPECS_BY_NAME) == set(ANALYZER_NAMES)
+
+
+def test_measure_repository_produces_one_observation_per_registered_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every analyzer in the registry is attempted, and no other name appears."""
+    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+
+    result = measure_repository(tmp_path)
+
+    assert set(result.analyzers) == set(ANALYZER_NAMES)
+
+
+def test_each_spec_reads_its_own_configured_flag_from_tooling() -> None:
+    """`configured` names the ToolingPresence field for that analyzer, so a repository that
+    set up exactly one tool is reported as configuring exactly that analyzer."""
+    only_ruff = ToolingPresence(
+        ruff=True,
+        formatter=False,
+        mypy=False,
+        mypy_strict=False,
+        pytest=False,
+        vulture=False,
+        pre_commit=False,
+        secret_scanning=False,
+        agent_instructions=(),
+    )
+    configured = {spec.name for spec in ANALYZER_SPECS if spec.configured(only_ruff)}
+    assert configured == {"ruff"}
 
 
 def test_two_different_failures_do_not_arrive_as_the_same_sentence(
