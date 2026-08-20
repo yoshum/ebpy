@@ -14,12 +14,14 @@ checklist cannot express belongs in a skill.
 ## Shape of the code
 
 - `src/ebpy/models.py` — every shared value. Frozen dataclasses; `State` is the one mutable one.
-- Decisions are **pure functions over facts**. `facts.py` does the disk reading; `diagnose.py` and
-  everything under `render/` take a value and return a verdict, so they are testable without a
-  filesystem.
-- `measurement.py` is the toolchain seam. Ruff and mypy become one Measurement value before any
-  command applies ratchet policy; see `docs/measurement-seam.md`.
-- `baseline.py` owns the ratchet file, `state.py` owns the ledger. Nothing else writes either.
+- Decisions are **pure functions over facts**, gathered under `analysis/`. `facts.py` does the disk
+  reading; `diagnose.py` and everything under `render/` take a value and return a verdict, so they
+  are testable without a filesystem.
+- `measurement/` is the toolchain seam. Ruff and mypy become one Measurement value through
+  `measure_repository` before any command applies ratchet policy; the runners are private to the
+  package. See `docs/measurement-seam.md`.
+- `persist/` owns the two files under `.ebpy/`: `baseline.py` the ratchet file, `state.py` the
+  ledger. Nothing else writes either.
 - Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.
 
 ## Rules that are not in the linter
