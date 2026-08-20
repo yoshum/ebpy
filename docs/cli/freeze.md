@@ -61,9 +61,15 @@ everything and starts fresh.
 
 ## Adding an analyzer to an existing contract
 
-`freeze --analyzer NAME` exists for a contract whose roster is narrower than the analyzers ebpy
-knows — the case that arises when a contract was pinned while an analyzer could not be measured.
-It adds that analyzer's cells to the contract without touching the other ceilings.
+`freeze --analyzer NAME` exists for a contract whose roster is narrower than the analyzers this ebpy
+knows. A first freeze always covers every analyzer this build ships, so that gap does not arise
+within one version — it arises across versions: a later ebpy that adds a new analyzer inherits a
+version-2 contract an earlier ebpy pinned before that analyzer existed. `freeze --analyzer NAME`
+brings the new analyzer under the ceiling without re-pinning — and so without grandfathering — any
+of the existing namespaces.
+
+There is no migration path from before version 2: a version-1 contract is refused outright, and the
+only way past it is a global `freeze --force` that discards the old contract entirely.
 
 ## Commit all three artifacts together
 
