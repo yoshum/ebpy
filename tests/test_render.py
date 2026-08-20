@@ -6,7 +6,7 @@ from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, S
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.worklist import build_worklist, render_worklist
-from ebpy.state import append_log, empty_state
+from ebpy.store.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")
 STALE = Freshness(stale=True, reason="42 commits since the diagnosis")

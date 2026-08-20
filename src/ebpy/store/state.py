@@ -14,8 +14,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, TypeGuard
 
-from .cell_key import analyzer_of, is_analyzer_name, is_rule_id
-from .models import (
+from ..cell_key import analyzer_of, is_analyzer_name, is_rule_id
+from ..models import (
     LOG_KINDS,
     PHASE_ORDER,
     LogEntry,

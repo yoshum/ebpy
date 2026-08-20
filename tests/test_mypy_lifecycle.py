@@ -16,10 +16,10 @@ from typing import Any
 
 import pytest
 
-from ebpy.baseline import write_cells
 from ebpy.cli import main
 from ebpy.models import RuleBaseline, State
-from ebpy.state import write_state
+from ebpy.store.baseline import write_cells
+from ebpy.store.state import write_state
 
 pytestmark = pytest.mark.skipif(
     shutil.which("ruff") is None or shutil.which("mypy") is None,

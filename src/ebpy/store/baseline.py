@@ -14,8 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
-from .models import CellCounts, CellCountsView, RuleId
+from ..cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
+from ..models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"
 BASELINE_VERSION = 2

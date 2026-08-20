@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import write_cells
 from ebpy.cli import main
-from ebpy.state import state_path
+from ebpy.store.baseline import write_cells
+from ebpy.store.state import state_path
 
 
 @pytest.mark.parametrize(

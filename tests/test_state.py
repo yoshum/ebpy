@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from ebpy.models import RuleBaseline, State
-from ebpy.state import (
+from ebpy.store.state import (
     Ledger,
     append_log,
     apply_analyzer_rule_counts,

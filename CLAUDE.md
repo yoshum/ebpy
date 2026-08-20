@@ -19,7 +19,8 @@ checklist cannot express belongs in a skill.
   filesystem.
 - `measurement.py` is the toolchain seam. Ruff and mypy become one Measurement value before any
   command applies ratchet policy; see `docs/measurement-seam.md`.
-- `baseline.py` owns the ratchet file, `state.py` owns the ledger. Nothing else writes either.
+- `store/` owns the `.ebpy/` files: `store/baseline.py` the ratchet file, `store/state.py` the
+  ledger, `store/ceiling_artifacts.py` the pair. Nothing outside `store/` writes either.
 - Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.
 
 ## Rules that are not in the linter
