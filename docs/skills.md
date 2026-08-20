@@ -112,8 +112,8 @@ Drives: [`diagnose`](cli/diagnose.md), [`bootstrap`](cli/bootstrap.md).
 
 **P2. One command, run once, and it is the commit the whole approach hangs off.**
 
-It pins today's per-file per-rule counts as the ceiling, records the mypy total as a ratcheted
-counter, renders `QUALITY.md`, and makes sure CI actually gates on the result.
+It pins today's per-file per-rule counts as the ceiling for every analyzer (Ruff and mypy),
+renders `QUALITY.md`, and makes sure CI actually gates on the result.
 
 Reach for it straight after bootstrap, or when somebody says "grandfather what is there and stop the
 new stuff".
@@ -139,10 +139,11 @@ new stuff".
   or an invalid artifact pair that should be discarded rather than restored.
 
 **What it tells you at the end:** four lines, because this commit is the one worth stopping on —
-the number ("4,312 violations across 47 rules are now grandfathered"), that new code is held to
-every rule from here and old code is not, that a red `ebpy check` means the diff added something
-rather than that the repository is bad, and that draining from here is optional. CI already rejects
-any new violation, so stopping after any pull request leaves the repository better, never worse.
+the number ("4,312 violations across 47 rules and 2 analyzers are now grandfathered"), that new
+code is held to every rule from here and old code is not, that a red `ebpy check` means the diff
+added something rather than that the repository is bad, and that draining from here is optional.
+CI already rejects any new violation, so stopping after any pull request leaves the repository
+better, never worse.
 
 Drives: [`freeze`](cli/freeze.md), [`check`](cli/check.md), [`prune`](cli/prune.md).
 

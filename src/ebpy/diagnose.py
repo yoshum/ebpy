@@ -44,8 +44,9 @@ def _tooling_gaps(tooling: ToolingPresence) -> list[Gap]:
             Gap(
                 id="mypy",
                 title="No type checking",
-                detail="Type hints are the cheapest rule set there is. mypy errors cannot be "
-                "grandfathered per rule, so their total is ratcheted as a counter instead.",
+                detail="Type hints are the cheapest rule set there is. mypy errors are "
+                "grandfathered per file per rule, one `mypy:<code>` cell at a time, exactly as "
+                "Ruff findings are.",
                 phase="bootstrap",
             )
         )
@@ -55,7 +56,7 @@ def _tooling_gaps(tooling: ToolingPresence) -> list[Gap]:
                 id="mypy-strict",
                 title="mypy `strict` is off",
                 detail="Everything else in the type tier is moot until this is on. Enable it and "
-                "let the error-count ratchet hold the line while the backlog drains.",
+                "let the per-cell ratchet hold the line while the backlog drains.",
                 phase="tighten",
             )
         )

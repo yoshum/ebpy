@@ -71,6 +71,19 @@ def test_an_empty_backlog_produces_an_empty_plan() -> None:
     assert plan.take_first == ()
 
 
+def test_next_ranks_ruff_and_mypy_cells_together() -> None:
+    # Suppression.rule is an opaque string, so a namespaced mypy cell competes for rank
+    # by cost alongside a namespaced ruff cell instead of being sorted into an
+    # analyzer-specific bucket.
+    entries = [
+        entry("a.py", "ruff:F401", 1),
+        entry("b.py", "mypy:arg-type", 1),
+        entry("c.py", "ruff:C901", 9),
+    ]
+    ranked = cheapest_first(entries)
+    assert [item.rule for item in ranked] == ["ruff:F401", "mypy:arg-type"]
+
+
 def test_the_plan_serialises_for_json() -> None:
     plan = build_drain_plan([entry("a.py", "E501", 1)], importers={"a.py": 4})
     payload = plan.to_dict()

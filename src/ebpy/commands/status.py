@@ -8,7 +8,7 @@ from pathlib import Path
 from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
 from ..quality_file import freshness_of
-from ..state import find_regressions, improvements, state_to_dict, total_violations
+from ..state import improvements, state_to_dict, total_violations
 
 _NEXT_RULE_SAMPLE = 5
 
@@ -29,6 +29,7 @@ def run_status(cwd: Path, as_json: bool) -> str:
         key=lambda item: (item[1], item[0]),
     )[:_NEXT_RULE_SAMPLE]
 
+    analyzers = ", ".join(sorted(state.frozen_analyzers)) if state.frozen_analyzers else "none"
     return "\n".join(
         [
             *([f"STALE      {freshness.reason}", ""] if freshness.stale else []),
@@ -36,7 +37,7 @@ def run_status(cwd: Path, as_json: bool) -> str:
             f"frozen     {state.frozen_at or 'never'}",
             f"backlog    {total_violations(state)}",
             f"improved   {len(improvements(state))} rules",
-            f"regressed  {len(find_regressions(state))} rules",
+            f"analyzers  {analyzers}",
             "",
             "smallest remaining backlogs:" if draining else "backlog is empty.",
             *(f"  {current}  {name}" for name, current in draining),

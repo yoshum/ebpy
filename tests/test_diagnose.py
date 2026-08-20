@@ -166,6 +166,17 @@ def test_mypy_present_but_loose_is_a_tighten_gap_not_a_bootstrap_one(tmp_path: P
     assert gap.phase == "tighten"
 
 
+def test_the_mypy_gap_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path) -> None:
+    """mypy is now ratcheted per file per rule, the same as Ruff — not as one global error
+    counter. The gap the user reads must describe today's model, so the retired "counter"
+    wording is refused here where it would otherwise slip past CI unpinned."""
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    diagnosis = diagnose(gather_facts(tmp_path))
+    gap = next(gap for gap in diagnosis.gaps if gap.id == "mypy")
+    assert "per file per rule" in gap.detail
+    assert "counter" not in gap.detail
+
+
 def test_a_diagnosis_survives_a_round_trip_through_json(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.12"\n', encoding="utf-8")
     diagnosis = diagnose(gather_facts(tmp_path))

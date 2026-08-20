@@ -6,9 +6,11 @@ is exactly the numbers that moved.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from ..freshness import Freshness
-from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
-from ..state import find_regressions, improvements, log_of_kind, total_violations
+from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State, ToolingPresence
+from ..state import improvements, log_of_kind, total_violations
 from .worklist import build_worklist, render_worklist
 
 QUALITY_FILE = "QUALITY.md"
@@ -20,6 +22,14 @@ NOTES_END = "<!-- ebpy:notes:end -->"
 _STATUS_LABEL = {"off": "off", "draining": "draining", "enforced": "clean"}
 
 _LOG_ENTRIES_SHOWN = 20
+
+# Mapped explicitly, not with getattr(tooling, name): the roster of analyzers this ebpy
+# ships is fixed and short, and a literal table keeps a typo in a name a mypy error rather
+# than a silently-always-false lookup.
+_ANALYZER_TOOLING: tuple[tuple[str, Callable[[ToolingPresence], bool]], ...] = (
+    ("mypy", lambda tooling: tooling.mypy),
+    ("ruff", lambda tooling: tooling.ruff),
+)
 
 
 def _delta(rule: RuleBaseline) -> str:
@@ -49,22 +59,6 @@ def _rules_table(state: State) -> list[str]:
             f"| `{name}` | {rule.baseline} | {rule.current} | {_delta(rule)} | "
             f"{_STATUS_LABEL.get(rule.status, rule.status)} |"
             for name, rule in rows
-        ),
-        "",
-    ]
-
-
-def _counters_table(state: State) -> list[str]:
-    if not state.counters:
-        return []
-    return [
-        "## Other counters",
-        "",
-        "| Counter | Ceiling | Now |",
-        "| --- | ---: | ---: |",
-        *(
-            f"| {name} | {counter.baseline} | {counter.current} |"
-            for name, counter in sorted(state.counters.items())
         ),
         "",
     ]
@@ -139,20 +133,42 @@ def _freshness_banner(freshness: Freshness) -> list[str]:
     ]
 
 
+def _unratcheted_marker(state: State, roster: set[str]) -> str:
+    """Name a configured analyzer the frozen contract omits.
+
+    Skipped when there is no diagnosis to compare against — a repository that never ran
+    `diagnose` has nothing to compare against, and inventing a complaint from missing
+    data is exactly what "absence and zero are different" forbids. A contract with a
+    narrower roster than the repository configures — a ruff-only freeze in a repository
+    that also runs mypy — is never told its type errors are unratcheted without this note.
+    """
+    if state.diagnosis is None:
+        return ""
+    tooling = state.diagnosis.tooling
+    unratcheted = [
+        analyzer
+        for analyzer, configured in _ANALYZER_TOOLING
+        if analyzer not in roster and configured(tooling)
+    ]
+    if not unratcheted:
+        return ""
+    return " (" + ", ".join(f"{analyzer} is configured but not ratcheted" for analyzer in unratcheted) + ")"
+
+
+def _analyzers_line(state: State) -> str:
+    roster = set(state.frozen_analyzers)
+    names = ", ".join(sorted(roster)) if roster else "none"
+    return f"- Analyzers: **{names}**{_unratcheted_marker(state, roster)}"
+
+
 def _headline(state: State) -> list[str]:
-    regressions = find_regressions(state)
     gained = improvements(state)
-    verdict = (
-        f"{len(regressions)} counter(s) above the ceiling — this is what `ebpy check` fails on."
-        if regressions
-        else "Everything is at or below its ceiling."
-    )
     return [
         f"- Phase: **{state.phase}**",
         f"- Frozen: {state.frozen_at or 'not yet — run `ebpy freeze`'}",
         f"- Open violations: **{total_violations(state)}**",
         f"- Rules improved since the ceiling: **{len(gained)}**",
-        f"- {verdict}",
+        _analyzers_line(state),
         "",
     ]
 
@@ -188,7 +204,6 @@ def render_quality(state: State, notes: str, freshness: Freshness) -> str:
         "Ceiling is the count at the last freeze. It may fall and must never rise.",
         "",
         *_rules_table(state),
-        *_counters_table(state),
         "## Outstanding",
         "",
         *_gaps_checklist(state.diagnosis.gaps if state.diagnosis else ()),

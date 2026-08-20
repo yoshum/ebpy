@@ -12,18 +12,18 @@ The seam owns measured facts. It does not own ceilings, gate policy or persisten
 or plugin framework: callers need a value, and a second production implementation does not yet
 exist.
 
-Each capability has exactly one observation:
+Each analyzer has exactly one observation:
 
 ```text
 Measurement
-├── lint: Measured[LintMeasurement] | Unavailable | Failed
-└── counters
-    └── mypy:errors: Measured[int] | Unavailable | Failed
+└── analyzers
+    ├── ruff: Measured[AnalysisMeasurement] | Unavailable | Failed
+    └── mypy: Measured[AnalysisMeasurement] | Unavailable | Failed
 ```
 
-There is no parallel status array. A value cannot simultaneously say that lint failed and carry a
-successful lint result. `Measured(0)` is distinct from `Unavailable` and `Failed`, so a run that did
-not happen can never ratchet a counter to zero.
+There is no parallel status array. A value cannot simultaneously say that an analyzer failed and
+carry a successful result for it. `Measured(cells={})` is distinct from `Unavailable` and `Failed`,
+so a run that did not happen can never ratchet a cell to zero.
 
 The variants carry the producing tool's name. They do not carry a tool version: a field that is
 always `None` cannot say whether the version was unprobed or absent, and the seam exists precisely
@@ -47,16 +47,16 @@ before the `Cause:` lines that matter. A generic "first line" picks the wrong on
 
 The command layer sees ebpy concepts rather than tool output:
 
-- file × rule cells;
+- file × rule cells, with rule IDs namespaced as `<analyzer>:<local-code>` (e.g. `ruff:F401`,
+  `mypy:arg-type`);
 - findings that cannot be attributed to a rule;
 - files carrying findings;
-- named ratcheted counters;
 - measured, unavailable or failed capabilities.
 
-Ruff currently produces the lint observation. mypy currently produces `mypy:errors`. Their runners
-own executable discovery, CLI arguments, exit-code interpretation and parsing. `CellCounts` and
-`LintMeasurement` live in `models.py` because both measurement and ceiling modules share them;
-measurement does not import the baseline persistence module.
+Ruff and mypy are the two analyzers in the initial implementation. Their runners own executable
+discovery, CLI arguments, exit-code interpretation and parsing. `CellCounts` and `AnalysisMeasurement`
+live in `models.py` because both measurement and ceiling modules share them; measurement does not
+import the baseline persistence module.
 
 ## Independent capabilities
 
@@ -66,16 +66,18 @@ happened to run first.
 
 Commands decide what partial success means:
 
-| Command | Lint unavailable or failed | mypy unavailable or failed |
+| Command | Analyzer unavailable or failed | Analyzer incomplete (unattributed findings) |
 | --- | --- | --- |
-| `report` | render the ceiling backlog and name the lint failure | render any lint result and name why mypy was not measured |
-| `check` | fail and persist nothing | continue without changing the existing counter |
-| `freeze` | refuse and persist nothing | pin Ruff cells without creating a type-error ceiling |
-| `prune` | refuse and persist nothing | lower Ruff cells without changing the existing counter |
+| `report` | renders the ceiling backlog and names the failure | renders the ceiling backlog and names the unattributed findings |
+| `check` | fails — a frozen contract ceiling went unverified | fails — the measurement is not comparable to the ceiling |
+| `freeze` | refuses and writes nothing — `--force` does not exclude it | refuses and writes nothing |
+| `prune` | preserves that namespace without touching it | preserves that namespace without touching it |
 
-`report --json` exposes the bounded multi-line details as `lintFailure` and `mypyFailure`. Each is
-`null` when the capability was measured successfully; otherwise it contains the same detail the
-human report quotes. A detail that reaches the line or character bound ends with `... (truncated)`.
+`report --json` exposes per-analyzer status in the `analyzers` object. Each entry includes
+`status` (`complete`, `incomplete`, `unavailable`, or `failed`), `findings`, `filesWithFindings`,
+`failure` (the bounded multi-line detail when unavailable or failed, otherwise `null`), and
+`unattributedTotal` / `unattributed` samples when incomplete. A detail that reaches the line or
+character bound ends with `... (truncated)`.
 
 ## Command shape
 
@@ -116,30 +118,21 @@ Unexpected programming errors are not converted into tool failures. They propaga
 Syntax errors reported by Ruff are successful measurement with unattributed findings, not a failed
 tool run.
 
-## Deferred extensions
-
-Multiple lint providers will require a rule-ID namespace before their cells can share a ceiling.
-That is deliberately deferred: changing existing Ruff identifiers would require a baseline
-migration and is not necessary to establish the seam.
-
-Atomic replacement of the baseline and ledger, and making `QUALITY.md` failure fully recoverable,
-are also separate persistence changes. Measurement owns today's facts, not the ceiling transaction.
-
 ## What a failure does to each command
 
 The seam reports; it does not decide. Each command applies its own policy to the same value.
 
-| | `report` | `check` | `freeze` / `prune` |
-| --- | --- | --- | --- |
-| lint failed | renders the ratchet file and says why | refuses, persists nothing | refuses, writes nothing |
-| mypy failed, ceiling exists | names it beside `not measured` | refuses — the ceiling went unverified | records no new counter |
-| mypy failed, no ceiling | names it beside `not measured` | passes, and says what was not measured | records no counter, and says so |
+| | `report` | `check` | `freeze` | `prune` |
+| --- | --- | --- | --- | --- |
+| analyzer failed, ceiling exists | names it and uses ceiling as fallback | refuses — frozen ceiling went unverified | refuses — `--force` does not exclude it | preserves namespace unchanged |
+| analyzer failed, no ceiling | names it beside measurement note | passes, names what went unmeasured | refuses — every in-scope analyzer must be complete | no-op for that analyzer |
+| analyzer incomplete | names unattributed samples and uses ceiling as fallback | refuses — measurement is not comparable to ceiling | refuses and writes nothing | preserves namespace unchanged |
 
-`check` refuses on an unverified ceiling because a counter nobody could measure is not a counter
+`check` refuses on an unverified ceiling because a ceiling nobody could measure is not a ceiling
 that held: a broken mypy would otherwise retire the type-error ratchet in silence, which is the
-accumulation the ceiling exists to stop. Where no such ceiling exists there is no contract to
-verify, so the gate passes — but it still names the capability it could not measure, because "no
-errors" and "nobody ran" must never read the same.
+accumulation the ceiling exists to stop. Where no such ceiling exists there is nothing to verify,
+so the gate passes — but it still names the capability it could not measure, because "no errors"
+and "nobody ran" must never read the same.
 
 A tool that cannot run is an ordinary command failure: the message goes to stdout and the exit
 status is 1, the same as every other refusal. Before the seam, a missing Ruff was written to stderr

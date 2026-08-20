@@ -123,10 +123,10 @@ writes a test that pins today's behaviour *before* touching the code, fixes, the
 by exactly what it earned:
 
 ```bash
-ebpy next                                   # which edit enforces the most
-ebpy prune                                  # commit this with the fix
-ebpy log --kind drained --rule C901 "..."   # the reason; nothing else records it
-ebpy check                                  # nothing rose
+ebpy next                                          # which edit enforces the most
+ebpy prune                                         # commit this with the fix
+ebpy log --kind drained --rule ruff:C901 "..."     # the reason; nothing else records it
+ebpy check                                         # nothing rose
 ```
 
 It automates by default and opens an issue only for the four decisions that are genuinely the
@@ -233,8 +233,8 @@ Not a transliteration — the ideas are the same, the mechanics follow the Pytho
 
 - **The ratchet is ebpy's own.** ESLint ships `--suppress-all`; Ruff does not, so `freeze`, `check`
   and `prune` implement the per-file-per-rule ledger directly, in the same file shape ESLint uses.
-- **mypy gets a counter, not a baseline.** Type errors have no per-file suppression mechanism, so
-  their total is ratcheted the way ever-better ratchets ESLint warnings.
+- **mypy is ratcheted per file per rule**, the same cell model as Ruff. Rule IDs are namespaced —
+  `ruff:F401`, `mypy:arg-type` — so Ruff and mypy cells share one ceiling without collision.
 - **Syntax errors are named, never counted.** Ruff reports them as `invalid-syntax` with no rule;
   they cannot be grandfathered, so freeze and check both refuse rather than recording a zero.
 - **Fan-in resolves Python imports** — relative, absolute, and `src/` layouts — instead of relative

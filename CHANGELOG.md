@@ -2,6 +2,41 @@
 
 <!-- version list -->
 
+## Unreleased
+
+### Breaking Changes
+
+- Baseline and state files are now **version 2**. Rule IDs are namespaced: `ruff:F401`,
+  `mypy:arg-type`. Version 1 artifacts are no longer read: a version-1 repository is named as an old
+  format rather than corruption, and its contract must be re-pinned with `ebpy freeze --force`.
+  Re-pinning discards more than the ceiling — the work log, the last diagnosis and the commit it was
+  taken at are lost as well, since a forced freeze starts from an empty state.
+
+- mypy is now gated per file per rule, not as a global total. A type error moving from one file to
+  another fails `check` even when the repository-wide count is unchanged.
+
+- Every freeze requires its in-scope analyzers to be measured completely. `freeze` and
+  `freeze --force` alike refuse when any analyzer is unavailable, failed, or reported findings it
+  could not attribute to a rule. `--force` now means only "re-pin over an existing or unreadable
+  contract"; it does not exclude an incomplete analyzer.
+
+- **No invocation removes an analyzer from a contract**, and the first contract always covers every
+  analyzer. A repository whose toolchain is incomplete finishes `ebpy bootstrap` first.
+
+- New `freeze --analyzer NAME` adds one analyzer to a contract whose roster is narrower than what
+  ebpy knows — a contract pinned while an analyzer could not be measured. It adds that analyzer
+  without disturbing the other ceilings.
+
+- `report --json` schema replaced: `mypyErrors`, the global `filesWithFindings` scalar,
+  `lintFailure`, and `mypyFailure` are gone, replaced by an `analyzers` object with per-analyzer
+  `inContract`, `status`, `findings`, `filesWithFindings`, `failure`, `unattributedTotal`, and
+  `unattributed` fields.
+
+- `status --json` gains `frozenAnalyzers` and loses `counters`. `QUALITY.md` loses the
+  `## Other counters` table and the regression verdict; it now lists analyzers by name.
+
+- `check` now names the file of every finding beyond the ceiling, not just the rule.
+
 ## v0.3.2 (2026-08-19)
 
 ### Bug Fixes
