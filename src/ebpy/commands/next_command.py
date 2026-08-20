@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..drain_order import build_drain_plan
+from ..decide.drain_order import build_drain_plan
 from ..errors import CommandError
 from ..models import Suppression
 from ..render.next import render_next

@@ -13,34 +13,21 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `analyzer_of` | src/ebpy/cell_key.py:52 |  |
-| `area_of` | src/ebpy/analysis_report.py:33 |  |
-| `assess_freshness` | src/ebpy/freshness.py:45 |  |
-| `build_drain_plan` | src/ebpy/drain_order.py:157 |  |
 | `build_parser` | src/ebpy/cli.py:62 |  |
-| `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
-| `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
-| `diagnose` | src/ebpy/diagnose.py:177 |  |
 | `diagnosis_from_dict` | src/ebpy/models.py:158 |  |
-| `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
-| `heaviest_files` | src/ebpy/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
 | `interpret_gitleaks` | src/ebpy/secret_scan.py:65 |  |
 | `is_analyzer_name` | src/ebpy/cell_key.py:19 |  |
 | `is_rule_id` | src/ebpy/cell_key.py:56 | The total predicate persistence readers use on untrusted JSON: never raises. |
 | `main` | src/ebpy/cli.py:214 |  |
-| `matrix_from_cells` | src/ebpy/analysis_report.py:112 |  |
 | `normalize_analyzer_path` | src/ebpy/cell_key.py:61 | Normalize a path an analyzer reported into the form a stored cell key uses. |
 | `qualify_rule` | src/ebpy/cell_key.py:23 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
-| `render_plan` | src/ebpy/bootstrap_plan.py:142 |  |
-| `report_from_measurement` | src/ebpy/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
-| `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
 | `run` | src/ebpy/util.py:17 |  |
 | `split_rule` | src/ebpy/cell_key.py:44 | Split on the first colon only, so a local code may itself contain colons. |
-| `totals_of` | src/ebpy/drain_order.py:85 |  |
 | `write_quality_file` | src/ebpy/quality_file.py:27 |  |
 
 ## src/ebpy/commands
@@ -64,6 +51,24 @@ notices once the copies are textually similar — and independently written ones
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
 | `run_status` | src/ebpy/commands/status.py:16 |  |
+
+## src/ebpy/decide
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `area_of` | src/ebpy/decide/analysis_report.py:33 |  |
+| `assess_freshness` | src/ebpy/decide/freshness.py:45 |  |
+| `build_drain_plan` | src/ebpy/decide/drain_order.py:157 |  |
+| `build_plan` | src/ebpy/decide/bootstrap_plan.py:103 |  |
+| `cheapest_first` | src/ebpy/decide/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
+| `diagnose` | src/ebpy/decide/diagnose.py:177 |  |
+| `directory_tails` | src/ebpy/decide/drain_order.py:119 | Directories where a rule survives in a handful of files. |
+| `heaviest_files` | src/ebpy/decide/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
+| `matrix_from_cells` | src/ebpy/decide/analysis_report.py:112 |  |
+| `render_plan` | src/ebpy/decide/bootstrap_plan.py:142 |  |
+| `report_from_measurement` | src/ebpy/decide/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
+| `rule_spread` | src/ebpy/decide/drain_order.py:100 | Ranked by files to touch rather than by violations. |
+| `totals_of` | src/ebpy/decide/drain_order.py:85 |  |
 
 ## src/ebpy/generate
 

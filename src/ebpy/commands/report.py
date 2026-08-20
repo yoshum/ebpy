@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-from ..analysis_report import report_from_measurement
+from ..decide.analysis_report import report_from_measurement
 from ..errors import CommandError
 from ..measurement import measure_repository
 from ..render.analysis_report import render_analysis_report

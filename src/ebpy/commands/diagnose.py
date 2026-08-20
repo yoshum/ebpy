@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..diagnose import diagnose
+from ..decide.diagnose import diagnose
 from ..errors import CommandError
 from ..quality_file import write_quality_file
 from ..render.report import render_diagnosis

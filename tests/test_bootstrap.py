@@ -3,8 +3,8 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from ebpy.bootstrap_plan import BootstrapPlan, build_plan, render_plan
-from ebpy.diagnose import diagnose
+from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.decide.diagnose import diagnose
 from ebpy.generate.configs import (
     DEPENDABOT_CONTENT,
     python_version_from_requires,
