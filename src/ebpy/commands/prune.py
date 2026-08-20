@@ -100,7 +100,7 @@ def prune_measurement(
             state = replace_analyzer_rules(state, analyzer, rule_totals(pruned))
             analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
         else:
-            # Carry the existing ceiling: a ceiling nobody re-measured cannot be lowered.
+            # A ceiling nobody re-measured cannot be lowered.
             output_parts.append(baseline_cells)
             total_before += baseline_total
             total_after += baseline_total

@@ -27,7 +27,7 @@ from ebpy.store.state import Ledger, apply_analyzer_rule_counts, empty_state, st
 _FROZEN_AT = "2026-08-19T00:00:00Z"
 
 
-def _ruff_only_measurement(cells: dict[str, dict[str, int]] | None = None) -> Measurement:
+def _both_analyzers_measurement(cells: dict[str, dict[str, int]] | None = None) -> Measurement:
     """Both analyzers complete; cells defaults to empty for a clean zero-finding contract."""
     return Measurement(
         analyzers={
@@ -89,7 +89,7 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_cells(tmp_path, {"src/old.py": {"ruff:F401": 1}})
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -113,7 +113,7 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     state_path(tmp_path).symlink_to(state_target)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -137,7 +137,7 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     (tmp_path / ".ebpy").symlink_to(outside, target_is_directory=True)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -324,7 +324,7 @@ def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_m
 
     with pytest.raises(CommandError) as exc_info:
         freeze_measurement(
-            previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+            previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
         )
 
     message = str(exc_info.value)
@@ -340,7 +340,7 @@ def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> Non
     previous.frozen_at = _FROZEN_AT
 
     decision = freeze_measurement(
-        previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+        previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
     )
 
     assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
