@@ -230,10 +230,12 @@ def _build_global_freeze(
 
     backlog = finding_total(cells)
     rule_count = len(rule_totals(cells))
+    analyzer_count = len(scope)
     verb = "Re-pinned" if force else "Baseline pinned"
     message = "\n".join(
         [
-            f"{verb}: {backlog} violations across {rule_count} rules are now grandfathered.",
+            f"{verb}: {backlog} violations across {rule_count} rules "
+            f"and {analyzer_count} analyzers are now grandfathered.",
             "New code is held to the full rule set from here.",
             *unattributed_reports,
             "",
