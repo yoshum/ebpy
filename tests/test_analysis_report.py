@@ -185,6 +185,60 @@ def test_an_incomplete_contract_analyzer_shows_its_syntax_errors_in_the_markdown
     assert ".ebpy/baseline.json" in rendered
 
 
+def test_a_failed_out_of_contract_analyzer_still_shows_its_failure_reason() -> None:
+    """A fresh repository has no contract, so every analyzer is out of contract. A failed run's
+    reason must still reach the Markdown — "nobody looked" cannot render as "nothing found" just
+    because there is no ceiling yet. The consequence line notes the analyzer has no ceiling rather
+    than claiming a baseline fallback."""
+    measurement = Measurement(
+        analyzers={
+            "mypy": Failed(
+                tool="mypy", failure_kind="execution-failed", detail="mypy.ini: invalid option 'foo'"
+            )
+        }
+    )
+
+    rendered = render_analysis_report(report_from_measurement({}, (), measurement))
+
+    assert "mypy did not run" in rendered
+    assert "mypy.ini: invalid option 'foo'" in rendered
+    # Out of contract: the consequence must not claim a baseline fallback that does not exist.
+    assert ".ebpy/baseline.json" not in rendered
+
+
+def test_an_incomplete_out_of_contract_analyzer_names_its_unparsed_files() -> None:
+    """An out-of-contract analyzer left incomplete by a syntax error must still name the files it
+    could not parse — the same detail an in-contract incomplete run gets, minus the baseline
+    consequence."""
+    findings = (UnattributedFinding(file="src/broken.py", line=9, message="SyntaxError: bad token"),)
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={}, unattributed=findings, files_with_findings=0),
+            )
+        }
+    )
+
+    rendered = render_analysis_report(report_from_measurement({}, (), measurement))
+
+    assert "src/broken.py:9" in rendered
+    assert "SyntaxError: bad token" in rendered
+
+
+def test_a_contract_analyzer_with_no_runner_is_named_in_a_banner() -> None:
+    """A contract naming an analyzer this build cannot run classifies as failed but carries no tool
+    detail (observation is None). It must still produce a banner rather than silently rendering only
+    'failed' in the table — a missing runner is exactly the kind of unmeasured state the banners
+    exist to surface."""
+    report = report_from_measurement({}, ("mypy",), Measurement(analyzers={}))
+
+    rendered = render_analysis_report(report)
+
+    assert "mypy did not run" in rendered
+    assert "no runner" in rendered
+
+
 def test_a_non_contract_analyzer_appears_only_under_unratcheted_analyzers() -> None:
     """A complete non-contract analyzer is excluded from new/backlog but shown as unratcheted."""
     measurement = Measurement(

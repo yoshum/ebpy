@@ -49,23 +49,43 @@ def _incomplete_detail(summary: AnalyzerSummary) -> str:
     return "\n".join(lines)
 
 
-def _failure_banners(report: AnalysisReport) -> list[str]:
-    """One blockquote per contract analyzer that could not be fully measured.
+def _consequence(name: str, in_contract: bool) -> str:
+    """What an unmeasured analyzer means for the numbers below, which turns on the contract.
 
-    "No debt" and "nobody looked" must not render the same way, so a failed run quotes its
-    tool error and an incomplete one names the files it could not parse. Both warn that the
-    backlog below fell back to the baseline rather than being measured this run.
+    An analyzer under contract has a ceiling: the backlog falls back to what the baseline
+    already recorded, and this run measured no new violations against it. One outside the
+    contract has no ceiling at all, so there is no backlog to fall back to — the run simply
+    produced no numbers for it. "Nobody looked" must read the same either way; only what
+    that costs the report differs.
     """
-    lines: list[str] = []
-    for name, summary in report.analyzers:
-        if not summary.in_contract:
-            continue
-        consequence = (
+    if in_contract:
+        return (
             f"The backlog for {name} below is read from `.ebpy/baseline.json`;"
             " new violations were not measured."
         )
+    return f"{name} has no ceiling yet, so this run recorded no numbers for it."
+
+
+def _failure_banners(report: AnalysisReport) -> list[str]:
+    """One blockquote per analyzer that could not be fully measured, in or out of contract.
+
+    "No debt" and "nobody looked" must not render the same way, so a failed run quotes its
+    tool error and an incomplete one names the files it could not parse — a failure reason is
+    worth showing whether or not the analyzer has a ceiling. Only the consequence differs: a
+    contract analyzer's backlog fell back to the baseline, while one outside the contract has
+    no ceiling for the report to speak to at all.
+    """
+    lines: list[str] = []
+    for name, summary in report.analyzers:
+        consequence = _consequence(name, summary.in_contract)
         if summary.failure is not None:
             lines.extend(_banner(f"{name} did not run", summary.failure, consequence))
+        elif summary.status == "failed":
+            # A contract analyzer this build has no runner for: failed, but with no tool
+            # detail to quote. Name the missing runner so it is not silently just "failed".
+            lines.extend(
+                _banner(f"{name} did not run", f"{name} has no runner in this ebpy build", consequence)
+            )
         elif summary.status == "incomplete":
             lines.extend(
                 _banner(f"{name} could not lint every file", _incomplete_detail(summary), consequence)
