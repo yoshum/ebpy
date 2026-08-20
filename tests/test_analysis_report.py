@@ -14,12 +14,8 @@ from ebpy.render.analysis_report import render_analysis_report
 # ---------------------------------------------------------------------------
 
 
-def _ruff_measurement(cells: dict[str, dict[str, int]], files: int = 0) -> Measurement:
-    return Measurement(
-        analyzers={
-            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells=cells, files_with_findings=files))
-        }
-    )
+def _ruff_measurement(cells: dict[str, dict[str, int]]) -> Measurement:
+    return Measurement(analyzers={"ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells=cells))})
 
 
 # ---------------------------------------------------------------------------
@@ -50,14 +46,14 @@ def test_the_matrix_folds_files_up_into_their_area() -> None:
 
 
 def test_areas_are_ordered_by_weight_so_the_shape_is_visible() -> None:
-    measurement = _ruff_measurement({"small/a.py": {"ruff:E501": 1}, "big/b.py": {"ruff:E501": 30}}, files=2)
+    measurement = _ruff_measurement({"small/a.py": {"ruff:E501": 1}, "big/b.py": {"ruff:E501": 30}})
     baseline = {"small/a.py": {"ruff:E501": 1}, "big/b.py": {"ruff:E501": 30}}
     report = report_from_measurement(baseline, ("ruff",), measurement)
     assert report.sections[0].areas == ("big", "small")
 
 
 def test_new_violations_get_their_own_section() -> None:
-    measurement = _ruff_measurement({"src/a.py": {"ruff:E501": 3}}, files=1)
+    measurement = _ruff_measurement({"src/a.py": {"ruff:E501": 3}})
     report = report_from_measurement({}, ("ruff",), measurement)
     rendered = render_analysis_report(report)
     assert "## New violations" in rendered
@@ -126,7 +122,7 @@ def test_an_incomplete_analyzer_reports_its_unattributed_count_and_samples() -> 
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={}, unattributed=findings, files_with_findings=0),
+                value=AnalysisMeasurement(cells={}, unattributed=findings),
             )
         }
     )
@@ -172,7 +168,7 @@ def test_an_incomplete_contract_analyzer_shows_its_syntax_errors_in_the_markdown
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={}, unattributed=findings, files_with_findings=0),
+                value=AnalysisMeasurement(cells={}, unattributed=findings),
             )
         }
     )
@@ -215,7 +211,7 @@ def test_an_incomplete_out_of_contract_analyzer_names_its_unparsed_files() -> No
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={}, unattributed=findings, files_with_findings=0),
+                value=AnalysisMeasurement(cells={}, unattributed=findings),
             )
         }
     )
@@ -245,7 +241,7 @@ def test_a_non_contract_analyzer_appears_only_under_unratcheted_analyzers() -> N
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:E501": 2}}, files_with_findings=1),
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:E501": 2}}),
             ),
         }
     )
@@ -267,11 +263,11 @@ def test_the_backlog_matrix_merges_every_complete_contract_analyzer() -> None:
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:E501": 3}}, files_with_findings=1),
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:E501": 3}}),
             ),
             "mypy": Measured(
                 tool="mypy",
-                value=AnalysisMeasurement(cells={"src/a.py": {"mypy:arg-type": 1}}, files_with_findings=1),
+                value=AnalysisMeasurement(cells={"src/a.py": {"mypy:arg-type": 1}}),
             ),
         }
     )
@@ -300,7 +296,7 @@ def test_the_json_has_no_mypy_errors_lint_failure_or_global_files_with_findings(
 
 def test_the_report_serialises_for_json() -> None:
     baseline = {"src/a.py": {"ruff:F401": 2}}
-    measurement = _ruff_measurement({"src/a.py": {"ruff:F401": 2}}, files=1)
+    measurement = _ruff_measurement({"src/a.py": {"ruff:F401": 2}})
     report = report_from_measurement(baseline, ("ruff",), measurement)
     payload = report.to_dict()
     assert payload["newTotal"] == 0

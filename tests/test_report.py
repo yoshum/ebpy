@@ -17,7 +17,7 @@ def test_report_keeps_contract_backlog_when_one_analyzer_fails() -> None:
     measurement = Measurement(
         analyzers={
             "ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff check failed"),
-            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={}, files_with_findings=0)),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
         }
     )
 
@@ -55,7 +55,7 @@ def test_report_compares_measured_cells_with_the_ceiling() -> None:
         analyzers={
             "ruff": Measured(
                 tool="ruff",
-                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 3}}, files_with_findings=1),
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 3}}),
             ),
             "mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="bad config"),
         }

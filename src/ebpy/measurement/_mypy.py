@@ -137,7 +137,6 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     """Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace."""
     cells: CellCounts = {}
     unattributed: list[UnattributedFinding] = []
-    seen_files: set[str] = set()
     for line in output.splitlines():
         if _MYPY_ERROR_PREFIX.match(line) is None:
             continue
@@ -159,7 +158,6 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
                 f"mypy reported a finding outside the repository ({file!r}); a config that checks "
                 "paths outside the repository cannot produce a reproducible baseline"
             )
-        seen_files.add(file)
         if match["code"] == _SYNTAX_CODE:
             unattributed.append(
                 UnattributedFinding(file=file, line=int(match["line"]), message=match["message"])
@@ -168,9 +166,7 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
         rule = qualify_rule("mypy", match["code"])
         file_cells = cells.setdefault(file, {})
         file_cells[rule] = file_cells.get(rule, 0) + 1
-    return AnalysisMeasurement(
-        cells=cells, unattributed=tuple(unattributed), files_with_findings=len(seen_files)
-    )
+    return AnalysisMeasurement(cells=cells, unattributed=tuple(unattributed))
 
 
 def _summary_clause(output: str) -> str:
