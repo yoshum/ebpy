@@ -120,7 +120,10 @@ def prune_measurement(
         return PruneDecision(cells, state, "\n".join(summary_lines))
 
     if reclaimed <= 0:
-        message = f"Nothing to reclaim. {total_violations(state)} still grandfathered."
+        # Report the pre-mutation ledger, as the incomplete no-op branch above does: after
+        # `replace_analyzer_rules` reset each rule's `current` to the baseline-file total, the
+        # post-prune state would overstate what a prior `check` had already lowered.
+        message = f"Nothing to reclaim. {total_violations(previous)} still grandfathered."
     else:
         message = "\n".join(
             [

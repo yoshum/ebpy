@@ -154,6 +154,27 @@ def test_prune_with_no_complete_analyzer_changes_nothing_and_says_why() -> None:
     assert "mypy is not installed" in decision.message
 
 
+def test_prune_no_op_reports_the_same_total_as_the_incomplete_no_op_branch() -> None:
+    """Both "nothing reclaimed" branches must report the same grandfathered total for the
+    same situation. The reported number is `total_violations(previous)` — the pre-mutation
+    ledger — not the state after `replace_analyzer_rules` has reset each rule's `current` to
+    the baseline-file total, which would overstate what a prior `check` had already lowered."""
+    # A prior `check` observed only 1 finding and lowered `current` to 1, though the ceiling
+    # (baseline) is still 3. `total_violations(previous)` is therefore 1.
+    previous = _state(
+        ("ruff",),
+        {"ruff:F401": RuleBaseline(baseline=3, current=1, status="draining")},
+    )
+    baseline: CellCounts = {"src/a.py": {"ruff:F401": 3}}
+    # Today's measurement matches the baseline exactly, so nothing can be reclaimed and the
+    # reclaimed<=0 branch reports the total.
+    measurement = Measurement(analyzers={"ruff": _measured("ruff", {"src/a.py": {"ruff:F401": 3}})})
+
+    decision = prune_measurement(previous, baseline, measurement)
+
+    assert "1 still grandfathered" in decision.message
+
+
 def test_prune_never_raises_a_cell() -> None:
     """A cell where the current count exceeds the baseline is clamped to the baseline —
     prune only ever lowers a ceiling, never raises it."""
