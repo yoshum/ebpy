@@ -17,8 +17,9 @@ checklist cannot express belongs in a skill.
 - Decisions are **pure functions over facts**. `facts.py` does the disk reading; `diagnose.py` and
   everything under `render/` take a value and return a verdict, so they are testable without a
   filesystem.
-- `measurement.py` is the toolchain seam. Ruff and mypy become one Measurement value before any
-  command applies ratchet policy; see `docs/measurement-seam.md`.
+- `measurement/` is the toolchain seam. Ruff and mypy become one Measurement value before any
+  command applies ratchet policy; the per-tool runners are `measurement/_ruff.py` and
+  `measurement/_mypy.py`, private to the package. See `docs/measurement-seam.md`.
 - `store/` owns the `.ebpy/` files: `store/baseline.py` the ratchet file, `store/state.py` the
   ledger, `store/ceiling_artifacts.py` the pair. Nothing outside `store/` writes either.
 - Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.

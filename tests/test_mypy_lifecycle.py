@@ -289,7 +289,7 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_any_invocation(
     """freeze and freeze --force both refuse when mypy is not installed.
 
     The suite's module-level skipif guard ensures mypy IS on PATH when the suite runs,
-    so absence is simulated by monkeypatching ``find_mypy`` in ``ebpy.mypy_runner`` to
+    so absence is simulated by monkeypatching ``find_mypy`` in ``ebpy.measurement._mypy`` to
     return None — the same value it returns when no venv candidate and no PATH entry
     exist.  Patching the runner rather than ``shutil.which`` is more surgical: it leaves
     the ruff check unaffected and targets exactly the code path ``run_mypy_check`` calls.
@@ -299,7 +299,7 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_any_invocation(
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "initial")
 
-    monkeypatch.setattr("ebpy.mypy_runner.find_mypy", lambda _cwd: None)
+    monkeypatch.setattr("ebpy.measurement._mypy.find_mypy", lambda _cwd: None)
 
     # Neither freeze nor force re-pin must succeed without mypy.
     assert run(repo, "freeze") == 1

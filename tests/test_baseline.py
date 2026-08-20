@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from ebpy.measurement._ruff import parse_ruff_json
 from ebpy.models import CellCountsView
-from ebpy.ruff_runner import parse_ruff_json
 from ebpy.store.baseline import (
     Ceiling,
     analyzers_in,

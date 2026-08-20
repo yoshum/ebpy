@@ -21,7 +21,6 @@ notices once the copies are textually similar — and independently written ones
 | `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
 | `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
-| `classify` | src/ebpy/measurement.py:84 |  |
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
 | `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
 | `count_importers` | src/ebpy/fan_in.py:114 |  |
@@ -29,8 +28,6 @@ notices once the copies are textually similar — and independently written ones
 | `diagnosis_from_dict` | src/ebpy/models.py:158 |  |
 | `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
-| `find_mypy` | src/ebpy/mypy_runner.py:57 |  |
-| `find_ruff` | src/ebpy/ruff_runner.py:50 |  |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
 | `gather_facts` | src/ebpy/facts.py:111 |  |
 | `head_commit` | src/ebpy/git.py:25 |  |
@@ -44,10 +41,7 @@ notices once the copies are textually similar — and independently written ones
 | `list_source_paths` | src/ebpy/facts.py:78 |  |
 | `main` | src/ebpy/cli.py:214 |  |
 | `matrix_from_cells` | src/ebpy/analysis_report.py:112 |  |
-| `measure_repository` | src/ebpy/measurement.py:182 | Measure every independent capability, retaining partial success as data. |
 | `normalize_analyzer_path` | src/ebpy/cell_key.py:61 | Normalize a path an analyzer reported into the form a stored cell key uses. |
-| `parse_mypy_output` | src/ebpy/mypy_runner.py:67 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
-| `parse_ruff_json` | src/ebpy/ruff_runner.py:60 |  |
 | `qualify_rule` | src/ebpy/cell_key.py:23 |  |
 | `read_sources` | src/ebpy/facts.py:82 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
@@ -55,8 +49,6 @@ notices once the copies are textually similar — and independently written ones
 | `report_from_measurement` | src/ebpy/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
 | `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
 | `run` | src/ebpy/util.py:17 |  |
-| `run_mypy_check` | src/ebpy/mypy_runner.py:102 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
-| `run_ruff_check` | src/ebpy/ruff_runner.py:104 |  |
 | `split_rule` | src/ebpy/cell_key.py:44 | Split on the first colon only, so a local code may itself contain colons. |
 | `totals_of` | src/ebpy/drain_order.py:85 |  |
 | `tracked_files` | src/ebpy/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
@@ -108,6 +100,19 @@ notices once the copies are textually similar — and independently written ones
 | `ruff_pyproject_section` | src/ebpy/generate/configs.py:35 | Appended to an existing pyproject.toml that has no [tool.ruff] table. |
 | `ruff_toml_content` | src/ebpy/generate/configs.py:44 | A standalone ruff.toml, for a repository with no pyproject.toml to append to. |
 | `secret_scan_workflow` | src/ebpy/generate/workflows.py:145 | fetch-depth: 0 because a shallow clone misses the commit that leaked, and --redact so the secret does not land in a public log. |
+
+## src/ebpy/measurement
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `classify` | src/ebpy/measurement/__init__.py:84 |  |
+| `find_mypy` | src/ebpy/measurement/_mypy.py:57 |  |
+| `find_ruff` | src/ebpy/measurement/_ruff.py:50 |  |
+| `measure_repository` | src/ebpy/measurement/__init__.py:182 | Measure every independent capability, retaining partial success as data. |
+| `parse_mypy_output` | src/ebpy/measurement/_mypy.py:67 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
+| `parse_ruff_json` | src/ebpy/measurement/_ruff.py:60 |  |
+| `run_mypy_check` | src/ebpy/measurement/_mypy.py:102 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
+| `run_ruff_check` | src/ebpy/measurement/_ruff.py:104 |  |
 
 ## src/ebpy/render
 

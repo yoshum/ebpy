@@ -5,15 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from ebpy import mypy_runner
 from ebpy.cell_key import normalize_analyzer_path
-from ebpy.mypy_runner import (
+from ebpy.measurement import _mypy as mypy_runner
+from ebpy.measurement._mypy import (
     MypyFailedError,
     MypyInvalidOutputError,
     parse_mypy_output,
     run_mypy_check,
 )
-from ebpy.ruff_runner import RuffInvalidOutputError, parse_ruff_json
+from ebpy.measurement._ruff import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
 
 
