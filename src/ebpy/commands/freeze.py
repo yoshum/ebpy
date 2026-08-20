@@ -91,8 +91,9 @@ def _previous_state(artifacts: CeilingArtifacts, force: bool) -> State:
     if force:
         # `--force` pins a complete new contract. Keeping old rules from an unmeasured
         # contract would make the result depend on the contract it claims to replace.
+        # The roster is kept: a forced freeze must still cover every analyzer the old
+        # contract named, or it would drop one it has no runner for rather than refuse.
         state.rules = {}
-        state.frozen_analyzers = ()
     return state
 
 
@@ -107,6 +108,15 @@ def _refusal_reason(
     All three are actionable; none offer a way to freeze around the missing data, because a
     contract that silently omits an analyzer is indistinguishable from one that measured zero.
     """
+    if observation is None:
+        # A contract analyzer this build has no runner for at all — classify() reports it
+        # failed, so there is no tool detail to quote.
+        return "\n".join(
+            [
+                f"{analyzer} is in the contract but this ebpy build has no runner for it.",
+                "Freeze with a build that can measure it, or the ceiling it holds cannot be re-pinned.",
+            ]
+        )
     if status == "unavailable":
         return "\n".join(
             [
@@ -170,10 +180,17 @@ def _build_global_freeze(
     force: bool,
     frozen_at: str,
 ) -> FreezeDecision:
-    """Merge every ANALYZER_NAMES cell into one contract, requiring all to be complete."""
-    observations = {a: measurement.analyzers.get(a) for a in ANALYZER_NAMES}
+    """Merge every in-scope analyzer's cells into one contract, requiring all to be complete.
+
+    The scope is every analyzer this build ships plus every analyzer the contract being
+    replaced already froze. A rostered analyzer this build has no runner for cannot be
+    measured, so it fails the freeze closed rather than being silently dropped — no
+    invocation, `--force` included, removes an analyzer from a contract.
+    """
+    scope = sorted(set(ANALYZER_NAMES) | set(previous.frozen_analyzers))
+    observations = {a: measurement.analyzers.get(a) for a in scope}
     incomplete: list[str] = []
-    for analyzer in sorted(ANALYZER_NAMES):
+    for analyzer in scope:
         obs = observations[analyzer]
         status = classify(obs)
         if status != "complete":
@@ -183,7 +200,7 @@ def _build_global_freeze(
 
     parts: list[CellCounts] = []
     unattributed_reports: list[str] = []
-    for analyzer in sorted(ANALYZER_NAMES):
+    for analyzer in scope:
         obs = observations[analyzer]
         assert isinstance(obs, Measured)
         parts.append(cells_for(obs.value.cells, analyzer))
@@ -191,11 +208,11 @@ def _build_global_freeze(
 
     cells = merge_cells(parts)
     state = copy_state(previous)
-    for analyzer in sorted(ANALYZER_NAMES):
+    for analyzer in scope:
         obs = observations[analyzer]
         assert isinstance(obs, Measured)
         state = replace_analyzer_rules(state, analyzer, rule_totals(cells_for(cells, analyzer)))
-    state.frozen_analyzers = tuple(sorted(ANALYZER_NAMES))
+    state.frozen_analyzers = tuple(scope)
     state.frozen_at = frozen_at
     state = with_phase(state, "drain")
 

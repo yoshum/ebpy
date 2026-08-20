@@ -149,7 +149,9 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
 
 
 def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
-    """`--force` clears rules to pin a new contract — on its own copy, not the on-disk state."""
+    """`--force` clears rules to pin a new contract — on its own copy, not the on-disk state.
+    The roster is preserved so the forced freeze still covers every analyzer the old contract
+    named rather than dropping one it cannot measure."""
     on_disk = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 2}, "freeze")
     on_disk.frozen_analyzers = ("ruff",)
     artifacts = CeilingArtifacts(kind="frozen", cells={}, ledger=Ledger(exists=True, state=on_disk))
@@ -157,7 +159,7 @@ def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
     previous = freeze._previous_state(artifacts, force=True)
 
     assert previous.rules == {}
-    assert previous.frozen_analyzers == ()
+    assert previous.frozen_analyzers == ("ruff",)
     assert on_disk.rules["ruff:F401"].baseline == 2
     assert on_disk.frozen_analyzers == ("ruff",)
 
@@ -310,6 +312,38 @@ def test_force_refuses_an_unavailable_analyzer_because_force_never_shrinks_the_c
         freeze_measurement(empty_state(), {}, measurement, scope=None, force=True, frozen_at=_FROZEN_AT)
 
     assert "Nothing was written" in str(exc_info.value)
+
+
+def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_measure() -> None:
+    """A contract may name an analyzer a newer ebpy froze but this build has no runner for.
+    A global freeze must not silently drop it — that would break "no invocation removes an
+    analyzer" — so an unmeasurable rostered analyzer fails the freeze closed."""
+    previous = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 1}, "freeze")
+    previous.frozen_analyzers = ("pylint", "ruff")
+    previous.frozen_at = _FROZEN_AT
+
+    with pytest.raises(CommandError) as exc_info:
+        freeze_measurement(
+            previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+        )
+
+    message = str(exc_info.value)
+    assert "pylint" in message
+    assert "Nothing was written" in message
+
+
+def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> None:
+    """When every rostered analyzer is measurable, a forced global freeze keeps the full
+    roster rather than narrowing it to this build's default set."""
+    previous = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 9}, "freeze")
+    previous.frozen_analyzers = ("mypy", "ruff")
+    previous.frozen_at = _FROZEN_AT
+
+    decision = freeze_measurement(
+        previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+    )
+
+    assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
 
 
 def test_force_refuses_an_incomplete_analyzer_too() -> None:
