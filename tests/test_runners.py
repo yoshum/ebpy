@@ -204,6 +204,24 @@ def test_mypy_exit_one_with_no_parsed_error_is_invalid_output(
         run_mypy_check(tmp_path)
 
 
+def test_mypy_exit_one_with_an_unlocated_error_line_surfaces_the_real_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """mypy can exit 1 with an error that carries no `:line:` location (a non-blocker
+    emitted with line=-1, e.g. under `follow_imports = error`). The parser attributes no
+    cell to it, but it is a real error, not invalid output — so it must reach the user as
+    an ordinary MypyFailedError carrying the text, not be mistaken for garbled output."""
+    error_line = 'pkg/sub/mod.py: error: Ancestor package "pkg.sub" ignored  [misc]'
+    fatal_mypy(monkeypatch, "", stdout=f"{error_line}\n", code=1)
+
+    with pytest.raises(MypyFailedError) as caught:
+        run_mypy_check(tmp_path)
+
+    assert not isinstance(caught.value, MypyInvalidOutputError)
+    assert error_line in caught.value.detail
+    assert error_line in caught.value.summary
+
+
 def test_mypy_exit_two_discards_parsed_cells_even_with_a_syntax_code(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
