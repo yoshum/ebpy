@@ -491,6 +491,85 @@ def test_scoped_force_replaces_only_the_named_namespace() -> None:
     assert decision.cells == {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
 
 
+def test_a_scoped_freeze_of_a_new_analyzer_says_it_was_added() -> None:
+    """Adding an analyzer not yet in the roster grows the contract, so the verb is "added"."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 3}})
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="mypy",
+        force=False,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "added to the ceiling" in decision.message
+    assert "replaced" not in decision.message
+
+
+def test_a_scoped_re_pin_says_it_replaced_rather_than_added() -> None:
+    """--force --analyzer on an analyzer already in the roster replaces its namespace; the
+    message must not claim it was "added", which would misdescribe a re-pin."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 2}})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "replaced" in decision.message
+    assert "added to the ceiling" not in decision.message
+
+
+def test_a_scoped_re_pin_of_an_all_clean_analyzer_reports_zero_violations() -> None:
+    """Re-pinning an analyzer that now measures clean grandfathers nothing; the totals must
+    reflect the measured namespace, not report a phantom rule."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "0 violations across 0 rules" in decision.message
+    assert "replaced" in decision.message
+
+
 def test_scoped_freeze_refuses_an_analyzer_already_in_the_contract() -> None:
     artifacts = _frozen_artifacts_ruff_only()
 
