@@ -38,7 +38,7 @@ reported findings it could not attribute to a rule. There is no invocation that 
 incomplete analyzer and proceeds.
 
 If an analyzer cannot run, fix the toolchain first — `ebpy bootstrap` can install it. If a file is
-intentionally unparseable (a template, a fixture, a legacy file), add it to `exclude` / 
+intentionally unparseable (a template, a fixture, a legacy file), add it to `exclude` /
 `extend-exclude` in the Ruff config, then re-run.
 
 ## The scope × force contract
