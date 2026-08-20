@@ -672,6 +672,10 @@ def test_scoped_freeze_refuses_an_invalid_pair_even_with_force() -> None:
     precondition = freeze._check_scope_preconditions(artifacts, "mypy", force=True)
 
     assert precondition is not None
+    # An invalid pair cannot be recovered by plain `ebpy freeze`, so the advice
+    # must send the user to `ebpy freeze --force` rather than to a dead end.
+    assert "ebpy freeze --force" in precondition
+    assert "Run `ebpy freeze` first" not in precondition
 
 
 def test_scoped_freeze_keeps_the_global_frozen_at() -> None:
