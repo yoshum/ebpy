@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..lint_report import LintReport, ReportSection
+from ..analysis.lint_report import LintReport, ReportSection
 
 
 def _headline(report: LintReport) -> list[str]:

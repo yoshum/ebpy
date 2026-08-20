@@ -5,12 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..baseline import split_against_baseline
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..measurement import Measured, Measurement, Observation, measure_repository
 from ..models import MYPY_COUNTER, CellCounts, State
-from ..quality_file import write_quality_file
-from ..state import (
+from ..persist.baseline import split_against_baseline
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..persist.state import (
     apply_rule_counts,
     copy_state,
     find_regressions,
@@ -18,6 +17,7 @@ from ..state import (
     total_violations,
     write_state,
 )
+from ..quality_file import write_quality_file
 
 _WORST_SAMPLE = 5
 

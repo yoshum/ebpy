@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import (
+from ebpy.persist.baseline import (
     Ceiling,
     baseline_path,
     parse_cells,

@@ -11,8 +11,8 @@ import re
 import shutil
 from pathlib import Path
 
-from .errors import ToolError
-from .util import run
+from ..errors import ToolError
+from ..util import run
 
 # "path.py:12: error: ..." — counting these rather than trusting the summary line,
 # because the summary is absent under --no-error-summary and localised under others.

@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..persist.state import find_regressions, improvements, state_to_dict, total_violations
 from ..quality_file import freshness_of
-from ..state import find_regressions, improvements, state_to_dict, total_violations
 
 _NEXT_RULE_SAMPLE = 5
 

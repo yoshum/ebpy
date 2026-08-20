@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from .generate.configs import (
+from ..generate.configs import (
     DEPENDABOT_CONTENT,
     GITATTRIBUTES_CONTENT,
     MYPY_INI_CONTENT,
@@ -19,9 +19,9 @@ from .generate.configs import (
     ruff_pyproject_section,
     ruff_toml_content,
 )
-from .generate.workflows import gate_workflow, secret_scan_workflow
-from .models import Diagnosis
-from .package_manager import DEV_INSTALL_PREFIXES
+from ..generate.workflows import gate_workflow, secret_scan_workflow
+from ..models import Diagnosis
+from ..package_manager import DEV_INSTALL_PREFIXES
 
 
 @dataclass(frozen=True)

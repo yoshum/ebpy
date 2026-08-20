@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any
 
-from .models import Suppression
+from ..models import Suppression
 
 # A file within this many violations of clean for one rule is one edit, not a project.
 CHEAP_VIOLATION_LIMIT = 2

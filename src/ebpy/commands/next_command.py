@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..drain_order import build_drain_plan
+from ..analysis.drain_order import build_drain_plan
+from ..analysis.facts import list_source_paths, read_sources
+from ..analysis.fan_in import build_graph, count_importers, importers_of
 from ..errors import CommandError
-from ..facts import list_source_paths, read_sources
-from ..fan_in import build_graph, count_importers, importers_of
 from ..models import Suppression
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..render.next import render_next
 
 

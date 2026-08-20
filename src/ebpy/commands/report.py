@@ -6,12 +6,12 @@ import json
 import os
 from pathlib import Path
 
-from ..baseline import prune_cells, split_against_baseline
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..analysis.lint_report import LintReport, Unmeasured, build_lint_report, matrix_from_cells
 from ..errors import CommandError
-from ..lint_report import LintReport, Unmeasured, build_lint_report, matrix_from_cells
 from ..measurement import Measured, Measurement, measure_repository
 from ..models import MYPY_COUNTER, CellCounts
+from ..persist.baseline import prune_cells, split_against_baseline
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..render.lint_report import render_lint_report
 
 # Actions sets this to a file every job may append markdown to. Writing there is what

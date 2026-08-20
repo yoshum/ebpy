@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
 from ..git import head_commit
 from ..models import LOG_KINDS, LogKind
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..persist.state import append_log, empty_state, write_state
 from ..quality_file import write_quality_file
-from ..state import append_log, empty_state, write_state
 
 LOG_KIND_LIST = " | ".join(LOG_KINDS)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.lint_report import Unmeasured, area_of, build_lint_report, matrix_from_cells
+from ebpy.analysis.lint_report import Unmeasured, area_of, build_lint_report, matrix_from_cells
 from ebpy.render.lint_report import render_lint_report
 
 

@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .git import tracked_files
-from .models import SourceFile, WorkflowFile
+from ..git import tracked_files
+from ..models import SourceFile, WorkflowFile
 
 _SKIPPED_DIRS = {
     ".git",

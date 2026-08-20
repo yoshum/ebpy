@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.catalog import catalog_sources, extract_exports, render_catalog
+from ebpy.analysis.catalog import catalog_sources, extract_exports, render_catalog
 
 
 def test_public_module_level_functions_are_catalogued() -> None:

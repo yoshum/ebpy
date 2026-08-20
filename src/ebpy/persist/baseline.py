@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .models import CellCounts, CellCountsView
+from ..models import CellCounts, CellCountsView
 
 BASELINE_FILE = ".ebpy/baseline.json"
 

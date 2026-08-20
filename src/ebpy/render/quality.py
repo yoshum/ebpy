@@ -6,9 +6,9 @@ is exactly the numbers that moved.
 
 from __future__ import annotations
 
-from ..freshness import Freshness
+from ..analysis.freshness import Freshness
 from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
-from ..state import find_regressions, improvements, log_of_kind, total_violations
+from ..persist.state import find_regressions, improvements, log_of_kind, total_violations
 from .worklist import build_worklist, render_worklist
 
 QUALITY_FILE = "QUALITY.md"

@@ -12,12 +12,12 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.commands.prune import prune_measurement, run_prune
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import MYPY_COUNTER, Counter, LintMeasurement
-from ebpy.state import apply_rule_counts, empty_state, state_path, write_state
+from ebpy.persist.baseline import BASELINE_FILE, baseline_path, write_cells
+from ebpy.persist.state import apply_rule_counts, empty_state, state_path, write_state
 
 
 def test_prune_refuses_when_the_ledger_is_missing(tmp_path: Path) -> None:

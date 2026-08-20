@@ -3,12 +3,12 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from ebpy.analysis.diagnose import diagnose
+from ebpy.analysis.facts import gather_facts
 from ebpy.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.detect.package_manager import detect_package_manager
 from ebpy.detect.sizes import summarize_sizes
 from ebpy.detect.tooling import detect_framework, detect_tooling, mypy_strict_configured
-from ebpy.diagnose import diagnose
-from ebpy.facts import gather_facts
 from ebpy.models import SourceFile, WorkflowFile, diagnosis_from_dict
 
 

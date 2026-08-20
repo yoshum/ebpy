@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from ebpy import mypy_runner
-from ebpy.mypy_runner import MypyFailedError, count_errors, run_mypy_check
-from ebpy.ruff_runner import RuffInvalidOutputError, parse_ruff_json
+from ebpy.measurement import mypy as mypy_runner
+from ebpy.measurement.mypy import MypyFailedError, count_errors, run_mypy_check
+from ebpy.measurement.ruff import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
 
 

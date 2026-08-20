@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import write_cells
 from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import MYPY_COUNTER, Counter, LintMeasurement
-from ebpy.state import apply_rule_counts, empty_state, set_counter, write_state
+from ebpy.persist.baseline import write_cells
+from ebpy.persist.state import apply_rule_counts, empty_state, set_counter, write_state
 
 
 def frozen_state(cwd: Path) -> None:

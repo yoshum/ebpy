@@ -5,17 +5,16 @@ from typing import Any, cast
 
 import pytest
 
-from ebpy import measurement
-from ebpy.measurement import Failed, Measured, Unavailable, measure_repository
+from ebpy.measurement import Failed, Measured, Unavailable, measure_repository, repository
+from ebpy.measurement.mypy import MypyFailedError, MypyNotFoundError
+from ebpy.measurement.ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 from ebpy.models import MYPY_COUNTER, LintMeasurement
-from ebpy.mypy_runner import MypyFailedError, MypyNotFoundError
-from ebpy.ruff_runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lint = LintMeasurement(cells={})
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: lint)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
+    monkeypatch.setattr(repository, "run_ruff_check", lambda _cwd: lint)
+    monkeypatch.setattr(repository, "run_mypy_check", lambda _cwd: 0)
 
     result = measure_repository(tmp_path)
 
@@ -34,8 +33,8 @@ def test_mypy_is_measured_after_ruff_fails(tmp_path: Path, monkeypatch: pytest.M
         calls.append("mypy")
         return 3
 
-    monkeypatch.setattr(measurement, "run_ruff_check", fail_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", run_mypy)
+    monkeypatch.setattr(repository, "run_ruff_check", fail_ruff)
+    monkeypatch.setattr(repository, "run_mypy_check", run_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -51,8 +50,8 @@ def test_unavailable_tools_are_not_reported_as_clean(tmp_path: Path, monkeypatch
     def missing_mypy(_cwd: Path) -> int:
         raise MypyNotFoundError("mypy is not installed here")
 
-    monkeypatch.setattr(measurement, "run_ruff_check", missing_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", missing_mypy)
+    monkeypatch.setattr(repository, "run_ruff_check", missing_ruff)
+    monkeypatch.setattr(repository, "run_mypy_check", missing_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -63,12 +62,12 @@ def test_unavailable_tools_are_not_reported_as_clean(tmp_path: Path, monkeypatch
 def test_mypy_failure_is_distinct_from_mypy_being_unavailable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: LintMeasurement(cells={}))
+    monkeypatch.setattr(repository, "run_ruff_check", lambda _cwd: LintMeasurement(cells={}))
 
     def fail_mypy(_cwd: Path) -> int:
         raise MypyFailedError("mypy failed (exit 2)")
 
-    monkeypatch.setattr(measurement, "run_mypy_check", fail_mypy)
+    monkeypatch.setattr(repository, "run_mypy_check", fail_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -83,8 +82,8 @@ def test_invalid_lint_output_is_distinct_from_tool_execution_failure(
     def invalid_ruff(_cwd: Path) -> LintMeasurement:
         raise RuffInvalidOutputError("ruff produced unparseable output")
 
-    monkeypatch.setattr(measurement, "run_ruff_check", invalid_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
+    monkeypatch.setattr(repository, "run_ruff_check", invalid_ruff)
+    monkeypatch.setattr(repository, "run_mypy_check", lambda _cwd: 0)
 
     result = measure_repository(tmp_path)
 
@@ -97,7 +96,7 @@ def test_invalid_lint_output_is_distinct_from_tool_execution_failure(
 
 def test_the_known_counter_cannot_be_omitted() -> None:
     with pytest.raises(ValueError, match=MYPY_COUNTER):
-        measurement.Measurement(
+        repository.Measurement(
             lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
             counters={},
         )
@@ -105,7 +104,7 @@ def test_the_known_counter_cannot_be_omitted() -> None:
 
 def test_measurement_copies_and_freezes_counter_observations() -> None:
     counters = {MYPY_COUNTER: Measured(tool="mypy", value=3)}
-    result = measurement.Measurement(
+    result = repository.Measurement(
         lint=Measured(tool="ruff", value=LintMeasurement(cells={})),
         counters=counters,
     )
@@ -141,11 +140,11 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
 
         return raise_it
 
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
+    monkeypatch.setattr(repository, "run_mypy_check", lambda _cwd: 0)
 
-    monkeypatch.setattr(measurement, "run_ruff_check", failing("Cause: Failed to parse pyproject.toml"))
+    monkeypatch.setattr(repository, "run_ruff_check", failing("Cause: Failed to parse pyproject.toml"))
     parse_failure = measure_repository(tmp_path).lint
-    monkeypatch.setattr(measurement, "run_ruff_check", failing("Cause: Unknown rule selector `NOPE999`"))
+    monkeypatch.setattr(repository, "run_ruff_check", failing("Cause: Unknown rule selector `NOPE999`"))
     selector_failure = measure_repository(tmp_path).lint
 
     assert parse_failure != selector_failure
@@ -159,8 +158,8 @@ def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: p
             "head: first cause", detail="head:\n  Cause: first\n  Cause: deeper\n  detail line"
         )
 
-    monkeypatch.setattr(measurement, "run_ruff_check", raise_it)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
+    monkeypatch.setattr(repository, "run_ruff_check", raise_it)
+    monkeypatch.setattr(repository, "run_mypy_check", lambda _cwd: 0)
 
     lint = cast(Failed, measure_repository(tmp_path).lint)
 
@@ -176,13 +175,13 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     def raise_it(_cwd: Path) -> LintMeasurement:
         raise RuffFailedError("flooded", detail=flood)
 
-    monkeypatch.setattr(measurement, "run_ruff_check", raise_it)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: 0)
+    monkeypatch.setattr(repository, "run_ruff_check", raise_it)
+    monkeypatch.setattr(repository, "run_mypy_check", lambda _cwd: 0)
 
     lint = cast(Failed, measure_repository(tmp_path).lint)
 
     assert lint.detail.splitlines()[-1] == "... (truncated)"
-    assert len(lint.detail.splitlines()) == measurement._DETAIL_LINES + 1
+    assert len(lint.detail.splitlines()) == repository._DETAIL_LINES + 1
 
 
 def test_an_observation_without_a_summary_falls_back_to_its_first_line() -> None:

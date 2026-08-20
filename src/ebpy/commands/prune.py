@@ -5,19 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..baseline import prune_cells, rule_totals, write_cells
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..errors import CommandError
 from ..measurement import Measured, Measurement, measure_repository
 from ..models import MYPY_COUNTER, CellCounts, State
-from ..quality_file import write_quality_file
-from ..state import (
+from ..persist.baseline import prune_cells, rule_totals, write_cells
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..persist.state import (
     apply_rule_counts,
     copy_state,
     set_counter,
     total_violations,
     write_state,
 )
+from ..quality_file import write_quality_file
 
 NO_FROZEN_CEILING = "\n".join(
     [

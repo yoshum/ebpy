@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from ..models import CellCounts, State
 from .baseline import Ceiling, read_ceiling, rule_totals
-from .models import CellCounts, State
 from .state import Ledger, read_ledger
 
 ArtifactKind = Literal["fresh", "frozen", "invalid"]

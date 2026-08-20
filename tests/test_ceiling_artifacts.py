@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ebpy.baseline import write_cells
-from ebpy.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.models import Counter
-from ebpy.state import apply_rule_counts, empty_state, write_state
+from ebpy.persist.baseline import write_cells
+from ebpy.persist.ceiling_artifacts import read_ceiling_artifacts
+from ebpy.persist.state import apply_rule_counts, empty_state, write_state
 
 
 def frozen_state(cwd: Path, rules: dict[str, int] | None = None) -> None:

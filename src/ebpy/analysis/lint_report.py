@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .models import CellCountsView
+from ..models import CellCountsView
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"

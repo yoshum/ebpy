@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from ebpy.freshness import FreshnessInput, assess_freshness
+from ebpy.analysis.freshness import FreshnessInput, assess_freshness
 
 NOW = datetime(2026, 8, 17, tzinfo=UTC)
 

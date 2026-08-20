@@ -3,10 +3,10 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from ebpy.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.analysis.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.analysis.diagnose import diagnose
+from ebpy.analysis.facts import gather_facts
 from ebpy.detect.ci import unpinned_actions
-from ebpy.diagnose import diagnose
-from ebpy.facts import gather_facts
 from ebpy.generate.configs import (
     DEPENDABOT_CONTENT,
     python_version_from_requires,

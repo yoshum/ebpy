@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..diagnose import diagnose
+from ..analysis.diagnose import diagnose
+from ..analysis.facts import gather_facts
 from ..errors import CommandError
-from ..facts import gather_facts
 from ..git import head_commit
+from ..persist.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..persist.state import empty_state, with_diagnosis, write_state
 from ..quality_file import write_quality_file
 from ..render.report import render_diagnosis
-from ..state import empty_state, with_diagnosis, write_state
 
 
 def run_diagnose(cwd: Path, as_json: bool, write: bool) -> str:

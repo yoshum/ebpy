@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from ebpy.models import MYPY_COUNTER, Counter, RuleBaseline
-from ebpy.state import (
+from ebpy.persist.state import (
     Ledger,
     append_log,
     apply_rule_counts,
