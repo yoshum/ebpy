@@ -7,8 +7,10 @@
 ### Breaking Changes
 
 - Baseline and state files are now **version 2**. Rule IDs are namespaced: `ruff:F401`,
-  `mypy:arg-type`. Version 1 artifacts are no longer read: a repository frozen with an earlier
-  ebpy reads as invalid, and its contract must be re-pinned with `ebpy freeze --force`.
+  `mypy:arg-type`. Version 1 artifacts are no longer read: a version-1 repository is named as an old
+  format rather than corruption, and its contract must be re-pinned with `ebpy freeze --force`.
+  Re-pinning discards more than the ceiling — the work log, the last diagnosis and the commit it was
+  taken at are lost as well, since a forced freeze starts from an empty state.
 
 - mypy is now gated per file per rule, not as a global total. A type error moving from one file to
   another fails `check` even when the repository-wide count is unchanged.

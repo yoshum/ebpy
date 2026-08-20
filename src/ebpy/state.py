@@ -46,10 +46,17 @@ MAX_LOG_ENTRIES = 200
 
 @dataclass(frozen=True)
 class Ledger:
-    """Whether the state file exists, and the state it holds when readable."""
+    """Whether the state file exists, and the state it holds when readable.
+
+    `legacy_version` records a schema version this ebpy no longer reads (only 1 so far). It is
+    the difference between "an ebpy wrote this in a format we retired" and "these bytes are
+    corrupt" — two facts that must never render the same. It is set only when the file parses
+    as JSON and names an old version; genuinely unreadable bytes leave it None.
+    """
 
     exists: bool
     state: State | None
+    legacy_version: int | None = None
 
 
 def _now() -> str:
@@ -211,7 +218,21 @@ def read_ledger(cwd: Path) -> Ledger:
     except (OSError, UnicodeError, json.JSONDecodeError):
         return Ledger(exists=True, state=None)
     state = state_from_dict(raw) if isinstance(raw, dict) else None
-    return Ledger(exists=True, state=state)
+    return Ledger(exists=True, state=state, legacy_version=_legacy_version(raw))
+
+
+def _legacy_version(raw: Any) -> int | None:
+    """The schema version of a state.json this ebpy can no longer read, or None.
+
+    Only a file that parses as JSON and names an integer version below the current one counts
+    as legacy — that is a format we retired, distinct from bytes that never parsed at all.
+    """
+    if not isinstance(raw, dict):
+        return None
+    version = raw.get("version")
+    if type(version) is int and version < 2:
+        return version
+    return None
 
 
 def write_state(cwd: Path, state: State) -> None:
