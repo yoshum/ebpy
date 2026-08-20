@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ..diagnose import diagnose
-from ..facts import gather_facts
+from ..repo.facts import gather_facts
 from ..util import run
 
 

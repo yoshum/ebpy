@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .util import run
+from ..util import run
 
 _SHA = re.compile(r"^[0-9a-f]{7,40}$")
 

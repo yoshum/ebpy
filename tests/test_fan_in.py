@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.fan_in import build_graph, count_importers, importers_of
+from ebpy.repo.fan_in import build_graph, count_importers, importers_of
 
 
 def test_absolute_imports_resolve_onto_the_repo_layout() -> None:

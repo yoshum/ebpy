@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..catalog import CatalogEntry, catalog_sources, extract_exports, render_catalog
-from ..facts import list_source_paths, read_sources
+from ..repo.facts import list_source_paths, read_sources
 
 CATALOG_FILE = "docs/shared-helpers.md"
 

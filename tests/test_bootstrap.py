@@ -4,9 +4,7 @@ import tomllib
 from pathlib import Path
 
 from ebpy.bootstrap_plan import BootstrapPlan, build_plan, render_plan
-from ebpy.detect.ci import unpinned_actions
 from ebpy.diagnose import diagnose
-from ebpy.facts import gather_facts
 from ebpy.generate.configs import (
     DEPENDABOT_CONTENT,
     python_version_from_requires,
@@ -20,6 +18,8 @@ from ebpy.generate.workflows import (
     secret_scan_workflow,
 )
 from ebpy.models import WorkflowFile
+from ebpy.repo.detect.ci import unpinned_actions
+from ebpy.repo.facts import gather_facts
 
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:

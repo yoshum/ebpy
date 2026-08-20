@@ -3,13 +3,13 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from ebpy.detect.ci import detect_ci, missing_runners, unpinned_actions
-from ebpy.detect.package_manager import detect_package_manager
-from ebpy.detect.sizes import summarize_sizes
-from ebpy.detect.tooling import detect_framework, detect_tooling, mypy_strict_configured
 from ebpy.diagnose import diagnose
-from ebpy.facts import gather_facts
 from ebpy.models import SourceFile, WorkflowFile, diagnosis_from_dict
+from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
+from ebpy.repo.detect.package_manager import detect_package_manager
+from ebpy.repo.detect.sizes import summarize_sizes
+from ebpy.repo.detect.tooling import detect_framework, detect_tooling, mypy_strict_configured
+from ebpy.repo.facts import gather_facts
 
 
 def toml(text: str) -> dict[str, object]:

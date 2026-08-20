@@ -6,12 +6,12 @@ missing absolutely everything is the normal input here, not an error case.
 
 from __future__ import annotations
 
-from .detect.ci import detect_ci, missing_runners
-from .detect.package_manager import detect_package_manager
-from .detect.sizes import DEFAULT_FILE_LINE_LIMIT, summarize_sizes
-from .detect.tooling import detect_framework, detect_tooling, requires_python
-from .facts import RepoFacts
 from .models import CiCoverage, Diagnosis, Gap, SizeDistribution, ToolingPresence
+from .repo.detect.ci import detect_ci, missing_runners
+from .repo.detect.package_manager import detect_package_manager
+from .repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT, summarize_sizes
+from .repo.detect.tooling import detect_framework, detect_tooling, requires_python
+from .repo.facts import RepoFacts
 
 # Enough to recognise the workflow they live in; the rest is a count, not a wall of refs.
 _ACTIONS_NAMED = 3

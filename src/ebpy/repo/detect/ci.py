@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from ..models import CiCoverage, WorkflowFile
+from ...models import CiCoverage, WorkflowFile
 
 # `latest` or a version (`22.04`, `13`, `2022`). Loosening the suffix to any word would
 # match workflow FILENAMES like `windows-daily.yaml` and report a runner never used.

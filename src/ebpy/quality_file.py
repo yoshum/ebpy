@@ -6,9 +6,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .freshness import Freshness, FreshnessInput, assess_freshness
-from .git import commits_since, head_commit
 from .models import State
 from .render.quality import QUALITY_FILE, extract_notes, render_quality
+from .repo.git import commits_since, head_commit
 
 
 def freshness_of(cwd: Path, state: State) -> Freshness:

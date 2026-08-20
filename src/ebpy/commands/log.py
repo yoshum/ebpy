@@ -10,9 +10,9 @@ from pathlib import Path
 
 from ..cell_key import is_rule_id
 from ..errors import CommandError
-from ..git import head_commit
 from ..models import LOG_KINDS, LogKind
 from ..quality_file import write_quality_file
+from ..repo.git import head_commit
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import append_log, empty_state, write_state
 

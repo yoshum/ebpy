@@ -7,10 +7,10 @@ from pathlib import Path
 
 from ..drain_order import build_drain_plan
 from ..errors import CommandError
-from ..facts import list_source_paths, read_sources
-from ..fan_in import build_graph, count_importers, importers_of
 from ..models import Suppression
 from ..render.next import render_next
+from ..repo.facts import list_source_paths, read_sources
+from ..repo.fan_in import build_graph, count_importers, importers_of
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 
 

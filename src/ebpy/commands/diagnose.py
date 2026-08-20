@@ -7,10 +7,10 @@ from pathlib import Path
 
 from ..diagnose import diagnose
 from ..errors import CommandError
-from ..facts import gather_facts
-from ..git import head_commit
 from ..quality_file import write_quality_file
 from ..render.report import render_diagnosis
+from ..repo.facts import gather_facts
+from ..repo.git import head_commit
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import empty_state, with_diagnosis, write_state
 

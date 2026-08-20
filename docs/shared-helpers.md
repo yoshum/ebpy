@@ -16,34 +16,24 @@ notices once the copies are textually similar — and independently written ones
 | `area_of` | src/ebpy/analysis_report.py:33 |  |
 | `assess_freshness` | src/ebpy/freshness.py:45 |  |
 | `build_drain_plan` | src/ebpy/drain_order.py:157 |  |
-| `build_graph` | src/ebpy/fan_in.py:94 | File -> the project files it imports. |
 | `build_parser` | src/ebpy/cli.py:62 |  |
 | `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
 | `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
-| `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
-| `count_importers` | src/ebpy/fan_in.py:114 |  |
 | `diagnose` | src/ebpy/diagnose.py:177 |  |
 | `diagnosis_from_dict` | src/ebpy/models.py:158 |  |
 | `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
-| `gather_facts` | src/ebpy/facts.py:111 |  |
-| `head_commit` | src/ebpy/git.py:25 |  |
 | `heaviest_files` | src/ebpy/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
-| `importers_of` | src/ebpy/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
 | `interpret_gitleaks` | src/ebpy/secret_scan.py:65 |  |
 | `is_analyzer_name` | src/ebpy/cell_key.py:19 |  |
-| `is_git_repository` | src/ebpy/git.py:13 | Whether there is a history here at all. |
 | `is_rule_id` | src/ebpy/cell_key.py:56 | The total predicate persistence readers use on untrusted JSON: never raises. |
-| `list_all_files` | src/ebpy/facts.py:64 |  |
-| `list_source_paths` | src/ebpy/facts.py:78 |  |
 | `main` | src/ebpy/cli.py:214 |  |
 | `matrix_from_cells` | src/ebpy/analysis_report.py:112 |  |
 | `normalize_analyzer_path` | src/ebpy/cell_key.py:61 | Normalize a path an analyzer reported into the form a stored cell key uses. |
 | `qualify_rule` | src/ebpy/cell_key.py:23 |  |
-| `read_sources` | src/ebpy/facts.py:82 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
 | `render_plan` | src/ebpy/bootstrap_plan.py:142 |  |
 | `report_from_measurement` | src/ebpy/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
@@ -51,7 +41,6 @@ notices once the copies are textually similar — and independently written ones
 | `run` | src/ebpy/util.py:17 |  |
 | `split_rule` | src/ebpy/cell_key.py:44 | Split on the first colon only, so a local code may itself contain colons. |
 | `totals_of` | src/ebpy/drain_order.py:85 |  |
-| `tracked_files` | src/ebpy/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
 | `write_quality_file` | src/ebpy/quality_file.py:27 |  |
 
 ## src/ebpy/commands
@@ -75,21 +64,6 @@ notices once the copies are textually similar — and independently written ones
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
 | `run_status` | src/ebpy/commands/status.py:16 |  |
-
-## src/ebpy/detect
-
-| Helper | Where | What it does |
-| --- | --- | --- |
-| `detect_ci` | src/ebpy/detect/ci.py:41 |  |
-| `detect_framework` | src/ebpy/detect/tooling.py:135 |  |
-| `detect_package_manager` | src/ebpy/detect/package_manager.py:20 |  |
-| `detect_tooling` | src/ebpy/detect/tooling.py:89 |  |
-| `has_ruff_config` | src/ebpy/detect/tooling.py:70 |  |
-| `missing_runners` | src/ebpy/detect/ci.py:57 |  |
-| `mypy_strict_configured` | src/ebpy/detect/tooling.py:78 |  |
-| `requires_python` | src/ebpy/detect/tooling.py:143 |  |
-| `summarize_sizes` | src/ebpy/detect/sizes.py:16 |  |
-| `unpinned_actions` | src/ebpy/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
 
 ## src/ebpy/generate
 
@@ -125,6 +99,37 @@ notices once the copies are textually similar — and independently written ones
 | `render_next` | src/ebpy/render/next.py:76 |  |
 | `render_quality` | src/ebpy/render/quality.py:186 |  |
 | `render_worklist` | src/ebpy/render/worklist.py:78 |  |
+
+## src/ebpy/repo
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `build_graph` | src/ebpy/repo/fan_in.py:94 | File -> the project files it imports. |
+| `commits_since` | src/ebpy/repo/git.py:36 | How far the repository has moved since a diagnosis. |
+| `count_importers` | src/ebpy/repo/fan_in.py:114 |  |
+| `gather_facts` | src/ebpy/repo/facts.py:111 |  |
+| `head_commit` | src/ebpy/repo/git.py:25 |  |
+| `importers_of` | src/ebpy/repo/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
+| `is_git_repository` | src/ebpy/repo/git.py:13 | Whether there is a history here at all. |
+| `list_all_files` | src/ebpy/repo/facts.py:64 |  |
+| `list_source_paths` | src/ebpy/repo/facts.py:78 |  |
+| `read_sources` | src/ebpy/repo/facts.py:82 |  |
+| `tracked_files` | src/ebpy/repo/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
+
+## src/ebpy/repo/detect
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `detect_ci` | src/ebpy/repo/detect/ci.py:41 |  |
+| `detect_framework` | src/ebpy/repo/detect/tooling.py:135 |  |
+| `detect_package_manager` | src/ebpy/repo/detect/package_manager.py:20 |  |
+| `detect_tooling` | src/ebpy/repo/detect/tooling.py:89 |  |
+| `has_ruff_config` | src/ebpy/repo/detect/tooling.py:70 |  |
+| `missing_runners` | src/ebpy/repo/detect/ci.py:57 |  |
+| `mypy_strict_configured` | src/ebpy/repo/detect/tooling.py:78 |  |
+| `requires_python` | src/ebpy/repo/detect/tooling.py:143 |  |
+| `summarize_sizes` | src/ebpy/repo/detect/sizes.py:16 |  |
+| `unpinned_actions` | src/ebpy/repo/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
 
 ## src/ebpy/store
 

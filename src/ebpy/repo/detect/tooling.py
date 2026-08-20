@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..models import Framework, ToolingPresence
+from ...models import Framework, ToolingPresence
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
