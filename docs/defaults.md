@@ -90,6 +90,16 @@ mypy . --no-error-summary --show-error-codes --no-pretty --no-color-output
 `--no-pretty` keeps each finding on one line. `--no-color-output` prevents ANSI escapes from
 appearing in rule codes or messages.
 
+The positional `.` is dropped when the repository's own mypy config already names a check target —
+`files`, `packages` or `modules` in `[tool.mypy]`, or the `[mypy]` section of `mypy.ini` /
+`.mypy.ini` / `setup.cfg`. mypy ignores a config's target selection the moment it receives a
+positional argument, so passing `.` would measure files the repository deliberately excluded and
+bake them into `.ebpy/baseline.json`, a ceiling no developer running plain `mypy` could reproduce.
+ebpy reads the same config file mypy would, in mypy's own search order, and defers to it. If that
+config points at paths outside the repository (e.g. `files = ["../shared"]`), the reported paths
+cannot be made repository-relative, so the measurement is refused rather than written as a
+host-dependent baseline.
+
 This is only ever written into a repository that had **no** mypy config. Turning `strict` on over an
 existing loose config is a *tighten* step, done deliberately with the count measured first — so
 `diagnose` reports it as a gap and bootstrap leaves it alone.

@@ -7,9 +7,12 @@ with lint violations instead of being tracked as a single undifferentiated total
 
 from __future__ import annotations
 
+import configparser
 import re
 import shutil
-from pathlib import Path
+import tomllib
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from ..cell_key import normalize_analyzer_path, qualify_rule
 from ..errors import ToolError
@@ -64,6 +67,67 @@ def find_mypy(cwd: Path) -> list[str] | None:
     return [on_path] if on_path else None
 
 
+# The keys by which a mypy config names its own check target. Any one of them makes the
+# config self-sufficient about what to check, so a positional `.` would only override it.
+_SELECTION_KEYS = ("files", "packages", "modules")
+
+# mypy's own config-file search order (relative to cwd): the first that exists and carries
+# a mypy section wins, and later files are never consulted. Matching that order here means
+# ebpy reads the same file mypy would, not a different one that happens to sort first.
+_CONFIG_FILES = ("mypy.ini", ".mypy.ini", "pyproject.toml", "setup.cfg")
+
+
+def _toml_selects_target(text: str) -> bool | None:
+    """Whether `[tool.mypy]` in a pyproject names a check target; None if there is no table."""
+    try:
+        data: Any = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return None
+    table = ((data.get("tool") or {}).get("mypy")) if isinstance(data, dict) else None
+    if not isinstance(table, dict):
+        return None
+    return any(key in table for key in _SELECTION_KEYS)
+
+
+def _ini_selects_target(text: str, section: str) -> bool | None:
+    """Whether an ini `section` names a check target; None if the section is absent."""
+    parser = configparser.ConfigParser()
+    try:
+        parser.read_string(text)
+    except configparser.Error:
+        return None
+    if not parser.has_section(section):
+        return None
+    return any(parser.has_option(section, key) for key in _SELECTION_KEYS)
+
+
+def config_selects_target(cwd: Path) -> bool:
+    """Whether the repo's own mypy config already names the files, packages or modules to check.
+
+    When it does, passing a positional `.` would make mypy ignore that selection entirely and
+    walk the whole tree, so files the repository deliberately excluded would be measured and
+    baked into `.ebpy/baseline.json` — a ceiling no developer running plain `mypy` could
+    reproduce. Reading the same config file mypy would, in mypy's own search order, lets ebpy
+    defer to the selection instead of overriding it.
+    """
+    for name in _CONFIG_FILES:
+        path = cwd / name
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if name == "pyproject.toml":
+            selects = _toml_selects_target(text)
+        else:
+            # `.mypy.ini` and `mypy.ini` carry the global options under `[mypy]`; `setup.cfg`
+            # under `[mypy]` too. mypy stops at the first file with a mypy section, so a file
+            # present but without one is skipped rather than treated as an empty selection.
+            selects = _ini_selects_target(text, "mypy")
+        if selects is not None:
+            return selects
+    return False
+
+
 def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     """Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace."""
     cells: CellCounts = {}
@@ -77,6 +141,15 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
             # disappear from the count, which is worse than refusing to measure at all.
             raise MypyInvalidOutputError(f"mypy produced an unparseable error line: {line!r}")
         file = normalize_analyzer_path(match["file"], cwd)
+        if PurePosixPath(file).is_absolute():
+            # A finding mypy reported for a path outside cwd — a config whose files/packages
+            # points at, say, `../shared`. normalize_analyzer_path keeps it absolute, so the
+            # cell key would embed this host's directory layout and no other machine could
+            # reproduce the ceiling. Refuse rather than write a host-dependent baseline.
+            raise MypyInvalidOutputError(
+                f"mypy reported a finding outside the repository ({file!r}); a config that checks "
+                "paths outside the repository cannot produce a reproducible baseline"
+            )
         rule = qualify_rule("mypy", match["code"])
         seen_files.add(file)
         file_cells = cells.setdefault(file, {})
@@ -106,11 +179,14 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
         raise MypyNotFoundError(
             "mypy is not installed here (looked in .venv, venv and PATH). Run `ebpy bootstrap` first."
         )
+    # A positional target makes mypy ignore the config's own files/packages/modules
+    # selection, so it is passed only when the config names no target of its own.
+    target = [] if config_selects_target(cwd) else ["."]
     try:
         result = run(
             [
                 *argv,
-                ".",
+                *target,
                 "--no-error-summary",  # drops a localised trailer that is not itself a finding
                 "--show-error-codes",  # overrides a repo's own `hide_error_codes = true`
                 "--no-pretty",  # keeps one finding on one line, so the parser can line-match it
