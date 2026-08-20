@@ -381,13 +381,69 @@ def test_the_unavailable_refusal_points_at_bootstrap() -> None:
     assert "bootstrap" in str(exc_info.value)
 
 
-def test_scoped_freeze_is_refused_on_a_fresh_pair() -> None:
+def test_scoped_freeze_is_allowed_on_a_fresh_pair() -> None:
+    """A fresh pair has no contract to preserve, so `freeze --analyzer NAME` is the
+    staged-adoption path: it builds a narrow contract holding only NAME from the start."""
     artifacts = _fresh_artifacts()
 
     precondition = freeze._check_scope_preconditions(artifacts, "mypy", force=False)
 
-    assert precondition is not None
-    assert "freeze" in precondition.lower()
+    assert precondition is None
+
+
+def test_scoped_freeze_on_a_fresh_pair_builds_a_narrow_contract() -> None:
+    """The first freeze can be scoped: a repository whose toolchain is incomplete pins only
+    the analyzer it can measure, stamping frozen_at and advancing to drain so the pair is a
+    valid frozen contract — the narrow roster the check and render machinery expect."""
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 2}}),
+            ),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+
+    decision = freeze_measurement(
+        empty_state(),
+        {},
+        measurement,
+        scope="ruff",
+        force=False,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert decision.state.frozen_analyzers == ("ruff",)
+    assert "mypy" not in decision.state.frozen_analyzers
+    assert decision.state.frozen_at == _FROZEN_AT
+    assert decision.state.phase == "drain"
+    assert decision.cells == {"src/a.py": {"ruff:F401": 2}}
+
+
+def test_scoped_freeze_on_a_fresh_pair_yields_a_valid_frozen_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Driving the whole command on a fresh repository with `--analyzer` writes a pair that
+    reads back as a valid frozen contract, not an invalid half-freeze."""
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}}),
+            ),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    run_freeze(tmp_path, force=False, analyzer="ruff")
+
+    artifacts = read_ceiling_artifacts(tmp_path)
+    assert artifacts.kind == "frozen"
+    assert artifacts.ledger.state is not None
+    assert artifacts.ledger.state.frozen_analyzers == ("ruff",)
 
 
 def test_scoped_freeze_ignores_another_analyzers_failure() -> None:

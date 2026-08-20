@@ -117,9 +117,9 @@ def _init_repo(tmp_path: Path) -> Path:
 def _write_ruff_only_v2_artifacts(repo: Path) -> None:
     """Write a frozen artifact pair covering only the ruff namespace.
 
-    The normal CLI cannot produce a ruff-only contract because ANALYZER_NAMES always
-    includes mypy; this helper writes the state a scoped freeze is meant to extend — a
-    contract pinned while mypy could not be measured.
+    A ruff-only contract is also what `freeze --analyzer ruff` produces on a fresh pair;
+    writing it directly keeps this fixture independent of that path, since the scoped freeze
+    would re-measure the tree rather than pin these exact cells.
     """
     ruff_cells: dict[str, dict[str, int]] = {"src/app.py": {"ruff:F401": 1}}
     write_cells(repo, ruff_cells)
@@ -230,8 +230,8 @@ def test_a_ruff_only_contract_accepts_a_scoped_mypy_freeze_without_moving_ruff_c
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "initial")
 
-    # The CLI cannot produce a ruff-only contract because ANALYZER_NAMES always includes
-    # mypy; write the artifacts directly (same shape a migrated v1 pair would produce).
+    # A ruff-only contract with these exact pinned cells; written directly so the test
+    # controls the starting ceiling rather than re-measuring the tree.
     _write_ruff_only_v2_artifacts(repo)
 
     # Snapshot the ruff cells before the scoped freeze.
@@ -283,10 +283,15 @@ def test_a_repository_with_an_unparseable_file_cannot_be_frozen_by_any_invocatio
     assert not (repo / ".ebpy" / "baseline.json").exists()
 
 
-def test_a_repository_without_mypy_installed_cannot_be_frozen_by_any_invocation(
+def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """freeze and freeze --force both refuse when mypy is not installed.
+
+    A global freeze covers every analyzer this build ships, so a missing mypy fails it closed:
+    a contract that silently omits an analyzer is indistinguishable from one that measured zero.
+    The scoped escape (`freeze --analyzer ruff`) is a separate, deliberate narrowing, covered
+    below.
 
     The suite's module-level skipif guard ensures mypy IS on PATH when the suite runs,
     so absence is simulated by monkeypatching ``find_mypy`` in ``ebpy.measurement._mypy`` to
@@ -301,9 +306,41 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_any_invocation(
 
     monkeypatch.setattr("ebpy.measurement._mypy.find_mypy", lambda _cwd: None)
 
-    # Neither freeze nor force re-pin must succeed without mypy.
+    # Neither global freeze must succeed without mypy.
     assert run(repo, "freeze") == 1
     assert run(repo, "freeze", "--force") == 1
 
     # Nothing should have been written.
     assert not (repo / ".ebpy" / "baseline.json").exists()
+
+
+def test_a_scoped_ruff_freeze_builds_a_narrow_contract_when_mypy_is_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """freeze --analyzer ruff pins a ruff-only contract on a repository without mypy, then
+    check gates ruff alone and names mypy as an unratcheted, configured analyzer.
+
+    This is the staged-adoption path: a repository whose toolchain is incomplete freezes what
+    it can measure today. mypy absence is simulated as in the global-refusal test above.
+    """
+    repo = _init_repo(tmp_path)
+    (repo / "src" / "app.py").write_text(DIRTY_BOTH, encoding="utf-8")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "initial")
+
+    monkeypatch.setattr("ebpy.measurement._mypy.find_mypy", lambda _cwd: None)
+
+    # A scoped ruff freeze succeeds where the global one is refused.
+    assert run(repo, "freeze", "--analyzer", "ruff") == 0
+
+    state = json.loads((repo / ".ebpy" / "state.json").read_text(encoding="utf-8"))
+    assert state["frozenAnalyzers"] == ["ruff"]
+
+    baseline = json.loads((repo / ".ebpy" / "baseline.json").read_text(encoding="utf-8"))
+    cells: dict[str, Any] = baseline["cells"].get("src/app.py", {})
+    assert [k for k in cells if k.startswith("ruff:")], "expected a ruff: cell in the narrow contract"
+    assert not [k for k in cells if k.startswith("mypy:")], "narrow contract must hold no mypy cells"
+
+    # The narrow contract gates on ruff alone: today's ruff findings match the ceiling, so
+    # check passes even though mypy is not in the contract.
+    assert run(repo, "check") == 0
