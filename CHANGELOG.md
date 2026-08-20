@@ -2,6 +2,71 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-08-20)
+
+### Bug Fixes
+
+- **artifacts**: Name a version-1 repository as an old format, not corruption
+  ([`682d7e2`](https://github.com/yoshum/ebpy/commit/682d7e245496fd78256778c8cb03056be2c10d91))
+
+- **cell_key**: Reject a malformed v1 rule key instead of forging an id
+  ([`425e667`](https://github.com/yoshum/ebpy/commit/425e6675f782a8573821e224980d4be24ed8f376))
+
+- **cell_key**: Relativize a host-absolute path on any OS
+  ([`a8a64ae`](https://github.com/yoshum/ebpy/commit/a8a64aee29493e08d45d666ec0d017a9c04bcb98))
+
+- **check**: Point excess recovery at a scoped re-freeze
+  ([`f7dd93e`](https://github.com/yoshum/ebpy/commit/f7dd93e2d317d154bbd5405da67eccb0c37b7d36))
+
+- **freeze**: Keep an unmeasurable rostered analyzer instead of dropping it
+  ([`98630f9`](https://github.com/yoshum/ebpy/commit/98630f9d10f80454fcdd3725e13a1dec6e77174d))
+
+- **freeze**: Stop telling a mypy syntax error to edit Ruff config
+  ([`14a22f4`](https://github.com/yoshum/ebpy/commit/14a22f4639b75c08e27b94c95f81700c37dc8a00))
+
+- **mypy**: Stop a note line spelling an error from refusing the run
+  ([`e6dbd64`](https://github.com/yoshum/ebpy/commit/e6dbd64ec5116e2a69ee394e7b60a588baf9c06e))
+
+- **prune**: Drop a fully-fixed rule from the ledger, not just the baseline
+  ([`a39880f`](https://github.com/yoshum/ebpy/commit/a39880f52676f0a72758778fcbcf50139d701e0f))
+
+- **report**: Name the unparsed files of an incomplete analyzer
+  ([`5f37237`](https://github.com/yoshum/ebpy/commit/5f37237e83e64a23090c18f45e7932837e27bcdb))
+
+- **report**: Show an out-of-contract analyzer's failure reason in Markdown
+  ([`26f2426`](https://github.com/yoshum/ebpy/commit/26f2426f0362581a84093b068530ca8b92d575df))
+
+### Documentation
+
+- Describe analyzers, namespaced rules and the v2 artifacts
+  ([`589aeb0`](https://github.com/yoshum/ebpy/commit/589aeb07b5cc66d7a396f1277e791edc1d2d107e))
+
+- **model**: Describe mypy as per-cell ratcheting, not a global counter
+  ([`e20167e`](https://github.com/yoshum/ebpy/commit/e20167ee6cd89b48f896ee0cd13c534db53755b9))
+
+### Features
+
+- **analyzers**: Model mypy as namespaced analyzer cells
+  ([`8f06ebd`](https://github.com/yoshum/ebpy/commit/8f06ebdc793b12c08a605cc140964d7122d2c2e4))
+
+- **cells**: Add rule-ID namespace and analyzer path helpers
+  ([`e12753b`](https://github.com/yoshum/ebpy/commit/e12753ba1517bead3f8b0376f2a40d3a9a9cb589))
+
+- **mypy**: Parse mypy text output into namespaced cells
+  ([`f4ccc29`](https://github.com/yoshum/ebpy/commit/f4ccc29a1a91920b21dfc15f7ddda04a9a6a0241))
+
+### Refactoring
+
+- **freeze**: Use analyzer_of to strip a scoped namespace
+  ([`ac09b89`](https://github.com/yoshum/ebpy/commit/ac09b891c9e41d5867bc5e3c009912a59325dff1))
+
+- **models**: Rename LintMeasurement to AnalysisMeasurement
+  ([`7dfc090`](https://github.com/yoshum/ebpy/commit/7dfc09095afbb34a641e64dbc51dd31c32700286))
+
+- **state**: Drop version-1 artifact reading
+  ([`a1af0aa`](https://github.com/yoshum/ebpy/commit/a1af0aa93af223263634363bd7319858c8de9532))
+
+
 ## Unreleased
 
 ### Breaking Changes

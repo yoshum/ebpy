@@ -7,4 +7,4 @@ grandfathered and new code is held to the whole rule set — and the ceiling can
 fall but never rise.
 """
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"

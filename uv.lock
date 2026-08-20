@@ -291,7 +291,7 @@ wheels = [
 
 [[package]]
 name = "ebpy"
-version = "0.3.2"
+version = "0.4.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
