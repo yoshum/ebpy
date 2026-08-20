@@ -9,7 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .baseline import (
+from ..measurement import AnalyzerStatus, Measured, Measurement, classify
+from ..models import CellCounts, CellCountsView, UnattributedFinding
+from ..store.baseline import (
     cells_for,
     finding_total,
     merge_cells,
@@ -17,8 +19,6 @@ from .baseline import (
     rule_totals,
     split_against_baseline,
 )
-from .measurement import AnalyzerStatus, Measured, Measurement, classify
-from .models import CellCounts, CellCountsView, UnattributedFinding
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..bootstrap_plan import BootstrapPlan, build_plan, render_plan
-from ..diagnose import diagnose
-from ..facts import gather_facts
+from ..decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ..decide.diagnose import diagnose
+from ..repo.facts import gather_facts
 from ..util import run
 
 

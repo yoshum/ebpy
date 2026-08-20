@@ -12,10 +12,10 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .cell_key import normalize_analyzer_path, qualify_rule
-from .errors import ToolError
-from .models import AnalysisMeasurement, CellCounts, UnattributedFinding
-from .util import run
+from ..cell_key import normalize_analyzer_path, qualify_rule
+from ..errors import ToolError
+from ..models import AnalysisMeasurement, CellCounts, UnattributedFinding
+from ..util import run
 
 # Long enough for a config error, short enough to stay one line.
 _SUMMARY_LIMIT = 200

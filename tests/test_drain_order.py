@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.drain_order import (
+from ebpy.decide.drain_order import (
     build_drain_plan,
     cheapest_first,
     directory_tails,

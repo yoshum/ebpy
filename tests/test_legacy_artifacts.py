@@ -11,9 +11,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ebpy.baseline import baseline_path
-from ebpy.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ebpy.state import state_path
+from ebpy.store.baseline import baseline_path
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.store.state import state_path
 
 _FROZEN_AT = "2026-08-19T00:00:00Z"
 _RULE_LOCAL = "F401"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..drain_order import DrainPlan
+from ..decide.drain_order import DrainPlan
 
 _FILES_SHOWN = 10
 _RULES_SHOWN = 8

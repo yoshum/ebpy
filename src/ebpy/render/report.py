@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ..detect.sizes import DEFAULT_FILE_LINE_LIMIT
 from ..models import Diagnosis, Gap
+from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
 
 
 def _check(value: bool) -> str:

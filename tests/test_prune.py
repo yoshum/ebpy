@@ -14,13 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import BASELINE_FILE, baseline_path, write_cells
-from ebpy.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.commands.prune import prune_measurement, run_prune
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State, UnattributedFinding
-from ebpy.state import empty_state, state_path, write_state
+from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
+from ebpy.store.ceiling_artifacts import read_ceiling_artifacts
+from ebpy.store.state import empty_state, state_path, write_state
 
 
 def _state(frozen_analyzers: tuple[str, ...], rules: dict[str, RuleBaseline]) -> State:

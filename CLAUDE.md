@@ -14,12 +14,16 @@ checklist cannot express belongs in a skill.
 ## Shape of the code
 
 - `src/ebpy/models.py` — every shared value. Frozen dataclasses; `State` is the one mutable one.
-- Decisions are **pure functions over facts**. `facts.py` does the disk reading; `diagnose.py` and
-  everything under `render/` take a value and return a verdict, so they are testable without a
-  filesystem.
-- `measurement.py` is the toolchain seam. Ruff and mypy become one Measurement value before any
-  command applies ratchet policy; see `docs/measurement-seam.md`.
-- `baseline.py` owns the ratchet file, `state.py` owns the ledger. Nothing else writes either.
+- Decisions are **pure functions over facts**. `repo/` does the disk reading (`repo/facts.py`,
+  `repo/git.py`, `repo/fan_in.py`, `repo/detect/`); `decide/` turns those facts into verdicts
+  (`decide/diagnose.py`, `decide/analysis_report.py`, `decide/drain_order.py`,
+  `decide/bootstrap_plan.py`, `decide/freshness.py`), and everything under `render/` turns a
+  verdict into text. None of these touch the filesystem, so all are testable without one.
+- `measurement/` is the toolchain seam. Ruff and mypy become one Measurement value before any
+  command applies ratchet policy; the per-tool runners are `measurement/_ruff.py` and
+  `measurement/_mypy.py`, private to the package. See `docs/measurement-seam.md`.
+- `store/` owns the `.ebpy/` files: `store/baseline.py` the ratchet file, `store/state.py` the
+  ledger, `store/ceiling_artifacts.py` the pair. Nothing outside `store/` writes either.
 - Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.
 
 ## Rules that are not in the linter

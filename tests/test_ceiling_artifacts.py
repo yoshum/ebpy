@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ebpy.baseline import write_cells
-from ebpy.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.cell_key import analyzer_of
 from ebpy.models import RuleBaseline
-from ebpy.state import empty_state, state_path, write_state
+from ebpy.store.baseline import write_cells
+from ebpy.store.ceiling_artifacts import read_ceiling_artifacts
+from ebpy.store.state import empty_state, state_path, write_state
 
 
 def frozen_state(

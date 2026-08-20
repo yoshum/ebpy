@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..models import PackageManager
+from ...models import PackageManager
 
 # Most specific first: a repo can carry requirements.txt exports next to the lockfile
 # that is actually the source of truth.

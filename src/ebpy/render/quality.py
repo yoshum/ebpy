@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from ..freshness import Freshness
+from ..decide.freshness import Freshness
 from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State, ToolingPresence
-from ..state import improvements, log_of_kind, total_violations
+from ..store.state import improvements, log_of_kind, total_violations
 from .worklist import build_worklist, render_worklist
 
 QUALITY_FILE = "QUALITY.md"

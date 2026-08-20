@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ebpy.analysis_report import (
+from ebpy.decide.analysis_report import (
     area_of,
     matrix_from_cells,
     report_from_measurement,

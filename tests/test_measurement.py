@@ -14,9 +14,9 @@ from ebpy.measurement import (
     classify,
     measure_repository,
 )
+from ebpy.measurement._mypy import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
+from ebpy.measurement._ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
-from ebpy.mypy_runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
-from ebpy.ruff_runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

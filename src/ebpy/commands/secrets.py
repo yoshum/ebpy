@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..git import is_git_repository
+from ..repo.git import is_git_repository
 from ..secret_scan import (
     FOUND_IN_HISTORY,
     FOUND_IN_WORKING_TREE,

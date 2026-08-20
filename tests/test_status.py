@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ebpy.baseline import write_cells
 from ebpy.commands.status import run_status
 from ebpy.models import RuleBaseline
-from ebpy.state import empty_state, write_state
+from ebpy.store.baseline import write_cells
+from ebpy.store.state import empty_state, write_state
 
 
 def _frozen_state(cwd: Path, rules: dict[str, int], analyzers: tuple[str, ...]) -> None:

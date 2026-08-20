@@ -13,83 +13,22 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `analyzer_of` | src/ebpy/cell_key.py:52 |  |
-| `analyzers_in` | src/ebpy/baseline.py:172 |  |
-| `append_log` | src/ebpy/state.py:256 |  |
-| `apply_analyzer_rule_counts` | src/ebpy/state.py:288 | Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched. |
-| `area_of` | src/ebpy/analysis_report.py:33 |  |
-| `assess_freshness` | src/ebpy/freshness.py:45 |  |
-| `baseline_path` | src/ebpy/baseline.py:24 |  |
-| `build_drain_plan` | src/ebpy/drain_order.py:157 |  |
-| `build_graph` | src/ebpy/fan_in.py:94 | File -> the project files it imports. |
 | `build_parser` | src/ebpy/cli.py:62 |  |
-| `build_plan` | src/ebpy/bootstrap_plan.py:103 |  |
 | `catalog_sources` | src/ebpy/catalog.py:107 |  |
-| `cells_for` | src/ebpy/baseline.py:176 | Only the cells belonging to one analyzer's namespace, files with none omitted. |
-| `cheapest_first` | src/ebpy/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
-| `classify` | src/ebpy/measurement.py:84 |  |
 | `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
-| `commits_since` | src/ebpy/git.py:36 | How far the repository has moved since a diagnosis. |
-| `copy_state` | src/ebpy/state.py:277 | A caller's own State, safe to hand to the helpers below. |
-| `count_importers` | src/ebpy/fan_in.py:114 |  |
-| `diagnose` | src/ebpy/diagnose.py:177 |  |
 | `diagnosis_from_dict` | src/ebpy/models.py:158 |  |
-| `directory_tails` | src/ebpy/drain_order.py:119 | Directories where a rule survives in a handful of files. |
-| `empty_state` | src/ebpy/state.py:70 |  |
 | `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
-| `find_mypy` | src/ebpy/mypy_runner.py:57 |  |
-| `find_ruff` | src/ebpy/ruff_runner.py:50 |  |
-| `finding_total` | src/ebpy/baseline.py:205 |  |
 | `freshness_of` | src/ebpy/quality_file.py:14 |  |
-| `gather_facts` | src/ebpy/facts.py:111 |  |
-| `head_commit` | src/ebpy/git.py:25 |  |
-| `heaviest_files` | src/ebpy/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
-| `importers_of` | src/ebpy/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
-| `improvements` | src/ebpy/state.py:335 |  |
 | `interpret_gitleaks` | src/ebpy/secret_scan.py:65 |  |
-| `invalid_artifacts_message` | src/ebpy/ceiling_artifacts.py:35 |  |
 | `is_analyzer_name` | src/ebpy/cell_key.py:19 |  |
-| `is_git_repository` | src/ebpy/git.py:13 | Whether there is a history here at all. |
 | `is_rule_id` | src/ebpy/cell_key.py:56 | The total predicate persistence readers use on untrusted JSON: never raises. |
-| `list_all_files` | src/ebpy/facts.py:64 |  |
-| `list_source_paths` | src/ebpy/facts.py:78 |  |
-| `log_of_kind` | src/ebpy/state.py:262 |  |
 | `main` | src/ebpy/cli.py:214 |  |
-| `matrix_from_cells` | src/ebpy/analysis_report.py:112 |  |
-| `measure_repository` | src/ebpy/measurement.py:182 | Measure every independent capability, retaining partial success as data. |
-| `merge_cells` | src/ebpy/baseline.py:186 | Union several analyzers' cells into one baseline shape. |
-| `next_baseline` | src/ebpy/state.py:271 |  |
 | `normalize_analyzer_path` | src/ebpy/cell_key.py:61 | Normalize a path an analyzer reported into the form a stored cell key uses. |
-| `parse_cells` | src/ebpy/baseline.py:72 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
-| `parse_mypy_output` | src/ebpy/mypy_runner.py:67 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
-| `parse_ruff_json` | src/ebpy/ruff_runner.py:60 |  |
-| `prune_cells` | src/ebpy/baseline.py:126 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
 | `qualify_rule` | src/ebpy/cell_key.py:23 |  |
-| `read_ceiling` | src/ebpy/baseline.py:97 |  |
-| `read_ceiling_artifacts` | src/ebpy/ceiling_artifacts.py:134 | Read and classify both files without inferring missing contract data. |
-| `read_ledger` | src/ebpy/state.py:210 |  |
-| `read_sources` | src/ebpy/facts.py:82 |  |
 | `render_catalog` | src/ebpy/catalog.py:81 |  |
-| `render_plan` | src/ebpy/bootstrap_plan.py:142 |  |
-| `replace_analyzer_rules` | src/ebpy/state.py:319 | Drop every rule in `analyzer`'s namespace and install `counts` as a fresh ceiling. |
-| `report_from_measurement` | src/ebpy/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
-| `rule_spread` | src/ebpy/drain_order.py:100 | Ranked by files to touch rather than by violations. |
-| `rule_totals` | src/ebpy/baseline.py:164 |  |
 | `run` | src/ebpy/util.py:17 |  |
-| `run_mypy_check` | src/ebpy/mypy_runner.py:102 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
-| `run_ruff_check` | src/ebpy/ruff_runner.py:104 |  |
-| `split_against_baseline` | src/ebpy/baseline.py:138 | Divide today's cells into (excess, held) against the ceiling. |
 | `split_rule` | src/ebpy/cell_key.py:44 | Split on the first colon only, so a local code may itself contain colons. |
-| `state_from_dict` | src/ebpy/state.py:157 |  |
-| `state_path` | src/ebpy/state.py:66 |  |
-| `state_to_dict` | src/ebpy/state.py:182 |  |
-| `total_violations` | src/ebpy/state.py:343 |  |
-| `totals_of` | src/ebpy/drain_order.py:85 |  |
-| `tracked_files` | src/ebpy/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
-| `with_diagnosis` | src/ebpy/state.py:249 |  |
-| `with_phase` | src/ebpy/state.py:266 |  |
-| `write_cells` | src/ebpy/baseline.py:110 |  |
 | `write_quality_file` | src/ebpy/quality_file.py:27 |  |
-| `write_state` | src/ebpy/state.py:238 |  |
 
 ## src/ebpy/commands
 
@@ -113,20 +52,23 @@ notices once the copies are textually similar — and independently written ones
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
 | `run_status` | src/ebpy/commands/status.py:16 |  |
 
-## src/ebpy/detect
+## src/ebpy/decide
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `detect_ci` | src/ebpy/detect/ci.py:41 |  |
-| `detect_framework` | src/ebpy/detect/tooling.py:135 |  |
-| `detect_package_manager` | src/ebpy/detect/package_manager.py:20 |  |
-| `detect_tooling` | src/ebpy/detect/tooling.py:89 |  |
-| `has_ruff_config` | src/ebpy/detect/tooling.py:70 |  |
-| `missing_runners` | src/ebpy/detect/ci.py:57 |  |
-| `mypy_strict_configured` | src/ebpy/detect/tooling.py:78 |  |
-| `requires_python` | src/ebpy/detect/tooling.py:143 |  |
-| `summarize_sizes` | src/ebpy/detect/sizes.py:16 |  |
-| `unpinned_actions` | src/ebpy/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
+| `area_of` | src/ebpy/decide/analysis_report.py:33 |  |
+| `assess_freshness` | src/ebpy/decide/freshness.py:45 |  |
+| `build_drain_plan` | src/ebpy/decide/drain_order.py:157 |  |
+| `build_plan` | src/ebpy/decide/bootstrap_plan.py:103 |  |
+| `cheapest_first` | src/ebpy/decide/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
+| `diagnose` | src/ebpy/decide/diagnose.py:177 |  |
+| `directory_tails` | src/ebpy/decide/drain_order.py:119 | Directories where a rule survives in a handful of files. |
+| `heaviest_files` | src/ebpy/decide/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
+| `matrix_from_cells` | src/ebpy/decide/analysis_report.py:112 |  |
+| `render_plan` | src/ebpy/decide/bootstrap_plan.py:142 |  |
+| `report_from_measurement` | src/ebpy/decide/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
+| `rule_spread` | src/ebpy/decide/drain_order.py:100 | Ranked by files to touch rather than by violations. |
+| `totals_of` | src/ebpy/decide/drain_order.py:85 |  |
 
 ## src/ebpy/generate
 
@@ -137,6 +79,19 @@ notices once the copies are textually similar — and independently written ones
 | `ruff_pyproject_section` | src/ebpy/generate/configs.py:35 | Appended to an existing pyproject.toml that has no [tool.ruff] table. |
 | `ruff_toml_content` | src/ebpy/generate/configs.py:44 | A standalone ruff.toml, for a repository with no pyproject.toml to append to. |
 | `secret_scan_workflow` | src/ebpy/generate/workflows.py:145 | fetch-depth: 0 because a shallow clone misses the commit that leaked, and --redact so the secret does not land in a public log. |
+
+## src/ebpy/measurement
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `classify` | src/ebpy/measurement/__init__.py:84 |  |
+| `find_mypy` | src/ebpy/measurement/_mypy.py:57 |  |
+| `find_ruff` | src/ebpy/measurement/_ruff.py:50 |  |
+| `measure_repository` | src/ebpy/measurement/__init__.py:182 | Measure every independent capability, retaining partial success as data. |
+| `parse_mypy_output` | src/ebpy/measurement/_mypy.py:67 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
+| `parse_ruff_json` | src/ebpy/measurement/_ruff.py:60 |  |
+| `run_mypy_check` | src/ebpy/measurement/_mypy.py:102 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
+| `run_ruff_check` | src/ebpy/measurement/_ruff.py:104 |  |
 
 ## src/ebpy/render
 
@@ -149,3 +104,68 @@ notices once the copies are textually similar — and independently written ones
 | `render_next` | src/ebpy/render/next.py:76 |  |
 | `render_quality` | src/ebpy/render/quality.py:186 |  |
 | `render_worklist` | src/ebpy/render/worklist.py:78 |  |
+
+## src/ebpy/repo
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `build_graph` | src/ebpy/repo/fan_in.py:94 | File -> the project files it imports. |
+| `commits_since` | src/ebpy/repo/git.py:36 | How far the repository has moved since a diagnosis. |
+| `count_importers` | src/ebpy/repo/fan_in.py:114 |  |
+| `gather_facts` | src/ebpy/repo/facts.py:111 |  |
+| `head_commit` | src/ebpy/repo/git.py:25 |  |
+| `importers_of` | src/ebpy/repo/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
+| `is_git_repository` | src/ebpy/repo/git.py:13 | Whether there is a history here at all. |
+| `list_all_files` | src/ebpy/repo/facts.py:64 |  |
+| `list_source_paths` | src/ebpy/repo/facts.py:78 |  |
+| `read_sources` | src/ebpy/repo/facts.py:82 |  |
+| `tracked_files` | src/ebpy/repo/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
+
+## src/ebpy/repo/detect
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `detect_ci` | src/ebpy/repo/detect/ci.py:41 |  |
+| `detect_framework` | src/ebpy/repo/detect/tooling.py:135 |  |
+| `detect_package_manager` | src/ebpy/repo/detect/package_manager.py:20 |  |
+| `detect_tooling` | src/ebpy/repo/detect/tooling.py:89 |  |
+| `has_ruff_config` | src/ebpy/repo/detect/tooling.py:70 |  |
+| `missing_runners` | src/ebpy/repo/detect/ci.py:57 |  |
+| `mypy_strict_configured` | src/ebpy/repo/detect/tooling.py:78 |  |
+| `requires_python` | src/ebpy/repo/detect/tooling.py:143 |  |
+| `summarize_sizes` | src/ebpy/repo/detect/sizes.py:16 |  |
+| `unpinned_actions` | src/ebpy/repo/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
+
+## src/ebpy/store
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `analyzers_in` | src/ebpy/store/baseline.py:172 |  |
+| `append_log` | src/ebpy/store/state.py:256 |  |
+| `apply_analyzer_rule_counts` | src/ebpy/store/state.py:288 | Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched. |
+| `baseline_path` | src/ebpy/store/baseline.py:24 |  |
+| `cells_for` | src/ebpy/store/baseline.py:176 | Only the cells belonging to one analyzer's namespace, files with none omitted. |
+| `copy_state` | src/ebpy/store/state.py:277 | A caller's own State, safe to hand to the helpers below. |
+| `empty_state` | src/ebpy/store/state.py:70 |  |
+| `finding_total` | src/ebpy/store/baseline.py:205 |  |
+| `improvements` | src/ebpy/store/state.py:335 |  |
+| `invalid_artifacts_message` | src/ebpy/store/ceiling_artifacts.py:35 |  |
+| `log_of_kind` | src/ebpy/store/state.py:262 |  |
+| `merge_cells` | src/ebpy/store/baseline.py:186 | Union several analyzers' cells into one baseline shape. |
+| `next_baseline` | src/ebpy/store/state.py:271 |  |
+| `parse_cells` | src/ebpy/store/baseline.py:72 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
+| `prune_cells` | src/ebpy/store/baseline.py:126 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
+| `read_ceiling` | src/ebpy/store/baseline.py:97 |  |
+| `read_ceiling_artifacts` | src/ebpy/store/ceiling_artifacts.py:134 | Read and classify both files without inferring missing contract data. |
+| `read_ledger` | src/ebpy/store/state.py:210 |  |
+| `replace_analyzer_rules` | src/ebpy/store/state.py:319 | Drop every rule in `analyzer`'s namespace and install `counts` as a fresh ceiling. |
+| `rule_totals` | src/ebpy/store/baseline.py:164 |  |
+| `split_against_baseline` | src/ebpy/store/baseline.py:138 | Divide today's cells into (excess, held) against the ceiling. |
+| `state_from_dict` | src/ebpy/store/state.py:157 |  |
+| `state_path` | src/ebpy/store/state.py:66 |  |
+| `state_to_dict` | src/ebpy/store/state.py:182 |  |
+| `total_violations` | src/ebpy/store/state.py:343 |  |
+| `with_diagnosis` | src/ebpy/store/state.py:249 |  |
+| `with_phase` | src/ebpy/store/state.py:266 |  |
+| `write_cells` | src/ebpy/store/baseline.py:110 |  |
+| `write_state` | src/ebpy/store/state.py:238 |  |

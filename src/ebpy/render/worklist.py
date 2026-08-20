@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..models import State
-from ..state import total_violations
+from ..store.state import total_violations
 
 _NEXT_RULES_SHOWN = 5
 

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.baseline import write_cells
 from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
@@ -18,7 +17,8 @@ from ebpy.models import (
     State,
     ToolingPresence,
 )
-from ebpy.state import write_state
+from ebpy.store.baseline import write_cells
+from ebpy.store.state import write_state
 
 
 def _state(
