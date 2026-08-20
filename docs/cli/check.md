@@ -29,12 +29,12 @@ type error moving from one file to another fails `check` even when the total is 
 
 ## Excess is reported per file
 
-When a count exceeds its ceiling, `check` names the file and the rule together — the information
-needed to find and fix it:
+When a count exceeds its ceiling, `check` names the file and the rule together with how many
+findings are beyond it — the information needed to find and fix them:
 
 ```
-src/service.py  mypy:arg-type  ceiling 2 → 4  (+2)
-src/new_file.py  ruff:F401     ceiling 0 → 1  (+1)
+src/service.py  mypy:arg-type  +2
+src/new_file.py  ruff:F401  +1
 ```
 
 ## Syntax errors cannot pass by having no count

@@ -85,7 +85,7 @@ def _config_actions(diagnosis: Diagnosis, has_pyproject: bool) -> list[FileActio
                     path="pyproject.toml",
                     content="\n" + MYPY_PYPROJECT_SECTION,
                     mode="append",
-                    reason="type checking, strict — the error total is ratcheted as a counter",
+                    reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
                 )
             )
         else:

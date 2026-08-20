@@ -7,15 +7,15 @@ ebpy prune
 ```
 
 After you fix a grandfathered violation, its cell is stale — it still permits a violation that no
-longer exists. `prune` runs Ruff and lowers every cell to what still exists, reclaiming exactly what
-you fixed.
+longer exists. `prune` measures every analyzer in the contract and lowers each cell to what still
+exists, reclaiming exactly what you fixed.
 
 ## It can only ever take away
 
 No cell is ever raised, which makes it safe to rerun after the ceiling has been frozen and impossible
 to use as a second freeze. It refuses before the first freeze, or when the ceiling artifacts are
 missing, unreadable, malformed or inconsistent: without a valid pair it cannot prove that every
-cell and counter only falls. It never reconstructs one artifact from the other. If nothing was
+cell only falls. It never reconstructs one artifact from the other. If nothing was
 fixed it reports that nothing was reclaimed. A refusal exits 1 without measuring or writing
 anything; a valid no-op exits 0.
 

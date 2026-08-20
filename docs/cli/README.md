@@ -52,7 +52,7 @@ summary is unavailable, but it does fail when the artifacts it would report are 
 | State | Valid files | What commands do |
 | --- | --- | --- |
 | fresh | neither file, or a readable pre-freeze ledger with no ceiling data | `freeze` may pin the first ceiling |
-| frozen | both files are readable, the ledger records a freeze, and its Ruff ceilings match the baseline | normal ratchet commands run |
+| frozen | both files are readable, the ledger records a freeze, and its per-rule ceilings match the baseline | normal ratchet commands run |
 | invalid | every other combination, including one missing file, malformed data, or disagreeing ceilings | commands that use the artifacts exit 1 before measuring or writing |
 
 ebpy does not infer or reconstruct missing ceiling data. Restore both matching files from version
