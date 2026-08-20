@@ -136,7 +136,7 @@ def _refusal_reason(
             [
                 f"{analyzer} ran but could not produce a measurement:",
                 *(f"  {line}" for line in observation.detail.splitlines()),
-                "Fix the configuration error and re-run.",
+                "Resolve the failure above and re-run.",
             ]
         )
     # "incomplete": syntax errors block attribution.

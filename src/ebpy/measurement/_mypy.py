@@ -16,7 +16,7 @@ from typing import Any
 
 from ..cell_key import normalize_analyzer_path, qualify_rule
 from ..errors import ToolError
-from ..models import AnalysisMeasurement, CellCounts
+from ..models import AnalysisMeasurement, CellCounts, UnattributedFinding
 from ..util import run
 
 # The location prefix of an error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: `.
@@ -43,6 +43,11 @@ _MYPY_ERROR_LINE = re.compile(
 
 # Long enough for a config error or a missing-stubs line, short enough to stay one line.
 _SUMMARY_LIMIT = 200
+
+# mypy reports an unparseable file with this code. Like Ruff's `invalid-syntax`, such a file
+# is invisible to every type rule, so its errors are recorded as unattributed rather than as
+# cells the baseline could grandfather.
+_SYNTAX_CODE = "syntax"
 
 
 class MypyNotFoundError(ToolError):
@@ -131,6 +136,7 @@ def config_selects_target(cwd: Path) -> bool:
 def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     """Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace."""
     cells: CellCounts = {}
+    unattributed: list[UnattributedFinding] = []
     seen_files: set[str] = set()
     for line in output.splitlines():
         if _MYPY_ERROR_PREFIX.match(line) is None:
@@ -153,11 +159,18 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
                 f"mypy reported a finding outside the repository ({file!r}); a config that checks "
                 "paths outside the repository cannot produce a reproducible baseline"
             )
-        rule = qualify_rule("mypy", match["code"])
         seen_files.add(file)
+        if match["code"] == _SYNTAX_CODE:
+            unattributed.append(
+                UnattributedFinding(file=file, line=int(match["line"]), message=match["message"])
+            )
+            continue
+        rule = qualify_rule("mypy", match["code"])
         file_cells = cells.setdefault(file, {})
         file_cells[rule] = file_cells.get(rule, 0) + 1
-    return AnalysisMeasurement(cells=cells, files_with_findings=len(seen_files))
+    return AnalysisMeasurement(
+        cells=cells, unattributed=tuple(unattributed), files_with_findings=len(seen_files)
+    )
 
 
 def _summary_clause(output: str) -> str:
@@ -199,10 +212,21 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
         )
     except OSError as error:
         raise MypyFailedError(f"mypy could not run: {error}") from error
-    # 0 = clean, 1 = errors found; only those two mean mypy actually completed a run. A
-    # positive code beyond that is a mypy failure, and a negative one means a signal
-    # terminated the process — neither produced output worth parsing, so cells found in
-    # it (e.g. a valid-looking `[syntax]` line) are discarded rather than trusted.
+    # 0 = clean, 1 = errors found: mypy completed a run either way. Exit 2 has two shapes.
+    # A file that does not parse makes mypy exit 2 while still printing `[syntax]` error
+    # lines to stdout — a real reading of unparseable files, which stays measured-but-
+    # unattributed exactly as Ruff's syntax errors do. Anything else at exit 2 (a config or
+    # usage error, missing stubs) prints no such lines, and a negative code means a signal
+    # killed the process; both are genuine failures with no measurement to keep.
+    if result.code == 2:
+        try:
+            syntax = parse_mypy_output(result.stdout, cwd)
+        except MypyInvalidOutputError:
+            # An unreadable line at exit 2 is a failure, not a syntax measurement; fall
+            # through so it is reported as such rather than surfacing a parser complaint.
+            syntax = None
+        if syntax is not None and syntax.unattributed and not syntax.cells:
+            return syntax
     if result.code not in (0, 1):
         headline = f"mypy failed (exit {result.code})"
         output = (result.stderr or result.stdout).strip()
