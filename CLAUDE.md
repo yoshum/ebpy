@@ -45,12 +45,13 @@ checklist cannot express belongs in a skill.
 
 ```bash
 uv run ruff format .
-uv run ruff check .
-uv run mypy .
 uv run pytest
 uv run ebpy check
 ```
 
-The last one is this repository eating its own cooking: it fails if any count rose above its ceiling.
-After fixing a grandfathered violation, run `uv run ebpy prune` and commit `.ebpy/baseline.json`
-with the fix — that is the only way the ceiling comes down.
+`ebpy check` is this repository eating its own cooking: it runs ruff and mypy through the
+measurement seam and fails only if a count rose above its ceiling. A raw `uv run ruff check .` or
+`uv run mypy .` is not in this list on purpose — both demand zero violations and would report the
+whole grandfathered backlog as failure. Run them by hand when you want to *see* what is left to
+drain, not as a gate. After fixing a grandfathered violation, run `uv run ebpy prune` and commit
+`.ebpy/baseline.json` with the fix — that is the only way the ceiling comes down.

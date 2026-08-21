@@ -48,12 +48,12 @@ jobs:
         run: uv sync --group dev
       - name: Format check
         run: uv run ruff format --check .
-      - name: Lint
-        run: uv run ruff check .
-      - name: Typecheck
-        run: uv run mypy .
       - name: Test
         run: uv run pytest
+      # No raw `ruff check` or `mypy` step: both would demand zero violations and fail on
+      # the grandfathered backlog the moment this repository froze one. `ebpy check` is the
+      # gate — it runs ruff and mypy through the measurement seam and fails only on findings
+      # above the ceiling.
       - name: Ratchet gate
         run: uv run ebpy check
       - name: Lint report

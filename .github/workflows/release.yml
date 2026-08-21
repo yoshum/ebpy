@@ -58,8 +58,6 @@ jobs:
       - name: Gate what is about to be tagged
         run: |
           uv run ruff format --check .
-          uv run ruff check .
-          uv run mypy .
           uv run pytest
           uv run ebpy check --no-write
       # Stamps the version into pyproject.toml, src/ebpy/__init__.py and uv.lock, writes

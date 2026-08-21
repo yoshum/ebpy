@@ -82,7 +82,12 @@ def test_ci_runners_come_from_the_workflow_text_not_its_filename() -> None:
 def test_ci_steps_are_recognised() -> None:
     content = "runs-on: ubuntu-latest\n- run: ruff check .\n- run: mypy .\n- run: pytest\n- run: ebpy check\n"
     coverage = detect_ci((WorkflowFile(path="ci.yml", content=content),))
-    assert (coverage.runs_lint, coverage.runs_typecheck, coverage.runs_test, coverage.runs_ebpy_check) == (
+    assert (
+        coverage.runs_lint,
+        coverage.runs_typecheck,
+        coverage.runs_test,
+        coverage.runs_ebpy_check,
+    ) == (
         True,
         True,
         True,
@@ -90,10 +95,21 @@ def test_ci_steps_are_recognised() -> None:
     )
 
 
+def test_the_gate_counts_as_running_lint_and_typecheck() -> None:
+    """`ebpy check` measures ruff and mypy through the seam, so a workflow that runs it
+    covers lint and typecheck without a separate `ruff check` or `mypy` step — which the
+    ratchet model omits deliberately, since a raw step demands zero violations."""
+    coverage = detect_ci((WorkflowFile(path="ci.yml", content="- run: pytest\n- run: ebpy check\n"),))
+    assert coverage.runs_lint
+    assert coverage.runs_typecheck
+
+
 def test_thorough_ci_without_the_gate_enforces_nothing() -> None:
     coverage = detect_ci((WorkflowFile(path="ci.yml", content="- run: pytest\n"),))
     assert coverage.runs_test
     assert not coverage.runs_ebpy_check
+    assert not coverage.runs_lint
+    assert not coverage.runs_typecheck
 
 
 def test_a_tag_is_not_a_pin() -> None:
