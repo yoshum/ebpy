@@ -2,6 +2,28 @@
 
 <!-- version list -->
 
+## v0.4.1 (2026-08-21)
+
+### Bug Fixes
+
+- Surface mypy exit-1 errors that carry no location ([#13](https://github.com/yoshum/ebpy/pull/13),
+  [`d6e1919`](https://github.com/yoshum/ebpy/commit/d6e191951b428a47f3203fb030af28ca7a5000eb))
+
+### Refactoring
+
+- Group the .ebpy/ ratchet files under store/
+  ([`2322cb2`](https://github.com/yoshum/ebpy/commit/2322cb227c19a673aebd1721e682d0e86bb560b6))
+
+- Group the pure verdict functions under decide/
+  ([`6accff8`](https://github.com/yoshum/ebpy/commit/6accff844a449a28f9ae7dc3ea582abe6c6674df))
+
+- Group the repository-reading modules under repo/
+  ([`dbd1f57`](https://github.com/yoshum/ebpy/commit/dbd1f5742aa58553fd5f15870b334e0022d85b8d))
+
+- Make measurement/ a package with private tool runners
+  ([`ae2af6f`](https://github.com/yoshum/ebpy/commit/ae2af6fd0084ead0088c61fa96c71c21e337058b))
+
+
 ## v0.4.0 (2026-08-20)
 
 ### Breaking Changes
