@@ -11,8 +11,7 @@ from ..decide.worklist import build_worklist
 from ..measurement import ANALYZER_SPECS
 from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
 from ..store.state import improvements, log_of_kind, total_violations
-from .worklist import build_worklist as build_worklist_items
-from .worklist import render_worklist
+from .worklist import build_worklist_items, render_worklist
 
 QUALITY_FILE = "QUALITY.md"
 

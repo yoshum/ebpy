@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..decide.worklist import WorklistVerdict
+from ..decide.worklist import Worklist
 
 
 @dataclass(frozen=True)
@@ -24,32 +24,32 @@ def _backlog_children(smallest_backlogs: tuple[tuple[str, int], ...]) -> tuple[s
     return tuple(f"`{name}` — {current} left" for name, current in smallest_backlogs)
 
 
-def build_worklist(verdict: WorklistVerdict) -> list[WorklistItem]:
+def build_worklist_items(worklist: Worklist) -> list[WorklistItem]:
     return [
         WorklistItem(
-            done=verdict.diagnosed,
+            done=worklist.diagnosed,
             label="P0 diagnose",
-            detail=f"taken {verdict.diagnosed_at}" if verdict.diagnosed_at else "not yet run",
+            detail=f"taken {worklist.diagnosed_at}" if worklist.diagnosed_at else "not yet run",
         ),
         WorklistItem(
-            done=verdict.bootstrap_done,
+            done=worklist.bootstrap_done,
             label="P1 bootstrap",
             detail="nothing missing"
-            if verdict.bootstrap_gaps == 0
-            else f"{verdict.bootstrap_gaps} gap(s) still open",
+            if worklist.bootstrap_gaps == 0
+            else f"{worklist.bootstrap_gaps} gap(s) still open",
         ),
         WorklistItem(
-            done=verdict.frozen,
+            done=worklist.frozen,
             label="P2 freeze",
-            detail=f"frozen {verdict.frozen_at}" if verdict.frozen_at else "baseline not pinned yet",
+            detail=f"frozen {worklist.frozen_at}" if worklist.frozen_at else "baseline not pinned yet",
         ),
         WorklistItem(
-            done=verdict.drained,
+            done=worklist.drained,
             label="P3 drain",
             detail="backlog empty"
-            if verdict.backlog == 0
-            else f"{verdict.backlog} findings across {verdict.rule_count} rules",
-            children=_backlog_children(verdict.smallest_backlogs),
+            if worklist.backlog == 0
+            else f"{worklist.backlog} findings across {worklist.rule_count} rules",
+            children=_backlog_children(worklist.smallest_backlogs),
         ),
         WorklistItem(
             done=False,

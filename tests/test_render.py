@@ -6,8 +6,7 @@ from ebpy.decide.worklist import build_worklist
 from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolingPresence
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
-from ebpy.render.worklist import build_worklist as build_worklist_items
-from ebpy.render.worklist import render_worklist
+from ebpy.render.worklist import build_worklist_items, render_worklist
 from ebpy.store.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")

@@ -18,7 +18,7 @@ NEXT_RULES_SHOWN = 5
 
 
 @dataclass(frozen=True)
-class WorklistVerdict:
+class Worklist:
     """Whether each phase is done, and the facts that verdict rests on.
 
     A phase is only done once the phase before it is: bootstrap needs a diagnosis, and
@@ -52,12 +52,12 @@ def _smallest_backlogs(state: State) -> tuple[tuple[str, int], ...]:
     return tuple(draining[:NEXT_RULES_SHOWN])
 
 
-def build_worklist(state: State) -> WorklistVerdict:
+def build_worklist(state: State) -> Worklist:
     diagnosed = state.diagnosed_at is not None
     bootstrap_gaps = _open_bootstrap_gaps(state)
     frozen = state.frozen_at is not None
     backlog = total_violations(state)
-    return WorklistVerdict(
+    return Worklist(
         diagnosed=diagnosed,
         diagnosed_at=state.diagnosed_at,
         bootstrap_done=diagnosed and bootstrap_gaps == 0,
