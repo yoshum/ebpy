@@ -14,12 +14,13 @@ from .commands.catalog import run_catalog
 from .commands.check import run_check
 from .commands.diagnose import run_diagnose
 from .commands.freeze import run_freeze
-from .commands.install import run_install, run_skills_install
+from .commands.install import run_install
 from .commands.log import LOG_KIND_LIST, is_log_kind, run_log
 from .commands.next_command import run_next
 from .commands.prune import run_prune
 from .commands.report import run_report
 from .commands.secrets import run_secrets
+from .commands.skills_install import run_skills_install
 from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
