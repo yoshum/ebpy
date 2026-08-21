@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.4.2 (2026-08-21)
+
+### Bug Fixes
+
+- Collapse duplicate non-contract analyzer notes in check
+  ([#14](https://github.com/yoshum/ebpy/pull/14),
+  [`3dade57`](https://github.com/yoshum/ebpy/commit/3dade575fe75442b90a94628463e4b23ca4f7d35))
+
+
 ## v0.4.1 (2026-08-21)
 
 ### Bug Fixes
