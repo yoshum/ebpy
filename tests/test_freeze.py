@@ -27,7 +27,7 @@ from ebpy.store.state import Ledger, apply_analyzer_rule_counts, empty_state, st
 _FROZEN_AT = "2026-08-19T00:00:00Z"
 
 
-def _ruff_only_measurement(cells: dict[str, dict[str, int]] | None = None) -> Measurement:
+def _both_analyzers_measurement(cells: dict[str, dict[str, int]] | None = None) -> Measurement:
     """Both analyzers complete; cells defaults to empty for a clean zero-finding contract."""
     return Measurement(
         analyzers={
@@ -89,7 +89,7 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_cells(tmp_path, {"src/old.py": {"ruff:F401": 1}})
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -113,7 +113,7 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     state_path(tmp_path).symlink_to(state_target)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -137,7 +137,7 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     (tmp_path / ".ebpy").symlink_to(outside, target_is_directory=True)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _ruff_only_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -324,7 +324,7 @@ def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_m
 
     with pytest.raises(CommandError) as exc_info:
         freeze_measurement(
-            previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+            previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
         )
 
     message = str(exc_info.value)
@@ -340,7 +340,7 @@ def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> Non
     previous.frozen_at = _FROZEN_AT
 
     decision = freeze_measurement(
-        previous, {}, _ruff_only_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
+        previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
     )
 
     assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
@@ -489,6 +489,85 @@ def test_scoped_force_replaces_only_the_named_namespace() -> None:
     assert decision.state.rules["ruff:F401"].baseline == 2
     assert decision.state.rules["mypy:arg-type"].baseline == 3
     assert decision.cells == {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
+
+
+def test_a_scoped_freeze_of_a_new_analyzer_says_it_was_added() -> None:
+    """Adding an analyzer not yet in the roster grows the contract, so the verb is "added"."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 3}})
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="mypy",
+        force=False,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "added to the ceiling" in decision.message
+    assert "replaced" not in decision.message
+
+
+def test_a_scoped_re_pin_says_it_replaced_rather_than_added() -> None:
+    """--force --analyzer on an analyzer already in the roster replaces its namespace; the
+    message must not claim it was "added", which would misdescribe a re-pin."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 2}})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "replaced" in decision.message
+    assert "added to the ceiling" not in decision.message
+
+
+def test_a_scoped_re_pin_of_an_all_clean_analyzer_reports_zero_violations() -> None:
+    """Re-pinning an analyzer that now measures clean grandfathers nothing; the totals must
+    reflect the measured namespace, not report a phantom rule."""
+    artifacts = _frozen_artifacts_ruff_only()
+    assert artifacts.ledger.state is not None
+
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+
+    decision = freeze_measurement(
+        artifacts.ledger.state,
+        artifacts.cells,
+        measurement,
+        scope="ruff",
+        force=True,
+        frozen_at=_FROZEN_AT,
+    )
+
+    assert "0 violations across 0 rules" in decision.message
+    assert "replaced" in decision.message
 
 
 def test_scoped_freeze_refuses_an_analyzer_already_in_the_contract() -> None:

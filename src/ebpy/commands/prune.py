@@ -103,7 +103,7 @@ def prune_measurement(
             state = replace_analyzer_rules(state, analyzer, rule_totals(pruned))
             analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
         else:
-            # Carry the existing ceiling: a ceiling nobody re-measured cannot be lowered.
+            # A ceiling nobody re-measured cannot be lowered.
             output_parts.append(baseline_cells)
             total_before += baseline_total
             total_after += baseline_total
@@ -125,7 +125,10 @@ def prune_measurement(
         return PruneDecision(cells, state, "\n".join(summary_lines))
 
     if reclaimed <= 0:
-        message = f"Nothing to reclaim. {total_violations(state)} still grandfathered."
+        # Report the pre-mutation ledger, as the incomplete no-op branch above does: after
+        # `replace_analyzer_rules` reset each rule's `current` to the baseline-file total, the
+        # post-prune state would overstate what a prior `check` had already lowered.
+        message = f"Nothing to reclaim. {total_violations(previous)} still grandfathered."
     else:
         message = "\n".join(
             [

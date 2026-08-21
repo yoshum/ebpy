@@ -183,6 +183,42 @@ def test_no_standing_note_is_invented_when_the_repo_has_no_diagnosis() -> None:
     assert "configured in this repository" not in decision.result.message
 
 
+def test_a_configured_analyzer_that_ran_outside_the_contract_gets_one_merged_note() -> None:
+    """The "it ran, so its findings are unratcheted" fact and the "it is configured, freeze
+    puts it under the ceiling" fact are the same analyzer, so they collapse into a single
+    paragraph rather than double-warning about mypy."""
+    previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
+    measurement = Measurement(
+        analyzers={
+            "ruff": _measured("ruff", {}),
+            "mypy": _measured("mypy", {"a.py": {"mypy:arg-type": 5}}),
+        }
+    )
+
+    decision = check_measurement(previous, {}, measurement)
+
+    assert decision.result.ok is True
+    assert decision.result.message.count("mypy ran but is not in the frozen contract") == 1
+    assert decision.result.message.count("is configured in this repository") == 0
+    # The actionable freeze guidance still survives the merge.
+    assert "ebpy freeze --analyzer mypy" in decision.result.message
+
+
+def test_a_configured_analyzer_that_did_not_run_keeps_its_standing_note() -> None:
+    previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
+    measurement = Measurement(
+        analyzers={
+            "ruff": _measured("ruff", {}),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+
+    decision = check_measurement(previous, {}, measurement)
+
+    assert decision.result.message.count("is configured in this repository") == 1
+    assert "ebpy freeze --analyzer mypy" in decision.result.message
+
+
 # --- Reporting shape: every failure, the worst cells, in order -------------------------
 
 
@@ -479,4 +515,14 @@ def test_a_clean_run_leaves_the_message_unadorned() -> None:
     decision = check_measurement(previous, {}, measurement)
 
     assert decision.result.ok is True
-    assert decision.result.message == "Clean. 0 grandfathered findings left to drain across 1 analyzers."
+    assert decision.result.message == "Clean. 0 grandfathered findings left to drain across 1 analyzer."
+
+
+def test_the_clean_summary_pluralizes_the_analyzer_count() -> None:
+    """One analyzer reads "1 analyzer", more than one reads "2 analyzers"."""
+    previous = _state(frozen_analyzers=("mypy", "ruff"))
+    measurement = Measurement(analyzers={"mypy": _measured("mypy", {}), "ruff": _measured("ruff", {})})
+
+    decision = check_measurement(previous, {}, measurement)
+
+    assert decision.result.message == "Clean. 0 grandfathered findings left to drain across 2 analyzers."

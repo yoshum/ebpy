@@ -260,17 +260,23 @@ def _build_scoped_freeze(
 
     cells = merge_cells([other_cells, scope_cells])
 
+    replacing = scope in previous.frozen_analyzers
     state = copy_state(previous)
     state = replace_analyzer_rules(state, scope, rule_totals(scope_cells))
-    if scope not in state.frozen_analyzers:
+    if not replacing:
         state.frozen_analyzers = tuple(sorted((*state.frozen_analyzers, scope)))
 
     unattributed = _unattributed_report(scope, obs.value)
     backlog = finding_total(scope_cells)
     rule_count = len(rule_totals(scope_cells))
+    headline = (
+        f"{scope}: ceiling replaced with {backlog} violations across {rule_count} rules."
+        if replacing
+        else f"{scope}: {backlog} violations across {rule_count} rules added to the ceiling."
+    )
     message = "\n".join(
         [
-            f"{scope}: {backlog} violations across {rule_count} rules added to the ceiling.",
+            headline,
             "All other analyzer namespaces are untouched.",
             *unattributed,
             "",
