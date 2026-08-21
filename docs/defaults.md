@@ -77,7 +77,8 @@ Type errors are ratcheted **per file per rule** — the same cell model as Ruff 
 error from one file to another fails `check` even when the total is unchanged.
 
 ebpy supports mypy 1.10 and newer, the floor set by its own dev dependency; the output format is
-fixed by the parser's tests, and CI runs the version the lockfile resolves.
+fixed by the parser's tests. CI runs the full suite against the version the lockfile resolves, and a
+separate `mypy-floor` job runs the parser and lifecycle tests against 1.10 so the floor stays real.
 
 ebpy invokes mypy as:
 

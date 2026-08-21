@@ -59,3 +59,22 @@ jobs:
       - name: Lint report
         if: always()
         run: uv run ebpy report
+
+  # The mypy parser and lifecycle tests assume an output format ebpy claims to support from
+  # mypy 1.10 onward (docs/defaults.md), but the `quality` job above only ever exercises the
+  # single version the lockfile resolves. This job pins mypy to its supported floor and runs
+  # exactly those real-toolchain tests against it, so the "supports 1.10+" claim is verified
+  # rather than asserted. `--with` installs the floor over the locked version for this run only.
+  mypy-floor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: mypy version
+        run: uv run --with 'mypy>=1.10,<1.11' mypy --version
+      - name: Parser and lifecycle tests against the mypy floor
+        run: uv run --with 'mypy>=1.10,<1.11' pytest tests/test_runners.py tests/test_mypy_lifecycle.py
