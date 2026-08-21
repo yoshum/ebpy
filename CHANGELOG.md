@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-08-21)
+
+### Features
+
+- Allow a scoped freeze to build a narrow contract on a fresh pair
+  ([#20](https://github.com/yoshum/ebpy/pull/20),
+  [`c713975`](https://github.com/yoshum/ebpy/commit/c71397554b8dc9988a4539a786291f6fb35d3085))
+
+### Refactoring
+
+- Rename misleading test helper and trim what-comment
+  ([#17](https://github.com/yoshum/ebpy/pull/17),
+  [`3e2e489`](https://github.com/yoshum/ebpy/commit/3e2e4892ef7ccb601d272303388e1e48dd7ecfca))
+
+
 ## v0.4.4 (2026-08-21)
 
 ### Bug Fixes
