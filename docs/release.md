@@ -63,6 +63,22 @@ are chained with `&&` deliberately: semantic-release reports a multi-line build 
 successful when only its last line succeeded, so written on two lines a failed `uv lock` is
 swallowed and the release is tagged with a lockfile still naming the previous version.
 
+## Hand-written changelog notes
+
+`changelog.mode` is left at its default, `update`: on each release semantic-release splits
+`CHANGELOG.md` at the `<!-- version list -->` flag and inserts the new section *immediately after*
+it, leaving everything already below untouched. That flag therefore has to stay directly above the
+newest release, with nothing hand-written between the two.
+
+Prose an auto-generated section cannot produce — a breaking change explained in full rather than
+named by its `!` commit — belongs in the release section itself, not in a standing `## Unreleased`
+block below the flag. Such a block would not be updated or removed on release; the next run would
+insert the auto-generated section above it and strand the hand-written one below, duplicating the
+version. Write the notes into a branch's commit bodies so they carry into the changelog, or edit the
+generated section in the `chore(release):` commit right after the run. If you keep working notes in
+the file before a release, put them *above* the flag, under the `# CHANGELOG` heading, where the
+insertion split never reaches them.
+
 ## What the repository has to provide
 
 **A deploy key that the ruleset lets through.** `main` is protected, and the release commit is a
