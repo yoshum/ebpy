@@ -26,13 +26,16 @@ def handler(payload, unused_argument):
     return result
 """
 
-CLEAN = """\
+CLEAN = '''\
+"""A module the whole rule set passes, so fixing app.py empties its cell."""
+
 from typing import Any
 
 
 def handler(payload: dict[str, Any]) -> Any:
+    """Return the payload's value."""
     return payload["value"]
-"""
+'''
 
 
 def git(cwd: Path, *args: str) -> None:
