@@ -41,16 +41,20 @@ def unpinned_actions(workflows: tuple[WorkflowFile, ...]) -> tuple[str, ...]:
 def detect_ci(workflows: tuple[WorkflowFile, ...]) -> CiCoverage:
     combined = "\n".join(workflow.content for workflow in workflows)
     runners = tuple(sorted(set(_RUNNER_PATTERN.findall(combined))))
+    # The baseline is only a ratchet if something rejects a regression. A repo can
+    # have thorough CI and still enforce nothing, which looks identical from outside.
+    runs_ebpy_check = bool(re.search(r"ebpy\s+check", combined))
+    # The gate runs ruff and mypy through the seam, so it counts as lint and typecheck: the
+    # bootstrapped workflow ships no raw `ruff check`/`mypy` step, since each would demand
+    # zero violations and fail on the grandfathered backlog.
     return CiCoverage(
         present=len(workflows) > 0,
         runners=runners,
         unpinned_actions=unpinned_actions(workflows),
-        runs_lint=bool(re.search(r"\bruff\s+check\b|\bflake8\b|\bpylint\b", combined)),
-        runs_typecheck=bool(re.search(r"\bmypy\b|\bpyright\b", combined)),
+        runs_lint=runs_ebpy_check or bool(re.search(r"\bruff\s+check\b|\bflake8\b|\bpylint\b", combined)),
+        runs_typecheck=runs_ebpy_check or bool(re.search(r"\bmypy\b|\bpyright\b", combined)),
         runs_test=bool(re.search(r"\bpytest\b|\bpython\s+-m\s+unittest\b", combined)),
-        # The baseline is only a ratchet if something rejects a regression. A repo can
-        # have thorough CI and still enforce nothing, which looks identical from outside.
-        runs_ebpy_check=bool(re.search(r"ebpy\s+check", combined)),
+        runs_ebpy_check=runs_ebpy_check,
     )
 
 
