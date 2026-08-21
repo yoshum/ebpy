@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.5.1 (2026-08-21)
+
+### Bug Fixes
+
+- Defer to mypy config's own file selection instead of overriding with '.'
+  ([#21](https://github.com/yoshum/ebpy/pull/21),
+  [`bc5dfa1`](https://github.com/yoshum/ebpy/commit/bc5dfa1f0309c68aeb2a87c51583ddc4e259ad6a))
+
+- Refuse foreign-flavour absolute mypy paths on any host
+  ([`75dd3c9`](https://github.com/yoshum/ebpy/commit/75dd3c99c78ccccce2822f2a8e6a1928fecbd498))
+
+
 ## v0.5.0 (2026-08-21)
 
 ### Features
