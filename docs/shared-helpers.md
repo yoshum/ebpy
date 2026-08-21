@@ -6,7 +6,7 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-117 public functions.
+120 public functions.
 
 ## src/ebpy
 
@@ -34,19 +34,20 @@ notices once the copies are textually similar — and independently written ones
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `check_measurement` | src/ebpy/commands/check.py:170 | Apply one repository measurement without reading tools or writing artifacts. |
-| `freeze_measurement` | src/ebpy/commands/freeze.py:281 | Build a ceiling contract from one measurement without writing it. |
+| `build_global_freeze` | src/ebpy/commands/freeze.py:189 | Merge every in-scope analyzer's cells into one contract, requiring all to be complete. |
+| `build_scoped_freeze` | src/ebpy/commands/freeze.py:249 | Add or replace one analyzer's namespace without touching any other. |
+| `check_measurement` | src/ebpy/commands/check.py:183 | Apply one repository measurement without reading tools or writing artifacts. |
 | `is_log_kind` | src/ebpy/commands/log.py:24 |  |
-| `prune_measurement` | src/ebpy/commands/prune.py:64 | Lower each complete analyzer's ceiling from measured facts without writing it. |
+| `prune_measurement` | src/ebpy/commands/prune.py:67 | Lower each complete analyzer's ceiling from measured facts without writing it. |
 | `run_bootstrap` | src/ebpy/commands/bootstrap.py:32 |  |
 | `run_catalog` | src/ebpy/commands/catalog.py:13 |  |
-| `run_check` | src/ebpy/commands/check.py:194 |  |
+| `run_check` | src/ebpy/commands/check.py:208 |  |
 | `run_diagnose` | src/ebpy/commands/diagnose.py:18 |  |
-| `run_freeze` | src/ebpy/commands/freeze.py:300 |  |
+| `run_freeze` | src/ebpy/commands/freeze.py:303 |  |
 | `run_install` | src/ebpy/commands/install.py:444 |  |
 | `run_log` | src/ebpy/commands/log.py:28 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
 | `run_next` | src/ebpy/commands/next_command.py:22 |  |
-| `run_prune` | src/ebpy/commands/prune.py:143 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
+| `run_prune` | src/ebpy/commands/prune.py:151 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
 | `run_report` | src/ebpy/commands/report.py:34 |  |
 | `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
 | `run_skills_install` | src/ebpy/commands/install.py:332 |  |
@@ -84,13 +85,14 @@ notices once the copies are textually similar — and independently written ones
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `classify` | src/ebpy/measurement/__init__.py:84 |  |
-| `find_mypy` | src/ebpy/measurement/_mypy.py:57 |  |
+| `classify` | src/ebpy/measurement/__init__.py:81 |  |
+| `config_selects_target` | src/ebpy/measurement/_mypy.py:109 | Whether the repo's own mypy config already names the files, packages or modules to check. |
+| `find_mypy` | src/ebpy/measurement/_mypy.py:65 |  |
 | `find_ruff` | src/ebpy/measurement/_ruff.py:50 |  |
-| `measure_repository` | src/ebpy/measurement/__init__.py:182 | Measure every independent capability, retaining partial success as data. |
-| `parse_mypy_output` | src/ebpy/measurement/_mypy.py:67 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
+| `measure_repository` | src/ebpy/measurement/__init__.py:223 | Measure every independent capability, retaining partial success as data. |
+| `parse_mypy_output` | src/ebpy/measurement/_mypy.py:136 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
 | `parse_ruff_json` | src/ebpy/measurement/_ruff.py:60 |  |
-| `run_mypy_check` | src/ebpy/measurement/_mypy.py:102 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
+| `run_mypy_check` | src/ebpy/measurement/_mypy.py:191 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
 | `run_ruff_check` | src/ebpy/measurement/_ruff.py:104 |  |
 
 ## src/ebpy/render
@@ -98,11 +100,11 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `build_worklist` | src/ebpy/render/worklist.py:39 |  |
-| `extract_notes` | src/ebpy/render/quality.py:176 |  |
+| `extract_notes` | src/ebpy/render/quality.py:165 |  |
 | `render_analysis_report` | src/ebpy/render/analysis_report.py:149 |  |
 | `render_diagnosis` | src/ebpy/render/report.py:73 |  |
 | `render_next` | src/ebpy/render/next.py:76 |  |
-| `render_quality` | src/ebpy/render/quality.py:186 |  |
+| `render_quality` | src/ebpy/render/quality.py:175 |  |
 | `render_worklist` | src/ebpy/render/worklist.py:78 |  |
 
 ## src/ebpy/repo
@@ -144,14 +146,15 @@ notices once the copies are textually similar — and independently written ones
 | `append_log` | src/ebpy/store/state.py:256 |  |
 | `apply_analyzer_rule_counts` | src/ebpy/store/state.py:288 | Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched. |
 | `baseline_path` | src/ebpy/store/baseline.py:24 |  |
+| `cells_excluding` | src/ebpy/store/baseline.py:186 | Every cell except one analyzer's namespace, files left with none omitted. |
 | `cells_for` | src/ebpy/store/baseline.py:176 | Only the cells belonging to one analyzer's namespace, files with none omitted. |
 | `copy_state` | src/ebpy/store/state.py:277 | A caller's own State, safe to hand to the helpers below. |
 | `empty_state` | src/ebpy/store/state.py:70 |  |
-| `finding_total` | src/ebpy/store/baseline.py:205 |  |
+| `finding_total` | src/ebpy/store/baseline.py:219 |  |
 | `improvements` | src/ebpy/store/state.py:335 |  |
 | `invalid_artifacts_message` | src/ebpy/store/ceiling_artifacts.py:35 |  |
 | `log_of_kind` | src/ebpy/store/state.py:262 |  |
-| `merge_cells` | src/ebpy/store/baseline.py:186 | Union several analyzers' cells into one baseline shape. |
+| `merge_cells` | src/ebpy/store/baseline.py:200 | Union several analyzers' cells into one baseline shape. |
 | `next_baseline` | src/ebpy/store/state.py:271 |  |
 | `parse_cells` | src/ebpy/store/baseline.py:72 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
 | `prune_cells` | src/ebpy/store/baseline.py:126 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |

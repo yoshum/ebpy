@@ -12,7 +12,7 @@ import pytest
 
 from ebpy.cli import main
 from ebpy.commands import freeze
-from ebpy.commands.freeze import freeze_measurement, run_freeze
+from ebpy.commands.freeze import build_global_freeze, build_scoped_freeze, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
@@ -170,9 +170,8 @@ def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
 
 
 def test_a_first_freeze_records_every_analyzer_including_a_clean_one() -> None:
-    decision = freeze_measurement(
+    decision = build_global_freeze(
         empty_state(),
-        {},
         Measurement(
             analyzers={
                 "ruff": Measured(
@@ -185,7 +184,6 @@ def test_a_first_freeze_records_every_analyzer_including_a_clean_one() -> None:
                 ),
             }
         ),
-        scope=None,
         force=False,
         frozen_at=_FROZEN_AT,
     )
@@ -215,7 +213,7 @@ def test_an_incomplete_analyzer_refuses_a_normal_freeze_and_writes_nothing() -> 
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -236,7 +234,7 @@ def test_the_incomplete_refusal_names_fixing_the_file_and_the_analyzers_exclude(
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     msg = str(exc_info.value)
     assert "exclude" in msg
@@ -262,7 +260,7 @@ def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> Non
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     msg = str(exc_info.value)
     assert "Ruff" not in msg and "ruff's" not in msg.lower()
@@ -278,7 +276,7 @@ def test_an_unavailable_analyzer_refuses_a_normal_freeze_and_names_bootstrap() -
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "bootstrap" in str(exc_info.value)
     assert "Nothing was written" in str(exc_info.value)
@@ -293,7 +291,7 @@ def test_a_failed_analyzer_refuses_a_normal_freeze_and_quotes_its_detail() -> No
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "mypy crashed: exit 2" in str(exc_info.value)
     assert "Nothing was written" in str(exc_info.value)
@@ -309,7 +307,7 @@ def test_force_refuses_an_unavailable_analyzer_because_force_never_shrinks_the_c
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=True, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=True, frozen_at=_FROZEN_AT)
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -323,9 +321,7 @@ def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_m
     previous.frozen_at = _FROZEN_AT
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(
-            previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
-        )
+        build_global_freeze(previous, _both_analyzers_measurement(), force=True, frozen_at=_FROZEN_AT)
 
     message = str(exc_info.value)
     assert "pylint" in message
@@ -339,9 +335,7 @@ def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> Non
     previous.frozen_analyzers = ("mypy", "ruff")
     previous.frozen_at = _FROZEN_AT
 
-    decision = freeze_measurement(
-        previous, {}, _both_analyzers_measurement(), scope=None, force=True, frozen_at=_FROZEN_AT
-    )
+    decision = build_global_freeze(previous, _both_analyzers_measurement(), force=True, frozen_at=_FROZEN_AT)
 
     assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
 
@@ -362,7 +356,7 @@ def test_force_refuses_an_incomplete_analyzer_too() -> None:
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=True, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=True, frozen_at=_FROZEN_AT)
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -376,7 +370,7 @@ def test_the_unavailable_refusal_points_at_bootstrap() -> None:
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "bootstrap" in str(exc_info.value)
 
@@ -405,14 +399,7 @@ def test_scoped_freeze_on_a_fresh_pair_builds_a_narrow_contract() -> None:
         }
     )
 
-    decision = freeze_measurement(
-        empty_state(),
-        {},
-        measurement,
-        scope="ruff",
-        force=False,
-        frozen_at=_FROZEN_AT,
-    )
+    decision = build_scoped_freeze(empty_state(), {}, measurement, scope="ruff", frozen_at=_FROZEN_AT)
 
     assert decision.state.frozen_analyzers == ("ruff",)
     assert "mypy" not in decision.state.frozen_analyzers
@@ -461,14 +448,8 @@ def test_scoped_freeze_ignores_another_analyzers_failure() -> None:
         }
     )
 
-    # ruff is already in the roster, so --force is required to replace it
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="ruff",
-        force=True,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="ruff", frozen_at=_FROZEN_AT
     )
 
     # mypy failure is irrelevant when scope is ruff
@@ -492,13 +473,8 @@ def test_scoped_freeze_adds_mypy_and_leaves_the_ruff_ceiling_identical() -> None
         }
     )
 
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="mypy",
-        force=False,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="mypy", frozen_at=_FROZEN_AT
     )
 
     assert "mypy" in decision.state.frozen_analyzers
@@ -533,13 +509,8 @@ def test_scoped_force_replaces_only_the_named_namespace() -> None:
         }
     )
 
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="ruff",
-        force=True,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="ruff", frozen_at=_FROZEN_AT
     )
 
     assert decision.state.rules["ruff:F401"].baseline == 2
@@ -561,13 +532,8 @@ def test_a_scoped_freeze_of_a_new_analyzer_says_it_was_added() -> None:
         }
     )
 
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="mypy",
-        force=False,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="mypy", frozen_at=_FROZEN_AT
     )
 
     assert "added to the ceiling" in decision.message
@@ -587,13 +553,8 @@ def test_a_scoped_re_pin_says_it_replaced_rather_than_added() -> None:
         }
     )
 
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="ruff",
-        force=True,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="ruff", frozen_at=_FROZEN_AT
     )
 
     assert "replaced" in decision.message
@@ -613,13 +574,8 @@ def test_a_scoped_re_pin_of_an_all_clean_analyzer_reports_zero_violations() -> N
         }
     )
 
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="ruff",
-        force=True,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="ruff", frozen_at=_FROZEN_AT
     )
 
     assert "0 violations across 0 rules" in decision.message
@@ -649,13 +605,8 @@ def test_scoped_freeze_refuses_a_target_that_is_not_complete() -> None:
     )
 
     with pytest.raises(CommandError) as exc_info:
-        freeze_measurement(
-            artifacts.ledger.state,
-            artifacts.cells,
-            measurement,
-            scope="mypy",
-            force=False,
-            frozen_at=_FROZEN_AT,
+        build_scoped_freeze(
+            artifacts.ledger.state, artifacts.cells, measurement, scope="mypy", frozen_at=_FROZEN_AT
         )
 
     assert "Nothing was written" in str(exc_info.value)
@@ -691,12 +642,11 @@ def test_scoped_freeze_keeps_the_global_frozen_at() -> None:
         }
     )
 
-    decision = freeze_measurement(
+    decision = build_scoped_freeze(
         artifacts.ledger.state,
         artifacts.cells,
         measurement,
         scope="mypy",
-        force=False,
         frozen_at="2026-09-01T00:00:00Z",  # a later timestamp — must not overwrite frozen_at
     )
 
@@ -727,13 +677,8 @@ def test_no_invocation_can_remove_an_analyzer_from_the_roster() -> None:
             ),
         }
     )
-    decision = freeze_measurement(
-        artifacts.ledger.state,
-        artifacts.cells,
-        measurement,
-        scope="ruff",
-        force=True,
-        frozen_at=_FROZEN_AT,
+    decision = build_scoped_freeze(
+        artifacts.ledger.state, artifacts.cells, measurement, scope="ruff", frozen_at=_FROZEN_AT
     )
 
     assert "mypy" in decision.state.frozen_analyzers
@@ -764,9 +709,7 @@ def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
         }
     )
 
-    decision = freeze_measurement(
-        empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT
-    )
+    decision = build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "across 2 rules" in decision.message
 
@@ -787,14 +730,12 @@ def test_the_freeze_message_reports_the_analyzer_count_the_skills_tell_agents_to
         }
     )
 
-    decision = freeze_measurement(
-        empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT
-    )
+    decision = build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert "and 2 analyzers are now grandfathered." in decision.message
 
 
-def test_freeze_measurement_does_not_mutate_its_input_state() -> None:
+def test_a_global_freeze_does_not_mutate_its_input_state() -> None:
     original = empty_state()
     measurement = Measurement(
         analyzers={
@@ -803,7 +744,7 @@ def test_freeze_measurement_does_not_mutate_its_input_state() -> None:
         }
     )
 
-    freeze_measurement(original, {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT)
+    build_global_freeze(original, measurement, force=False, frozen_at=_FROZEN_AT)
 
     assert original.frozen_at is None
     assert original.rules == {}

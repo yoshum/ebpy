@@ -99,7 +99,8 @@ The public decision functions are the test surface:
 
 - `report_from_measurement`
 - `check_measurement`
-- `freeze_measurement`
+- `build_global_freeze`
+- `build_scoped_freeze`
 - `prune_measurement`
 
 Their shells gather filesystem facts, call one decision function and perform the returned writes.

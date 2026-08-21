@@ -186,7 +186,7 @@ def _check_scope_preconditions(artifacts: CeilingArtifacts, scope: str, force: b
     return None
 
 
-def _build_global_freeze(
+def build_global_freeze(
     previous: State,
     measurement: Measurement,
     force: bool,
@@ -246,7 +246,7 @@ def _build_global_freeze(
     return FreezeDecision(cells, state, message)
 
 
-def _build_scoped_freeze(
+def build_scoped_freeze(
     previous: State,
     baseline: CellCountsView,
     measurement: Measurement,
@@ -300,25 +300,6 @@ def _build_scoped_freeze(
     return FreezeDecision(cells, state, message)
 
 
-def freeze_measurement(
-    previous: State,
-    baseline: CellCountsView,
-    measurement: Measurement,
-    scope: str | None,
-    force: bool,
-    frozen_at: str,
-) -> FreezeDecision:
-    """Build a ceiling contract from one measurement without writing it.
-
-    `scope` is the --analyzer NAME value (None = global). `baseline` is the existing frozen cells;
-    a global or force freeze may start from an empty baseline. `force` is passed to the global
-    path to distinguish an initial freeze from a re-pin in the output message.
-    """
-    if scope is None:
-        return _build_global_freeze(previous, measurement, force, frozen_at)
-    return _build_scoped_freeze(previous, baseline, measurement, scope, frozen_at)
-
-
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     artifacts = read_ceiling_artifacts(cwd)
 
@@ -338,14 +319,11 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     previous = _previous_state(artifacts, force and analyzer is None)
     frozen_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
-    decision = freeze_measurement(
-        previous,
-        artifacts.cells,
-        measure_repository(cwd),
-        analyzer,
-        force,
-        frozen_at,
-    )
+    measurement = measure_repository(cwd)
+    if analyzer is None:
+        decision = build_global_freeze(previous, measurement, force, frozen_at)
+    else:
+        decision = build_scoped_freeze(previous, artifacts.cells, measurement, analyzer, frozen_at)
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)

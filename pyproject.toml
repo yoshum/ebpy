@@ -73,9 +73,6 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR0913"]
-# freeze_measurement has 6 args by contract — its signature is the public seam that tests
-# and callers depend on; it cannot be shortened without changing the interface.
-"src/ebpy/commands/freeze.py" = ["PLR0913", "PLR0917"]
 
 [tool.mypy]
 strict = true
