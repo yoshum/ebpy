@@ -326,15 +326,28 @@ def test_mypy_parser_reads_line_column_and_end_position_forms(tmp_path: Path) ->
 
 
 def test_mypy_parser_keeps_a_colon_that_belongs_to_the_filename(tmp_path: Path) -> None:
-    """Backtracking past a drive colon is what stops `C:` becoming the file."""
-    output = "\n".join(
-        [
-            "C:\\work\\src\\a.py:7:2: error: Incompatible argument  [arg-type]",
-            "weird:12:3.py:7: error: Incompatible argument  [arg-type]",
-        ]
-    )
+    """Backtracking past a false colon keeps a colon-bearing relative name in the cell key.
+
+    The location regex is non-greedy, so a colon inside the filename is not mistaken for the
+    `:line:` separator; a repository-relative name carrying colons survives intact.
+    """
+    output = "weird:12:3.py:7: error: Incompatible argument  [arg-type]"
     measurement = parse_mypy_output(output, tmp_path)
-    assert set(measurement.cells) == {"C:/work/src/a.py", "weird:12:3.py"}
+    assert set(measurement.cells) == {"weird:12:3.py"}
+
+
+def test_mypy_parser_refuses_a_drive_qualified_path_from_outside_the_repo(tmp_path: Path) -> None:
+    """A drive-rooted absolute path is unreproducible, so it is refused rather than kept.
+
+    Backtracking past the drive colon still identifies `C:/work/src/a.py` as the filename
+    rather than letting `C:` become it, but a drive-qualified path cannot be made
+    repository-relative on any host, so the measurement is refused rather than baked into a
+    host-dependent baseline. `PurePosixPath` does not recognise a drive root as absolute, so
+    this is exactly the case the earlier POSIX-only guard let slip through on Windows.
+    """
+    output = "C:\\work\\src\\a.py:7:2: error: Incompatible argument  [arg-type]"
+    with pytest.raises(MypyInvalidOutputError, match="outside the repository"):
+        parse_mypy_output(output, tmp_path)
 
 
 def test_mypy_parser_aggregates_repeats_of_one_code_in_one_file(tmp_path: Path) -> None:

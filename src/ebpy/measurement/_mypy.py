@@ -11,7 +11,7 @@ import configparser
 import re
 import shutil
 import tomllib
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from ..cell_key import normalize_analyzer_path, qualify_rule
@@ -141,11 +141,14 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
             # disappear from the count, which is worse than refusing to measure at all.
             raise MypyInvalidOutputError(f"mypy produced an unparseable error line: {line!r}")
         file = normalize_analyzer_path(match["file"], cwd)
-        if PurePosixPath(file).is_absolute():
+        if PureWindowsPath(file).is_absolute() or PurePosixPath(file).is_absolute():
             # A finding mypy reported for a path outside cwd — a config whose files/packages
             # points at, say, `../shared`. normalize_analyzer_path keeps it absolute, so the
             # cell key would embed this host's directory layout and no other machine could
-            # reproduce the ceiling. Refuse rather than write a host-dependent baseline.
+            # reproduce the ceiling. The kept-absolute path may be rooted in either flavour —
+            # a POSIX `/…` on a POSIX host, a drive-qualified `C:/…` on Windows — and only
+            # PureWindowsPath recognises a drive root, so both flavours are tested. Refuse
+            # rather than write a host-dependent baseline.
             raise MypyInvalidOutputError(
                 f"mypy reported a finding outside the repository ({file!r}); a config that checks "
                 "paths outside the repository cannot produce a reproducible baseline"
