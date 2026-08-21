@@ -771,6 +771,29 @@ def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
     assert "across 2 rules" in decision.message
 
 
+def test_the_freeze_message_reports_the_analyzer_count_the_skills_tell_agents_to_relay() -> None:
+    """The global message names how many analyzers were frozen, so the figure an agent
+    relays ('N violations across R rules and A analyzers') matches what the tool emitted."""
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(
+                tool="ruff",
+                value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 3}}),
+            ),
+            "mypy": Measured(
+                tool="mypy",
+                value=AnalysisMeasurement(cells={"src/c.py": {"mypy:arg-type": 2}}),
+            ),
+        }
+    )
+
+    decision = freeze_measurement(
+        empty_state(), {}, measurement, scope=None, force=False, frozen_at=_FROZEN_AT
+    )
+
+    assert "and 2 analyzers are now grandfathered." in decision.message
+
+
 def test_freeze_measurement_does_not_mutate_its_input_state() -> None:
     original = empty_state()
     measurement = Measurement(
