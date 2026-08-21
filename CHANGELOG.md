@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.4.4 (2026-08-21)
+
+### Bug Fixes
+
+- Report consistent grandfathered total on prune no-op branches
+  ([#16](https://github.com/yoshum/ebpy/pull/16),
+  [`fdece5e`](https://github.com/yoshum/ebpy/commit/fdece5e912dd4c955b5ad50ebdb05f2c01686a33))
+
+
 ## v0.4.3 (2026-08-21)
 
 ### Bug Fixes
