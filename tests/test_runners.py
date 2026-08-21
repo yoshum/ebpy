@@ -297,17 +297,48 @@ def test_mypy_exit_one_with_an_unlocated_error_line_surfaces_the_real_error(
     assert error_line in caught.value.summary
 
 
-def test_mypy_exit_two_discards_parsed_cells_even_with_a_syntax_code(
+def test_mypy_exit_two_from_a_syntax_error_is_a_measurement_not_a_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Exit 2 means mypy did not complete, so even a well-formed error line is not measurement —
-    the asymmetry with Ruff's syntax errors (which stay measured-but-unattributed) is deliberate."""
-    fatal_mypy(monkeypatch, "", stdout="src/a.py:7: error: bad syntax  [syntax]\n", code=2)
+    """A file that does not parse makes mypy exit 2 while printing `[syntax]` error lines.
+    Like Ruff's unparseable files, these stay measured-but-unattributed rather than sinking
+    the whole run into a failure that would misdirect the user to fix a configuration error."""
+    fatal_mypy(monkeypatch, "", stdout="src/a.py:7: error: invalid syntax  [syntax]\n", code=2)
 
-    with pytest.raises(MypyFailedError) as caught:
+    measured = run_mypy_check(tmp_path)
+
+    assert measured.cells == {}
+    assert len(measured.unattributed) == 1
+    assert measured.unattributed[0].file == "src/a.py"
+    assert measured.unattributed[0].line == 7
+    assert measured.unattributed[0].message == "invalid syntax"
+
+
+def test_mypy_exit_two_with_no_syntax_lines_stays_a_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A config or usage error exits 2 without any `[syntax]` line, so there is nothing to
+    measure and the run must still be reported as a failure."""
+    fatal_mypy(monkeypatch, "mypy.ini: [mypy]: Unrecognized option: bogus\n")
+
+    with pytest.raises(MypyFailedError):
         run_mypy_check(tmp_path)
 
-    assert not isinstance(caught.value, MypyInvalidOutputError)
+
+def test_mypy_exit_two_mixing_a_real_finding_with_a_syntax_error_is_a_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If exit 2 carries a cell-bearing error alongside a syntax error, mypy did not complete a
+    trustworthy run: the cells cannot be trusted as a full measurement, so the run fails closed."""
+    fatal_mypy(
+        monkeypatch,
+        "",
+        stdout="src/a.py:7: error: invalid syntax  [syntax]\nsrc/b.py:3: error: boom  [arg-type]\n",
+        code=2,
+    )
+
+    with pytest.raises(MypyFailedError):
+        run_mypy_check(tmp_path)
 
 
 def test_mypy_parser_reads_line_column_and_end_position_forms(tmp_path: Path) -> None:
@@ -394,6 +425,19 @@ def test_mypy_parser_refuses_an_error_line_with_no_code(tmp_path: Path) -> None:
     """A dropped code would silently become zero findings, which is the failure to avoid."""
     with pytest.raises(MypyInvalidOutputError):
         parse_mypy_output("src/a.py:7: error: Incompatible return value type", tmp_path)
+
+
+def test_mypy_parser_treats_a_syntax_error_as_unattributed_not_a_cell(tmp_path: Path) -> None:
+    """A file that does not parse is invisible to every type rule, so mypy's `[syntax]` error
+    is recorded as unattributed rather than as a cell the baseline could grandfather — the same
+    treatment Ruff's `invalid-syntax` gets."""
+    measurement = parse_mypy_output("src/a.py:2: error: invalid syntax  [syntax]", tmp_path)
+    assert measurement.cells == {}
+    assert len(measurement.unattributed) == 1
+    assert measurement.unattributed[0].file == "src/a.py"
+    assert measurement.unattributed[0].line == 2
+    assert measurement.unattributed[0].message == "invalid syntax"
+    assert measurement.files_with_findings == 1
 
 
 def test_mypy_parser_returns_nothing_for_clean_output(tmp_path: Path) -> None:
