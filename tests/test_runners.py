@@ -119,6 +119,81 @@ def test_mypy_argv_fixes_codes_pretty_colour_and_summary(
     ]
 
 
+def _capture_mypy_argv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    captured: list[list[str]] = []
+
+    def fake_run(argv: list[str], _cwd: Path) -> ExecResult:
+        captured.append(argv)
+        return ExecResult(code=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mypy_runner, "find_mypy", lambda _cwd: ["mypy"])
+    monkeypatch.setattr(mypy_runner, "run", fake_run)
+    run_mypy_check(tmp_path)
+    return captured
+
+
+def test_mypy_config_naming_files_suppresses_the_positional_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A `[tool.mypy] files` selection is honoured, not overridden by a positional `.`.
+
+    A positional argument makes mypy ignore its config's files/packages/modules, so a repo
+    that deliberately narrowed its checked set would have the excluded files measured and
+    baked into the baseline. Deferring to the config keeps the ceiling reproducible.
+    """
+    (tmp_path / "pyproject.toml").write_text('[tool.mypy]\nfiles = ["src"]\n', encoding="utf-8")
+    captured = _capture_mypy_argv(tmp_path, monkeypatch)
+    assert captured == [
+        ["mypy", "--no-error-summary", "--show-error-codes", "--no-pretty", "--no-color-output"]
+    ]
+
+
+def test_mypy_config_without_a_target_still_passes_the_positional_dot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A mypy config that names no files/packages/modules leaves the `.` in place."""
+    (tmp_path / "pyproject.toml").write_text("[tool.mypy]\nstrict = true\n", encoding="utf-8")
+    captured = _capture_mypy_argv(tmp_path, monkeypatch)
+    assert captured == [
+        ["mypy", ".", "--no-error-summary", "--show-error-codes", "--no-pretty", "--no-color-output"]
+    ]
+
+
+def test_mypy_ini_naming_modules_suppresses_the_positional_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The selection may live in mypy.ini's `[mypy]` section, not only in pyproject."""
+    (tmp_path / "mypy.ini").write_text("[mypy]\nmodules = app\n", encoding="utf-8")
+    captured = _capture_mypy_argv(tmp_path, monkeypatch)
+    assert captured == [
+        ["mypy", "--no-error-summary", "--show-error-codes", "--no-pretty", "--no-color-output"]
+    ]
+
+
+def test_mypy_ini_takes_precedence_over_a_later_pyproject_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """mypy stops at the first config file it finds; a bare mypy.ini wins over pyproject.
+
+    With a `[mypy]` mypy.ini that names no target, mypy never reads pyproject.toml — so its
+    `files` there does not apply and the positional `.` must remain.
+    """
+    (tmp_path / "mypy.ini").write_text("[mypy]\nstrict = True\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text('[tool.mypy]\nfiles = ["src"]\n', encoding="utf-8")
+    captured = _capture_mypy_argv(tmp_path, monkeypatch)
+    assert captured == [
+        ["mypy", ".", "--no-error-summary", "--show-error-codes", "--no-pretty", "--no-color-output"]
+    ]
+
+
+def test_a_finding_outside_the_repository_is_refused_as_unreproducible(tmp_path: Path) -> None:
+    """A config checking `../shared` yields host-absolute paths no other machine reproduces."""
+    outside = (tmp_path.parent / "shared" / "mod.py").as_posix()
+    output = f"{outside}:3: error: Incompatible types  [assignment]\n"
+    with pytest.raises(MypyInvalidOutputError, match="outside the repository"):
+        parse_mypy_output(output, tmp_path)
+
+
 def test_a_fatal_mypy_carries_its_reason_on_the_failure_line(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -251,15 +326,28 @@ def test_mypy_parser_reads_line_column_and_end_position_forms(tmp_path: Path) ->
 
 
 def test_mypy_parser_keeps_a_colon_that_belongs_to_the_filename(tmp_path: Path) -> None:
-    """Backtracking past a drive colon is what stops `C:` becoming the file."""
-    output = "\n".join(
-        [
-            "C:\\work\\src\\a.py:7:2: error: Incompatible argument  [arg-type]",
-            "weird:12:3.py:7: error: Incompatible argument  [arg-type]",
-        ]
-    )
+    """Backtracking past a false colon keeps a colon-bearing relative name in the cell key.
+
+    The location regex is non-greedy, so a colon inside the filename is not mistaken for the
+    `:line:` separator; a repository-relative name carrying colons survives intact.
+    """
+    output = "weird:12:3.py:7: error: Incompatible argument  [arg-type]"
     measurement = parse_mypy_output(output, tmp_path)
-    assert set(measurement.cells) == {"C:/work/src/a.py", "weird:12:3.py"}
+    assert set(measurement.cells) == {"weird:12:3.py"}
+
+
+def test_mypy_parser_refuses_a_drive_qualified_path_from_outside_the_repo(tmp_path: Path) -> None:
+    """A drive-rooted absolute path is unreproducible, so it is refused rather than kept.
+
+    Backtracking past the drive colon still identifies `C:/work/src/a.py` as the filename
+    rather than letting `C:` become it, but a drive-qualified path cannot be made
+    repository-relative on any host, so the measurement is refused rather than baked into a
+    host-dependent baseline. `PurePosixPath` does not recognise a drive root as absolute, so
+    this is exactly the case the earlier POSIX-only guard let slip through on Windows.
+    """
+    output = "C:\\work\\src\\a.py:7:2: error: Incompatible argument  [arg-type]"
+    with pytest.raises(MypyInvalidOutputError, match="outside the repository"):
+        parse_mypy_output(output, tmp_path)
 
 
 def test_mypy_parser_aggregates_repeats_of_one_code_in_one_file(tmp_path: Path) -> None:
