@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..cell_key import analyzer_of
 from ..errors import CommandError
 from ..measurement import (
     ANALYZER_NAMES,
@@ -25,7 +24,14 @@ from ..measurement import (
 )
 from ..models import AnalysisMeasurement, CellCounts, CellCountsView, State
 from ..quality_file import write_quality_file
-from ..store.baseline import cells_for, finding_total, merge_cells, rule_totals, write_cells
+from ..store.baseline import (
+    cells_excluding,
+    cells_for,
+    finding_total,
+    merge_cells,
+    rule_totals,
+    write_cells,
+)
 from ..store.ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import (
     copy_state,
@@ -108,9 +114,9 @@ def _refusal_reason(
     All three are actionable; none offer a way to freeze around the missing data, because a
     contract that silently omits an analyzer is indistinguishable from one that measured zero.
     """
-    if observation is None:
-        # A contract analyzer this build has no runner for at all — classify() reports it
-        # failed, so there is no tool detail to quote.
+    if status == "no-runner":
+        # A contract analyzer this build has no runner for at all, so there is no tool
+        # detail to quote — classify() reports "no-runner" precisely to word this apart.
         return "\n".join(
             [
                 f"{analyzer} is in the contract but this ebpy build has no runner for it.",
@@ -250,11 +256,7 @@ def _build_scoped_freeze(
     assert isinstance(obs, Measured)
     scope_cells = cells_for(obs.value.cells, scope)
     # Strip this namespace from the baseline; merge_cells will catch any accidental overlap.
-    other_cells: CellCounts = {
-        file: {rule: count for rule, count in rules.items() if analyzer_of(rule) != scope}
-        for file, rules in baseline.items()
-    }
-    other_cells = {file: rules for file, rules in other_cells.items() if rules}
+    other_cells = cells_excluding(baseline, scope)
 
     cells = merge_cells([other_cells, scope_cells])
 

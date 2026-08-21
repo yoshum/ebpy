@@ -11,6 +11,7 @@ from ebpy.store.baseline import (
     Ceiling,
     analyzers_in,
     baseline_path,
+    cells_excluding,
     cells_for,
     finding_total,
     merge_cells,
@@ -133,6 +134,22 @@ def test_cells_for_returns_only_one_analyzers_namespace() -> None:
     }
     assert cells_for(cells, "mypy") == {"a.py": {"mypy:arg-type": 1}, "b.py": {"mypy:arg-type": 3}}
     assert cells_for(cells, "ruff") == {"a.py": {"ruff:E501": 2}}
+
+
+def test_cells_excluding_is_the_complement_of_cells_for() -> None:
+    cells = {
+        "a.py": {"ruff:E501": 2, "mypy:arg-type": 1},
+        "b.py": {"mypy:arg-type": 3},
+    }
+    assert cells_excluding(cells, "mypy") == {"a.py": {"ruff:E501": 2}}
+    assert cells_excluding(cells, "ruff") == {"a.py": {"mypy:arg-type": 1}, "b.py": {"mypy:arg-type": 3}}
+
+
+def test_cells_excluding_drops_a_file_left_with_no_cells() -> None:
+    """A file whose only rules all belong to the dropped analyzer vanishes, rather than
+    lingering as an empty rule map the merge would then have to reject."""
+    cells = {"only_mypy.py": {"mypy:arg-type": 3}}
+    assert cells_excluding(cells, "mypy") == {}
 
 
 def test_analyzers_in_names_every_namespace_present() -> None:

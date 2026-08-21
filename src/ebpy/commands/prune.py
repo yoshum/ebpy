@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..errors import CommandError
 from ..measurement import (
+    AnalyzerStatus,
     Failed,
     Measured,
     Measurement,
@@ -47,14 +48,16 @@ def _analyzer_note(analyzer: str, reclaimed: int, baseline_total: int, pruned_to
     return f"  {analyzer}: {baseline_total} (unchanged)"
 
 
-def _carry_reason(analyzer: str, observation: Observation[AnalysisMeasurement] | None) -> str:
+def _carry_reason(
+    analyzer: str, status: AnalyzerStatus, observation: Observation[AnalysisMeasurement] | None
+) -> str:
     """Why this analyzer's ceiling could not be lowered — for the message that says so.
 
-    The observation is None for a contract analyzer this build has no runner for, an
-    Unavailable/Failed for a tool that could not run, or a Measured that left a file
-    unparsed. Each carries a different reason a reader needs to see it verbatim.
+    "no-runner" is a contract analyzer this build has no runner for (observation is None);
+    an Unavailable/Failed is a tool that could not run; "incomplete" is a Measured that left
+    a file unparsed. Each carries a different reason a reader needs to see it verbatim.
     """
-    if observation is None:
+    if status == "no-runner":
         return f"{analyzer} has no runner in this ebpy build"
     if isinstance(observation, Unavailable | Failed):
         return observation.detail
@@ -104,7 +107,9 @@ def prune_measurement(
             output_parts.append(baseline_cells)
             total_before += baseline_total
             total_after += baseline_total
-            incomplete_reasons.append(f"  {analyzer}: not measured — {_carry_reason(analyzer, observation)}")
+            incomplete_reasons.append(
+                f"  {analyzer}: not measured — {_carry_reason(analyzer, status, observation)}"
+            )
             analyzer_notes.append(f"  {analyzer}: {baseline_total} (not measured)")
 
     cells = merge_cells(output_parts)

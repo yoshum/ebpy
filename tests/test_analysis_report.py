@@ -105,9 +105,9 @@ def test_an_unavailable_analyzer_is_not_reported_as_zero_findings() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_report_status_is_one_of_the_four_analyzer_states() -> None:
-    """Every AnalyzerSummary.status is one of the four AnalyzerStatus literals."""
-    valid_statuses = {"complete", "incomplete", "unavailable", "failed"}
+def test_report_status_is_one_of_the_analyzer_states() -> None:
+    """Every AnalyzerSummary.status is one of the AnalyzerStatus literals."""
+    valid_statuses = {"complete", "incomplete", "unavailable", "failed", "no-runner"}
     measurement = Measurement(
         analyzers={
             "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
@@ -227,10 +227,10 @@ def test_an_incomplete_out_of_contract_analyzer_names_its_unparsed_files() -> No
 
 
 def test_a_contract_analyzer_with_no_runner_is_named_in_a_banner() -> None:
-    """A contract naming an analyzer this build cannot run classifies as failed but carries no tool
-    detail (observation is None). It must still produce a banner rather than silently rendering only
-    'failed' in the table — a missing runner is exactly the kind of unmeasured state the banners
-    exist to surface."""
+    """A contract naming an analyzer this build cannot run classifies as "no-runner" and carries no
+    tool detail (observation is None). It must still produce a banner rather than silently rendering
+    only the bare status in the table — a missing runner is exactly the kind of unmeasured state the
+    banners exist to surface."""
     report = report_from_measurement({}, ("mypy",), Measurement(analyzers={}))
 
     rendered = render_analysis_report(report)

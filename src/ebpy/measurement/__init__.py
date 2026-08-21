@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -10,7 +10,7 @@ from typing import Generic, Literal, TypeAlias, TypeVar
 
 from ..cell_key import analyzer_of, is_analyzer_name
 from ..errors import ToolError
-from ..models import AnalysisMeasurement
+from ..models import AnalysisMeasurement, ToolingPresence
 from ._mypy import (
     MypyFailedError,
     MypyInvalidOutputError,
@@ -26,10 +26,6 @@ from ._ruff import (
 
 T = TypeVar("T")
 FailureKind = Literal["execution-failed", "invalid-output"]
-
-# The shipped analyzers, sorted — not a registry. Adding a third means adding it here
-# and teaching measure_repository to attempt it; nothing discovers analyzers dynamically.
-ANALYZER_NAMES: tuple[str, ...] = ("mypy", "ruff")
 
 # A tool's own diagnostic block fits; a runaway trace is cut, and the marker says it was.
 # A truncated detail that looked complete would be a report claiming more than it holds.
@@ -75,14 +71,17 @@ class Failed:
 
 Observation: TypeAlias = Measured[T] | Unavailable | Failed
 
-# Whether an observation is usable as a verified ceiling. `None` stands for a ledger
-# contract naming an analyzer this ebpy build has no runner for at all — that must fail
-# closed rather than default to "unmeasured but fine", so it classifies as failed too.
-AnalyzerStatus = Literal["complete", "incomplete", "unavailable", "failed"]
+# Whether an observation is usable as a verified ceiling. "no-runner" stands for a ledger
+# contract naming an analyzer this ebpy build has no runner for at all: `None` rather than
+# any observation shape. It is not folded into "failed" so that callers can word the one
+# unfixable case — reach for a build that ships the runner — apart from a tool that broke.
+AnalyzerStatus = Literal["complete", "incomplete", "unavailable", "failed", "no-runner"]
 
 
 def classify(observation: Observation[AnalysisMeasurement] | None) -> AnalyzerStatus:
-    if observation is None or isinstance(observation, Failed):
+    if observation is None:
+        return "no-runner"
+    if isinstance(observation, Failed):
         return "failed"
     if isinstance(observation, Unavailable):
         return "unavailable"
@@ -179,8 +178,48 @@ def _measure_mypy(cwd: Path) -> Observation[AnalysisMeasurement]:
         )
 
 
+@dataclass(frozen=True)
+class AnalyzerSpec:
+    """Everything ebpy knows how to do with one analyzer, in one place.
+
+    Adding a third analyzer is one entry in `ANALYZER_SPECS`: `measure` turns a repository
+    into an observation, `configured` reads whether the repository set the tool up (for the
+    unratcheted note), and `noun` is what that note calls the tool's findings. measurement,
+    check, and quality all read this registry, so the wiring cannot desync between them.
+    """
+
+    name: str
+    measure: Callable[[Path], Observation[AnalysisMeasurement]]
+    configured: Callable[[ToolingPresence], bool]
+    noun: str
+
+
+# The shipped analyzers. Everything analyzer-specific is here; nothing discovers analyzers
+# dynamically. `configured` is a literal field access, not getattr(tooling, name): a typo
+# is then a mypy error rather than a silently-always-false lookup.
+ANALYZER_SPECS: tuple[AnalyzerSpec, ...] = (
+    AnalyzerSpec(
+        name="ruff",
+        measure=_measure_ruff,
+        configured=lambda tooling: tooling.ruff,
+        noun="Lint violations",
+    ),
+    AnalyzerSpec(
+        name="mypy",
+        measure=_measure_mypy,
+        configured=lambda tooling: tooling.mypy,
+        noun="Type errors",
+    ),
+)
+
+ANALYZER_SPECS_BY_NAME: Mapping[str, AnalyzerSpec] = MappingProxyType(
+    {spec.name: spec for spec in ANALYZER_SPECS}
+)
+
+# The shipped analyzers' names, sorted. Derived from the registry so it cannot drift from it.
+ANALYZER_NAMES: tuple[str, ...] = tuple(sorted(ANALYZER_SPECS_BY_NAME))
+
+
 def measure_repository(cwd: Path) -> Measurement:
     """Measure every independent capability, retaining partial success as data."""
-    ruff = _measure_ruff(cwd)
-    mypy = _measure_mypy(cwd)
-    return Measurement(analyzers={"ruff": ruff, "mypy": mypy})
+    return Measurement(analyzers={spec.name: spec.measure(cwd) for spec in ANALYZER_SPECS})

@@ -80,9 +80,9 @@ def _failure_banners(report: AnalysisReport) -> list[str]:
         consequence = _consequence(name, summary.in_contract)
         if summary.failure is not None:
             lines.extend(_banner(f"{name} did not run", summary.failure, consequence))
-        elif summary.status == "failed":
-            # A contract analyzer this build has no runner for: failed, but with no tool
-            # detail to quote. Name the missing runner so it is not silently just "failed".
+        elif summary.status == "no-runner":
+            # A contract analyzer this build has no runner for: no tool detail to quote.
+            # Name the missing runner so it is not silently rendered as a bare status.
             lines.extend(
                 _banner(f"{name} did not run", f"{name} has no runner in this ebpy build", consequence)
             )

@@ -6,10 +6,9 @@ is exactly the numbers that moved.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from ..decide.freshness import Freshness
-from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State, ToolingPresence
+from ..measurement import ANALYZER_SPECS
+from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
 from ..store.state import improvements, log_of_kind, total_violations
 from .worklist import build_worklist, render_worklist
 
@@ -22,14 +21,6 @@ NOTES_END = "<!-- ebpy:notes:end -->"
 _STATUS_LABEL = {"off": "off", "draining": "draining", "enforced": "clean"}
 
 _LOG_ENTRIES_SHOWN = 20
-
-# Mapped explicitly, not with getattr(tooling, name): the roster of analyzers this ebpy
-# ships is fixed and short, and a literal table keeps a typo in a name a mypy error rather
-# than a silently-always-false lookup.
-_ANALYZER_TOOLING: tuple[tuple[str, Callable[[ToolingPresence], bool]], ...] = (
-    ("mypy", lambda tooling: tooling.mypy),
-    ("ruff", lambda tooling: tooling.ruff),
-)
 
 
 def _delta(rule: RuleBaseline) -> str:
@@ -146,9 +137,7 @@ def _unratcheted_marker(state: State, roster: set[str]) -> str:
         return ""
     tooling = state.diagnosis.tooling
     unratcheted = [
-        analyzer
-        for analyzer, configured in _ANALYZER_TOOLING
-        if analyzer not in roster and configured(tooling)
+        spec.name for spec in ANALYZER_SPECS if spec.name not in roster and spec.configured(tooling)
     ]
     if not unratcheted:
         return ""
