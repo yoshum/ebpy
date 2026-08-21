@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-08-21)
+
+### Features
+
+- Expand the bootstrapped Ruff ruleset
+  ([`4685017`](https://github.com/yoshum/ebpy/commit/468501738efee725933c37a891839c2870382c9d))
+
+### Refactoring
+
+- Derive AnalysisMeasurement.files_with_findings from cells
+  ([#26](https://github.com/yoshum/ebpy/pull/26),
+  [`74c639c`](https://github.com/yoshum/ebpy/commit/74c639c1b4b04c6cfe43a581e1a4788a96ea0ac1))
+
+- Let ebpy check be the sole lint/typecheck gate in CI
+  ([`5bbe909`](https://github.com/yoshum/ebpy/commit/5bbe909c45409d79534ef5fa125e09737e5ae7f0))
+
+- Localize the write-side ceiling derivation
+  ([`132448d`](https://github.com/yoshum/ebpy/commit/132448d49d840de8860217a28ccfaa3f604564f4))
+
+- Move worklist verdict logic into decide/
+  ([`57604b3`](https://github.com/yoshum/ebpy/commit/57604b383fca4fa899a3dd5cffcc09ad10a287d5))
+
+- Name the worklist verdict Worklist, not WorklistVerdict
+  ([`4c5ee36`](https://github.com/yoshum/ebpy/commit/4c5ee36d76f3b5b4aa7332a02f7073404c34c345))
+
+- Split freeze_measurement into two public decision functions
+  ([#25](https://github.com/yoshum/ebpy/pull/25),
+  [`e966b6b`](https://github.com/yoshum/ebpy/commit/e966b6b2f5b5323f926584b44eb28e9b8389f354))
+
+- Split skills-bundle management out of install.py
+  ([`36c1770`](https://github.com/yoshum/ebpy/commit/36c1770b56c3f0e4baafe2d06f3eac9a2a1ca61a))
+
+
 ## v0.5.3 (2026-08-21)
 
 ### Bug Fixes
