@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.4.3 (2026-08-21)
+
+### Bug Fixes
+
+- Scoped forced freeze reports a replacement as a replacement
+  ([#15](https://github.com/yoshum/ebpy/pull/15),
+  [`2979ff3`](https://github.com/yoshum/ebpy/commit/2979ff3290af233b9a84d6d7707d8731e667e94b))
+
+
 ## v0.4.2 (2026-08-21)
 
 ### Bug Fixes
