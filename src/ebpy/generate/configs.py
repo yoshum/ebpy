@@ -11,42 +11,71 @@ from __future__ import annotations
 import re
 
 # Each select group covers what the others cannot see, mirroring the layers the approach
-# depends on: function size and complexity (C90, PL), bug patterns (F, B, SIM), types
-# and readability (UP, N, ARG), and mechanical style Ruff formats away.
+# depends on: function size and complexity (C90, PL), bug patterns (F, B, SIM, PIE),
+# performance and modern idioms (PERF, FURB, C4, UP), types and interfaces (ANN, TC, N,
+# ARG, A), documentation (D), test hygiene (PT), and mechanical style Ruff formats away.
 _RUFF_SELECT = """\
 select = [
-  "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings
-  "F",   # pyflakes — undefined names, unused imports, real bugs
-  "B",   # bugbear — mutable defaults, loop variables captured late
-  "C90", # mccabe — cognitive complexity
-  "I",   # isort — import order, so diffs stop fighting over it
-  "N",   # pep8-naming
-  "UP",  # pyupgrade — syntax the requires-python already allows
-  "SIM", # simplify — collapsible ifs, needless bool gymnastics
-  "C4",  # comprehensions
-  "ARG", # unused arguments — an argument nobody reads is an API lying
-  "PL",  # pylint — too many branches, returns, statements
-  "RUF", # ruff-specific
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "F",     # pyflakes — undefined names, unused imports, real bugs
+  "B",     # bugbear — mutable defaults, loop variables captured late
+  "PL",    # pylint — too many branches, returns, statements
+  "C90",   # mccabe — cognitive complexity
+  "I",     # isort — import order, so diffs stop fighting over it
+  "N",     # pep8-naming
+  "UP",    # pyupgrade — syntax the requires-python already allows
+  "SIM",   # simplify — collapsible ifs, needless bool gymnastics
+  "PERF",  # performance anti-patterns
+  "FURB",  # refurbishing and modernizing Python codebases
+  "C4",    # comprehensions
+  "ARG",   # unused arguments — an argument nobody reads is an API lying
+  "A",     # builtin shadowing
+  "ANN",   # annotations — function annotations
+  "TC",    # type-checking — force proper use of TYPE_CHECKING blocks
+  "D",     # pydocstyle — missing or malformed docstrings
+  "PT",    # pytest
+  "RUF",   # ruff-specific
+  "PIE",   # misc
 ]
 """
+
+# Every ignore here resolves a rule that fights the formatter or another selected rule,
+# never a rule we are softening: W191/E111/E114/E117 are the indentation checks Ruff's
+# own formatter owns, and D203/D206/D300/D213 are the docstring rules that contradict
+# D211, the formatter, D301, and D212 respectively.
+_RUFF_IGNORE = """\
+ignore = [
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D203",
+  "D206",
+  "D300",
+  "D213",
+]
+"""
+
+_MAX_COMPLEXITY = 10
+_LINE_LENGTH = 100
 
 
 def ruff_pyproject_section(target_version: str) -> str:
     """Appended to an existing pyproject.toml that has no [tool.ruff] table."""
     return (
-        f'[tool.ruff]\nline-length = 100\ntarget-version = "{target_version}"\n'
-        f"\n[tool.ruff.lint]\n{_RUFF_SELECT}"
-        "\n[tool.ruff.lint.mccabe]\nmax-complexity = 10\n"
+        f'[tool.ruff]\nline-length = {_LINE_LENGTH}\ntarget-version = "{target_version}"\n'
+        f"\n[tool.ruff.lint]\n{_RUFF_SELECT}\n{_RUFF_IGNORE}"
+        f"\n[tool.ruff.lint.mccabe]\nmax-complexity = {_MAX_COMPLEXITY}\n"
     )
 
 
 def ruff_toml_content(target_version: str) -> str:
     """A standalone ruff.toml, for a repository with no pyproject.toml to append to."""
     return (
-        f'line-length = 100\ntarget-version = "{target_version}"\n'
-        f"\n[lint]\n{_RUFF_SELECT}"
-        "\n[lint.mccabe]\nmax-complexity = 10\n"
+        f'line-length = {_LINE_LENGTH}\ntarget-version = "{target_version}"\n'
+        f"\n[lint]\n{_RUFF_SELECT}\n{_RUFF_IGNORE}"
+        f"\n[lint.mccabe]\nmax-complexity = {_MAX_COMPLEXITY}\n"
     )
 
 
