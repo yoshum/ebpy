@@ -47,26 +47,33 @@ intentionally unparseable (a template, a fixture, a legacy file), add it to `exc
 | --- | --- | --- |
 | `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | All analyzers' complete cells become the initial contract. |
 | `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; all analyzers' complete cells become a new contract. |
-| `freeze --analyzer NAME` | A valid frozen pair is required; NAME must not be in the contract yet. | Adds NAME's cells to the existing contract, leaving every other namespace untouched. |
-| `freeze --force --analyzer NAME` | A valid frozen pair is required. | Replaces NAME's cells and rules in the existing contract, leaving every other namespace untouched. |
+| `freeze --analyzer NAME` | A fresh pair, or a valid frozen pair; NAME must not be in the contract yet. | On a fresh pair, builds a narrow contract holding only NAME. On a frozen pair, adds NAME's cells to the existing contract, leaving every other namespace untouched. |
+| `freeze --force --analyzer NAME` | A fresh pair, or a valid frozen pair. | Replaces (or on a fresh pair, installs) NAME's cells and rules, leaving every other namespace untouched. |
 
-**No invocation removes an analyzer from a contract.** A repository whose toolchain is incomplete
-should run `ebpy bootstrap` first, so the first freeze always covers every analyzer. `--force`
+**No invocation removes an analyzer from a contract.** A global `freeze` covers every analyzer this
+build ships and refuses if any is missing, so it cannot silently narrow the roster. `--force`
 governs only the artifact precondition — whether an existing contract may be overwritten — and does
-not change which analyzers are in scope.
+not change which analyzers a global freeze puts in scope.
 
-Scoped operations (`--analyzer NAME`) require a valid pair because they must read and preserve the
-existing contract. Invalid pairs can only be recovered by a global `freeze --force`, which discards
-everything and starts fresh.
+Scoped operations (`--analyzer NAME`) accept a fresh pair or a valid frozen pair. On a fresh pair
+they build a narrow contract from the start; on a frozen pair they read and preserve the existing
+contract. Only invalid pairs are refused — a partial contract cannot be read and preserved, so
+recovering it needs a global `freeze --force`, which discards everything and starts fresh.
 
-## Adding an analyzer to an existing contract
+## Building a narrow contract, or adding an analyzer later
 
-`freeze --analyzer NAME` exists for a contract whose roster is narrower than the analyzers this ebpy
-knows. A first freeze always covers every analyzer this build ships, so that gap does not arise
-within one version — it arises across versions: a later ebpy that adds a new analyzer inherits a
-version-2 contract an earlier ebpy pinned before that analyzer existed. `freeze --analyzer NAME`
-brings the new analyzer under the ceiling without re-pinning — and so without grandfathering — any
-of the existing namespaces.
+`freeze --analyzer NAME` covers two cases where the roster is narrower than every analyzer this ebpy
+ships:
+
+- **Staged adoption within a version.** A repository whose toolchain is not yet complete — mypy not
+  installed, say — can freeze the analyzer it *can* measure today with `freeze --analyzer ruff`,
+  building a ruff-only contract from a fresh pair. [`check`](check.md) then gates ruff and names
+  mypy as a configured analyzer the contract does not yet hold. Add it with
+  `freeze --analyzer mypy` once the toolchain is complete.
+- **A new analyzer across versions.** A later ebpy that adds a new analyzer inherits a contract an
+  earlier ebpy pinned before that analyzer existed. `freeze --analyzer NAME` brings the new analyzer
+  under the ceiling without re-pinning — and so without grandfathering — any of the existing
+  namespaces.
 
 There is no migration path from before version 2: a version-1 contract is refused outright, and the
 only way past it is a global `freeze --force` that discards the old contract entirely.

@@ -159,17 +159,23 @@ def _refusal_reason(
 
 
 def _check_scope_preconditions(artifacts: CeilingArtifacts, scope: str, force: bool) -> str | None:
-    """Return an error message if the artifact precondition for a scoped freeze is not met."""
-    if artifacts.kind != "frozen":
+    """Return an error message if the artifact precondition for a scoped freeze is not met.
+
+    A fresh pair is allowed: `freeze --analyzer NAME` on a repository with no contract yet
+    builds a narrow contract holding only NAME, the staged-adoption path for a repository
+    whose toolchain is not yet complete. An invalid pair is still refused — a partial contract
+    cannot be read and preserved, so recovering it needs a global `freeze --force`.
+    """
+    if artifacts.kind == "invalid":
         return "\n".join(
             [
-                f"Cannot add {scope} to an unfrozen pair.",
-                "`ebpy freeze --analyzer` requires a valid frozen contract to extend.",
-                "Run `ebpy freeze` first to establish the initial contract.",
+                f"Cannot add {scope} to an invalid contract.",
+                "`ebpy freeze --analyzer` requires a valid pair it can read and preserve.",
+                "Recover with `ebpy freeze --force`, which discards the old contract entirely.",
             ]
         )
-    assert artifacts.ledger.state is not None
-    roster = artifacts.ledger.state.frozen_analyzers
+    state = artifacts.ledger.state
+    roster = state.frozen_analyzers if state is not None else ()
     if not force and scope in roster:
         return "\n".join(
             [
@@ -243,10 +249,13 @@ def _build_scoped_freeze(
     baseline: CellCountsView,
     measurement: Measurement,
     scope: str,
+    frozen_at: str,
 ) -> FreezeDecision:
     """Add or replace one analyzer's namespace without touching any other.
 
-    The global frozen_at is preserved: a scoped write shows up in updated_at, not frozen_at.
+    On an already-frozen contract the global frozen_at is preserved — a scoped write shows up
+    in updated_at, not frozen_at. On a fresh pair this is the initial freeze, so it stamps
+    frozen_at and advances to the drain phase, building a narrow contract holding only `scope`.
     """
     obs = measurement.analyzers.get(scope)
     status = classify(obs)
@@ -265,6 +274,9 @@ def _build_scoped_freeze(
     state = replace_analyzer_rules(state, scope, rule_totals(scope_cells))
     if not replacing:
         state.frozen_analyzers = tuple(sorted((*state.frozen_analyzers, scope)))
+    if state.frozen_at is None:
+        state.frozen_at = frozen_at
+        state = with_phase(state, "drain")
 
     unattributed = _unattributed_report(scope, obs.value)
     backlog = finding_total(scope_cells)
@@ -302,14 +314,14 @@ def freeze_measurement(
     """
     if scope is None:
         return _build_global_freeze(previous, measurement, force, frozen_at)
-    return _build_scoped_freeze(previous, baseline, measurement, scope)
+    return _build_scoped_freeze(previous, baseline, measurement, scope, frozen_at)
 
 
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     artifacts = read_ceiling_artifacts(cwd)
 
     if analyzer is not None:
-        # Scoped freeze: artifact precondition is a valid frozen pair.
+        # Scoped freeze: artifact precondition is a fresh or a valid frozen pair.
         precondition_error = _check_scope_preconditions(artifacts, analyzer, force)
         if precondition_error is not None:
             raise CommandError(precondition_error)
