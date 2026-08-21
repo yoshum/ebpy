@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from ebpy.decide.drain_order import build_drain_plan
 from ebpy.decide.freshness import Freshness
+from ebpy.decide.worklist import build_worklist
 from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolingPresence
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
-from ebpy.render.worklist import build_worklist, render_worklist
+from ebpy.render.worklist import build_worklist as build_worklist_items
+from ebpy.render.worklist import render_worklist
 from ebpy.store.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")
@@ -136,16 +138,16 @@ def test_the_worklist_is_derived_from_state_not_stored() -> None:
     state.diagnosed_at = "2026-08-01T00:00:00Z"
     state.frozen_at = "2026-08-02T00:00:00Z"
     state.rules = {"E501": RuleBaseline(baseline=3, current=3, status="draining")}
-    lines = render_worklist(build_worklist(state))
+    lines = render_worklist(build_worklist_items(build_worklist(state)))
     assert lines[0].startswith("- [x] **P0 diagnose**")
     assert lines[2].startswith("- [x] **P2 freeze**")
     assert any("`E501` — 3 left" in line for line in lines)
 
 
-def test_drain_is_done_only_once_the_backlog_is_empty() -> None:
+def test_an_empty_backlog_renders_as_a_done_drain_phase() -> None:
     state = empty_state()
     state.frozen_at = "2026-08-02T00:00:00Z"
-    items = {item.label: item for item in build_worklist(state)}
+    items = {item.label: item for item in build_worklist_items(build_worklist(state))}
     assert items["P3 drain"].done
     assert items["P3 drain"].detail == "backlog empty"
 

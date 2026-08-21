@@ -7,10 +7,12 @@ is exactly the numbers that moved.
 from __future__ import annotations
 
 from ..decide.freshness import Freshness
+from ..decide.worklist import build_worklist
 from ..measurement import ANALYZER_SPECS
 from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
 from ..store.state import improvements, log_of_kind, total_violations
-from .worklist import build_worklist, render_worklist
+from .worklist import build_worklist as build_worklist_items
+from .worklist import render_worklist
 
 QUALITY_FILE = "QUALITY.md"
 
@@ -185,7 +187,7 @@ def render_quality(state: State, notes: str, freshness: Freshness) -> str:
         "",
         "Top to bottom. An unattended run works this list and nothing else.",
         "",
-        *render_worklist(build_worklist(state)),
+        *render_worklist(build_worklist_items(build_worklist(state))),
         "",
         *_carried_over(state),
         "## Ratchet",
