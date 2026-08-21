@@ -122,48 +122,68 @@ def _gate_analyzer(
     return state, _excess_reason(analyzer, excess) if excess else None
 
 
-def _non_contract_note(analyzer: str, status: AnalyzerStatus) -> str:
-    if status == "complete":
-        return f"{analyzer} ran but is not in the frozen contract, so its findings are not ratcheted."
-    return f"{analyzer} was not measured and has no ceiling here."
-
-
-def _non_contract_notes(frozen_analyzers: tuple[str, ...], measurement: Measurement) -> list[str]:
-    """Every analyzer this run attempted that the contract does not hold, never gated."""
-    roster = set(frozen_analyzers)
-    return [
-        _non_contract_note(analyzer, classify(observation))
-        for analyzer, observation in sorted(measurement.analyzers.items())
-        if analyzer not in roster
-    ]
-
-
-def _standing_note(analyzer: str, noun: str) -> str:
-    return "\n".join(
-        [
-            f"{analyzer} is configured in this repository but is not in the frozen contract.",
-            f"{noun} are not ratcheted. `ebpy freeze --analyzer {analyzer}` puts it under the ceiling.",
-        ]
-    )
-
-
-def _standing_notes(previous: State) -> list[str]:
-    """Every run, name a configured analyzer the contract omits — whether or not it ran.
+def _configured_nouns(previous: State) -> dict[str, str]:
+    """The noun each configured, non-contract analyzer's findings go by, keyed by name.
 
     Read from `previous.diagnosis.tooling`, detected from configuration rather than from
-    installs, so this survives the tool being absent. Skipped when there is no diagnosis to
+    installs, so it survives the tool being absent. Empty when there is no diagnosis to
     compare against: a repository that never ran `diagnose` has nothing to compare against,
     and inventing a complaint from missing data is exactly what "absence and zero are
     different" forbids.
     """
     if previous.diagnosis is None:
-        return []
+        return {}
     tooling = previous.diagnosis.tooling
     roster = set(previous.frozen_analyzers)
-    return [
-        _standing_note(analyzer, noun)
+    return {
+        analyzer: noun
         for analyzer, configured, noun in _CONFIGURED_ANALYZERS
         if analyzer not in roster and configured(tooling)
+    }
+
+
+def _non_contract_note(analyzer: str, status: AnalyzerStatus | None, noun: str | None) -> str:
+    """One paragraph for a non-contract analyzer, merging its run status with the standing
+    fact that a configured analyzer is unratcheted.
+
+    `status` is None when the analyzer was not attempted this run but the diagnosis lists it
+    as configured; `noun` is None when the diagnosis does not list it. The two facts — "it
+    ran, so its findings are not ratcheted" and "it is configured, so freeze it" — name the
+    same analyzer, so they collapse into a single paragraph rather than double-warning.
+    """
+    freeze_hint = f"`ebpy freeze --analyzer {analyzer}` puts it under the ceiling."
+    if status == "complete":
+        lines = [f"{analyzer} ran but is not in the frozen contract, so its findings are not ratcheted."]
+        if noun is not None:
+            lines.append(freeze_hint)
+        return "\n".join(lines)
+    if noun is not None:
+        return "\n".join(
+            [
+                f"{analyzer} is configured in this repository but is not in the frozen contract.",
+                f"{noun} are not ratcheted. {freeze_hint}",
+            ]
+        )
+    return f"{analyzer} was not measured and has no ceiling here."
+
+
+def _non_contract_notes(previous: State, measurement: Measurement) -> list[str]:
+    """One note per non-contract analyzer — every analyzer this run attempted outside the
+    contract, plus every analyzer the diagnosis reports configured but the contract omits.
+
+    Keyed by analyzer name so an analyzer that both ran and is configured yields a single
+    merged paragraph, not one note from each source.
+    """
+    roster = set(previous.frozen_analyzers)
+    nouns = _configured_nouns(previous)
+    attempted = {
+        analyzer: classify(observation)
+        for analyzer, observation in measurement.analyzers.items()
+        if analyzer not in roster
+    }
+    return [
+        _non_contract_note(analyzer, attempted.get(analyzer), nouns.get(analyzer))
+        for analyzer in sorted(attempted.keys() | nouns.keys())
     ]
 
 
@@ -176,15 +196,16 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
         if failure is not None:
             failures.append(failure)
 
-    notes = [*_non_contract_notes(previous.frozen_analyzers, measurement), *_standing_notes(previous)]
+    notes = _non_contract_notes(previous, measurement)
 
     if failures:
         return CheckDecision(CheckResult(ok=False, message="\n\n".join([*failures, *notes])), state)
 
+    count = len(previous.frozen_analyzers)
     message = "\n\n".join(
         [
             f"Clean. {total_violations(state)} grandfathered findings left to drain across "
-            f"{len(previous.frozen_analyzers)} analyzers.",
+            f"{count} {'analyzer' if count == 1 else 'analyzers'}.",
             *notes,
         ]
     )
