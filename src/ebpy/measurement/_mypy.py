@@ -137,6 +137,18 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
             "mypy exited 0 (clean) but its output reported findings; exit code and output disagree"
         )
     if result.code == 1 and not measured.cells:
+        # mypy can report a real error that carries no `:line:` location — a non-blocker
+        # emitted with line=-1, e.g. `pkg/sub: error: Ancestor package "pkg" ignored` under
+        # `follow_imports = error`. The strict parser attributes no cell to such a line, but
+        # the exit code and the error text agree that mypy found something, so this is an
+        # ordinary failure whose text the user should see, not garbled output to refuse.
+        output = result.stdout.strip()
+        if "error:" in output:
+            headline = "mypy exited 1 with an error carrying no location"
+            raise MypyFailedError(
+                f"{headline}{_summary_clause(output)}",
+                detail=f"{headline}:\n{output}",
+            )
         raise MypyInvalidOutputError(
             "mypy exited 1 (errors found) but no error line could be parsed from its output"
         )
