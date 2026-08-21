@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.5.2 (2026-08-21)
+
+### Bug Fixes
+
+- Measure mypy exit-2 syntax errors instead of misreporting them
+  ([#22](https://github.com/yoshum/ebpy/pull/22),
+  [`92cff50`](https://github.com/yoshum/ebpy/commit/92cff50110e97b75d9acdb3d0f708c6b4e673a69))
+
+
 ## v0.5.1 (2026-08-21)
 
 ### Bug Fixes
