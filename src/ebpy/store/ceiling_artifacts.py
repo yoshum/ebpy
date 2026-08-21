@@ -7,13 +7,14 @@ read.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from ..models import CellCounts, RuleId, State
-from .baseline import Ceiling, analyzers_in, read_ceiling, rule_totals
-from .state import Ledger, read_ledger
+from ..models import CellCounts, CellCountsView, RuleId, State
+from .baseline import Ceiling, analyzers_in, cells_for, read_ceiling, rule_totals
+from .state import Ledger, read_ledger, replace_analyzer_rules
 
 ArtifactKind = Literal["fresh", "frozen", "invalid"]
 
@@ -99,6 +100,33 @@ def _validate_frozen_pair(cells: CellCounts, state: State) -> tuple[ArtifactKind
     if rule_totals(cells) != _ledger_rule_ceilings(state):
         return "invalid", "the ceilings in .ebpy/baseline.json and .ebpy/state.json disagree"
     return "frozen", None
+
+
+def align_analyzer_rules_to_cells(state: State, analyzer_cells: CellCountsView, analyzer: str) -> State:
+    """Reinstall `analyzer`'s ledger rule totals from the very cells being written for it.
+
+    The write-side counterpart to `_validate_frozen_pair`: rather than let each command
+    re-derive the ledger totals by hand and hope the arithmetic matches, the one derivation
+    the read side checks — per-rule totals equal `rule_totals` of the analyzer's cells — is
+    performed here, so a caller cannot write cells and a divergent ledger. `analyzer_cells`
+    holds only this analyzer's namespace (a scoped freeze's fresh cells, a prune's kept cells).
+
+    Uses `replace_analyzer_rules`, so a rule whose findings are all gone leaves the namespace
+    instead of lingering at a stale baseline — exactly what keeps the pair consistent.
+    """
+    return replace_analyzer_rules(state, analyzer, rule_totals(analyzer_cells))
+
+
+def align_all_analyzer_rules_to_cells(state: State, cells: CellCountsView, analyzers: Iterable[str]) -> State:
+    """Align every listed analyzer's ledger totals to its slice of one combined baseline.
+
+    The global-freeze counterpart: `cells` spans every analyzer, so each namespace is carved
+    out with `cells_for` before its totals are reinstalled. Mutates and returns `state` in the
+    same style as `replace_analyzer_rules`.
+    """
+    for analyzer in analyzers:
+        state = align_analyzer_rules_to_cells(state, cells_for(cells, analyzer), analyzer)
+    return state
 
 
 def _classify_missing_ceiling(ledger: Ledger) -> CeilingArtifacts:

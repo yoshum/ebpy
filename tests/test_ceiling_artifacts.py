@@ -6,7 +6,11 @@ from pathlib import Path
 from ebpy.cell_key import analyzer_of
 from ebpy.models import RuleBaseline
 from ebpy.store.baseline import write_cells
-from ebpy.store.ceiling_artifacts import read_ceiling_artifacts
+from ebpy.store.ceiling_artifacts import (
+    align_all_analyzer_rules_to_cells,
+    align_analyzer_rules_to_cells,
+    read_ceiling_artifacts,
+)
 from ebpy.store.state import empty_state, state_path, write_state
 
 
@@ -108,6 +112,49 @@ def test_a_frozen_ledger_with_an_empty_roster_is_invalid(tmp_path: Path) -> None
 
     assert artifacts.kind == "invalid"
     assert artifacts.detail is not None and "no analyzers" in artifacts.detail
+
+
+def test_aligning_a_written_pair_reads_back_as_frozen(tmp_path: Path) -> None:
+    """The write-side counterpart to `_validate_frozen_pair`: deriving the ledger totals with
+    the helper and writing them alongside the same cells must leave a pair that reads as
+    frozen, never invalid — the read-side check the helper exists to satisfy."""
+    cells = {"src/app.py": {"ruff:F401": 2}, "src/lib.py": {"mypy:arg-type": 3}}
+    state = empty_state()
+    state.frozen_analyzers = ("mypy", "ruff")
+    state.frozen_at = "2026-08-19T00:00:00Z"
+    state.phase = "drain"
+    state = align_all_analyzer_rules_to_cells(state, cells, ("ruff", "mypy"))
+    write_cells(tmp_path, cells)
+    write_state(tmp_path, state)
+
+    assert read_ceiling_artifacts(tmp_path).kind == "frozen"
+
+
+def test_aligning_drops_a_rule_whose_cells_are_gone() -> None:
+    """A rule the fresh cells no longer carry must leave the ledger namespace, not linger at a
+    stale baseline — otherwise the pair the read side sees would disagree and read as invalid."""
+    state = empty_state()
+    state.rules = {
+        "ruff:F401": RuleBaseline(baseline=2, current=2, status="draining"),
+        "ruff:E501": RuleBaseline(baseline=1, current=1, status="draining"),
+    }
+
+    aligned = align_analyzer_rules_to_cells(state, {"src/app.py": {"ruff:F401": 2}}, "ruff")
+
+    assert set(aligned.rules) == {"ruff:F401"}
+    assert aligned.rules["ruff:F401"].baseline == 2
+
+
+def test_aligning_one_analyzer_leaves_other_namespaces_untouched() -> None:
+    """Scoped alignment must rewrite only its own analyzer's rules, mirroring the scoped
+    freeze that writes one namespace while preserving every other."""
+    state = empty_state()
+    state.rules = {"mypy:arg-type": RuleBaseline(baseline=3, current=3, status="draining")}
+
+    aligned = align_analyzer_rules_to_cells(state, {"src/app.py": {"ruff:F401": 2}}, "ruff")
+
+    assert aligned.rules["mypy:arg-type"].baseline == 3
+    assert aligned.rules["ruff:F401"].baseline == 2
 
 
 def test_a_ledger_with_rules_but_no_frozen_at_is_invalid_not_fresh(tmp_path: Path) -> None:

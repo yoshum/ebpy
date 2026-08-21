@@ -18,11 +18,14 @@ from ..measurement import (
 )
 from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
-from ..store.baseline import cells_for, finding_total, merge_cells, prune_cells, rule_totals, write_cells
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..store.baseline import cells_for, finding_total, merge_cells, prune_cells, write_cells
+from ..store.ceiling_artifacts import (
+    align_analyzer_rules_to_cells,
+    invalid_artifacts_message,
+    read_ceiling_artifacts,
+)
 from ..store.state import (
     copy_state,
-    replace_analyzer_rules,
     total_violations,
     write_state,
 )
@@ -96,11 +99,10 @@ def prune_measurement(
             total_before += baseline_total
             total_after += pruned_total
             output_parts.append(pruned)
-            # Replace, not lower rule-by-rule: a rule whose findings are all gone must leave
-            # the namespace so the ledger stops naming a ceiling the baseline file no longer
-            # carries. Holding its old baseline would make the two artifacts disagree, and the
-            # next command would read the pair as invalid.
-            state = replace_analyzer_rules(state, analyzer, rule_totals(pruned))
+            # A rule whose findings are all gone must leave the namespace so the ledger stops
+            # naming a ceiling the baseline file no longer carries; the helper's use of
+            # `replace_analyzer_rules` (not a rule-by-rule lowering) is what drops it.
+            state = align_analyzer_rules_to_cells(state, pruned, analyzer)
             analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
         else:
             # A ceiling nobody re-measured cannot be lowered.

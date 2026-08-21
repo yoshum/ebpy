@@ -32,11 +32,16 @@ from ..store.baseline import (
     rule_totals,
     write_cells,
 )
-from ..store.ceiling_artifacts import CeilingArtifacts, invalid_artifacts_message, read_ceiling_artifacts
+from ..store.ceiling_artifacts import (
+    CeilingArtifacts,
+    align_all_analyzer_rules_to_cells,
+    align_analyzer_rules_to_cells,
+    invalid_artifacts_message,
+    read_ceiling_artifacts,
+)
 from ..store.state import (
     copy_state,
     empty_state,
-    replace_analyzer_rules,
     with_phase,
     write_state,
 )
@@ -219,11 +224,7 @@ def build_global_freeze(
         unattributed_reports.extend(_unattributed_report(analyzer, obs.value))
 
     cells = merge_cells(parts)
-    state = copy_state(previous)
-    for analyzer in scope:
-        obs = observations[analyzer]
-        assert isinstance(obs, Measured)
-        state = replace_analyzer_rules(state, analyzer, rule_totals(cells_for(cells, analyzer)))
+    state = align_all_analyzer_rules_to_cells(copy_state(previous), cells, scope)
     state.frozen_analyzers = tuple(scope)
     state.frozen_at = frozen_at
     state = with_phase(state, "drain")
@@ -272,8 +273,7 @@ def build_scoped_freeze(
     cells = merge_cells([other_cells, scope_cells])
 
     replacing = scope in previous.frozen_analyzers
-    state = copy_state(previous)
-    state = replace_analyzer_rules(state, scope, rule_totals(scope_cells))
+    state = align_analyzer_rules_to_cells(copy_state(previous), scope_cells, scope)
     if not replacing:
         state.frozen_analyzers = tuple(sorted((*state.frozen_analyzers, scope)))
     if state.frozen_at is None:
