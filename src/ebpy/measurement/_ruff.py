@@ -63,7 +63,6 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
         raise RuffInvalidOutputError("ruff produced JSON of an unexpected shape")
     cells: CellCounts = {}
     unattributed: list[UnattributedFinding] = []
-    seen_files: set[str] = set()
     for index, item in enumerate(raw):
         if not isinstance(item, dict):
             raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
@@ -81,7 +80,6 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
         ):
             raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
         file = normalize_analyzer_path(filename, cwd)
-        seen_files.add(file)
         if not code or code == "invalid-syntax":
             unattributed.append(
                 UnattributedFinding(
@@ -97,7 +95,6 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
     return AnalysisMeasurement(
         cells=cells,
         unattributed=tuple(unattributed),
-        files_with_findings=len(seen_files),
     )
 
 

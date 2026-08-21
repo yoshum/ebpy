@@ -54,12 +54,15 @@ class AnalysisMeasurement:
     # Syntax errors cannot be grandfathered: a file that does not parse is invisible
     # to every rule, so recording a rule count for it would be a lie.
     unattributed: tuple[UnattributedFinding, ...] = ()
-    # Files with findings, not files inspected. Clean output therefore reports zero.
-    files_with_findings: int = 0
 
     def __post_init__(self) -> None:
         frozen_cells = {file: MappingProxyType(dict(rules)) for file, rules in self.cells.items()}
         object.__setattr__(self, "cells", MappingProxyType(frozen_cells))
+
+    @property
+    def files_with_findings(self) -> int:
+        """Files carrying at least one finding, attributed or not. Clean output reports zero."""
+        return len(set(self.cells) | {finding.file for finding in self.unattributed})
 
 
 @dataclass(frozen=True)
