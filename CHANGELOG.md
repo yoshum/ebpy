@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.5.3 (2026-08-21)
+
+### Bug Fixes
+
+- Report analyzer count in the global freeze message ([#24](https://github.com/yoshum/ebpy/pull/24),
+  [`9b67d96`](https://github.com/yoshum/ebpy/commit/9b67d96b1f853917951830c2dece847057afbc56))
+
+
 ## v0.5.2 (2026-08-21)
 
 ### Bug Fixes
