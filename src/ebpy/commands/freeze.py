@@ -203,9 +203,11 @@ def build_global_freeze(
     ``scope`` is the sorted analyzer set to pin; it is supplied by the caller so that
     config-declared sets and the default union (all registered names plus previously
     frozen names) can both drive this function without the function knowing the source.
-    A rostered analyzer this build has no runner for cannot be measured, so it fails
-    the freeze closed rather than being silently dropped — no invocation, ``--force``
-    included, removes an analyzer from a contract.
+    ``frozen_analyzers`` is set to exactly ``scope``, so dropping an analyzer from the
+    contract requires the caller to narrow the scope — which means declaring fewer analyzers
+    in ``.ebpy/config.json`` and running with ``--force``, since a non-force re-freeze is
+    refused. Within that scope the function fails closed: any analyzer it cannot completely
+    measure prevents the freeze rather than being silently omitted.
     """
     observations = {a: measurement.analyzers.get(a) for a in scope}
     incomplete: list[str] = []
