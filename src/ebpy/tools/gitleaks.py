@@ -1,4 +1,4 @@
-"""Secret-scanning detector: configuration detection and diagnosis."""
+"""Secret-scanning detector and provisioner: configuration detection, diagnosis, and provisioning."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from ..models import Gap, ToolSetup
 
 if TYPE_CHECKING:
+    from ..decide.provisioner import FileAction
     from ..repo.facts import RepoFacts
 
 
@@ -55,3 +56,33 @@ class GitleaksDetector:
     def render_row(self, setup: ToolSetup) -> str:
         """Render a one-line secret scanning row for the diagnosis table."""
         return f"  secret scanning   {'yes' if setup.configured else 'no'}"
+
+
+@dataclass(frozen=True)
+class GitleaksProvisioner:
+    """Named registry slot for secret scanning.
+
+    Secret scanning is provisioned as a standalone workflow file
+    (.github/workflows/secret-scan.yml via secret_scan_workflow()) at the bootstrap
+    level. The per-tool packages/config_actions/workflow_steps protocol does not model
+    that file: workflow_steps lines feed the gate workflow (quality.yml), not a separate
+    workflow. This provisioner exists so the registry has a "secret-scan" slot; all
+    operations are inert.
+    """
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for secret scanning."""
+        return "secret-scan"
+
+    def packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
+        """Return empty tuple: gitleaks is not a Python package dependency."""
+        return ()
+
+    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
+        """Return empty list: secret-scan.yml is created at the bootstrap level, not here."""
+        return []
+
+    def workflow_steps(self, run_prefix: str) -> list[str]:  # noqa: ARG002
+        """Return empty list: gitleaks runs as a standalone workflow, not a gate step."""
+        return []

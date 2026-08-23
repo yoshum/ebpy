@@ -1,4 +1,4 @@
-"""pytest detector: configuration detection and diagnosis."""
+"""pytest detector and provisioner: configuration detection, diagnosis, and provisioning."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from ..models import Gap, ToolSetup
 from ..repo.detect.tooling import _dependency_names, _ini_has_section, _tool_table
 
 if TYPE_CHECKING:
+    from ..decide.provisioner import FileAction
     from ..repo.facts import RepoFacts
 
 
@@ -59,3 +60,28 @@ class PytestDetector:
     def render_row(self, setup: ToolSetup) -> str:
         """Render a one-line pytest row for the diagnosis table."""
         return f"  pytest            {'yes' if setup.configured else 'no'}"
+
+
+@dataclass(frozen=True)
+class PytestProvisioner:
+    """Provisioner for pytest: installs the package and adds the Test CI step."""
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for pytest."""
+        return "pytest"
+
+    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+        """Return ("pytest",) when pytest is absent, empty tuple when already configured."""
+        return ("pytest",) if not setup.configured else ()
+
+    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
+        """Return empty list: pytest requires no generated configuration."""
+        return []
+
+    def workflow_steps(self, run_prefix: str) -> list[str]:
+        """Return the Test CI step lines, matching the gate_workflow output exactly."""
+        return [
+            "      - name: Test",
+            f"        run: {run_prefix}pytest",
+        ]

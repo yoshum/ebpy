@@ -14,9 +14,12 @@ from ebpy.generate.configs import (
     ruff_toml_content,
 )
 from ebpy.repo.detect.detector import ToolSetup
+from ebpy.tools.gitleaks import GitleaksProvisioner
 from ebpy.tools.mypy import MypyProvisioner
+from ebpy.tools.pytest import PytestProvisioner
 from ebpy.tools.ruff import RuffProvisioner
 from ebpy.tools.ruff_format import RuffFormatProvisioner
+from ebpy.tools.vulture import VultureProvisioner
 
 
 def test_provisioner_protocol_shape() -> None:
@@ -227,3 +230,101 @@ def test_mypy_provisioner_workflow_steps_always_empty() -> None:
     """Type checking runs through ebpy check, not a raw mypy CI step."""
     assert MypyProvisioner().workflow_steps("uv run ") == []
     assert MypyProvisioner().workflow_steps("") == []
+
+
+# ---- PytestProvisioner -----------------------------------------------------
+
+
+def test_pytest_provisioner_name_is_pytest() -> None:
+    """PytestProvisioner advertises the canonical tool name."""
+    assert PytestProvisioner().name == "pytest"
+
+
+def test_pytest_provisioner_packages_when_unconfigured() -> None:
+    """Unconfigured pytest -> install the pytest package."""
+    assert PytestProvisioner().packages(ToolSetup(configured=False)) == ("pytest",)
+
+
+def test_pytest_provisioner_packages_when_configured() -> None:
+    """Configured pytest -> no package install needed."""
+    assert PytestProvisioner().packages(ToolSetup(configured=True)) == ()
+
+
+def test_pytest_provisioner_config_actions_always_empty() -> None:
+    """Pytest requires no generated configuration — never any file actions."""
+    assert PytestProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
+    assert PytestProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
+
+
+def test_pytest_provisioner_workflow_steps_match_gate_workflow() -> None:
+    """workflow_steps emits the Test step lines matching gate_workflow output exactly."""
+    steps = PytestProvisioner().workflow_steps("uv run ")
+    assert steps == [
+        "      - name: Test",
+        "        run: uv run pytest",
+    ]
+
+
+def test_pytest_provisioner_workflow_steps_with_empty_prefix() -> None:
+    """workflow_steps works with an empty run_prefix (plain pip install layout)."""
+    steps = PytestProvisioner().workflow_steps("")
+    assert steps == [
+        "      - name: Test",
+        "        run: pytest",
+    ]
+
+
+# ---- VultureProvisioner ----------------------------------------------------
+
+
+def test_vulture_provisioner_name_is_vulture() -> None:
+    """VultureProvisioner advertises the canonical tool name."""
+    assert VultureProvisioner().name == "vulture"
+
+
+def test_vulture_provisioner_packages_when_unconfigured() -> None:
+    """Unconfigured vulture -> install the vulture package."""
+    assert VultureProvisioner().packages(ToolSetup(configured=False)) == ("vulture",)
+
+
+def test_vulture_provisioner_packages_when_configured() -> None:
+    """Configured vulture -> no package install needed."""
+    assert VultureProvisioner().packages(ToolSetup(configured=True)) == ()
+
+
+def test_vulture_provisioner_config_actions_always_empty() -> None:
+    """Vulture has no generated configuration today."""
+    assert VultureProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
+    assert VultureProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
+
+
+def test_vulture_provisioner_workflow_steps_always_empty() -> None:
+    """Vulture has no gate CI step today."""
+    assert VultureProvisioner().workflow_steps("uv run ") == []
+    assert VultureProvisioner().workflow_steps("") == []
+
+
+# ---- GitleaksProvisioner ---------------------------------------------------
+
+
+def test_gitleaks_provisioner_name_is_secret_scan() -> None:
+    """GitleaksProvisioner advertises the canonical tool name for the registry slot."""
+    assert GitleaksProvisioner().name == "secret-scan"
+
+
+def test_gitleaks_provisioner_packages_always_empty() -> None:
+    """Gitleaks is not a Python package dependency — never any packages to install."""
+    assert GitleaksProvisioner().packages(ToolSetup(configured=False)) == ()
+    assert GitleaksProvisioner().packages(ToolSetup(configured=True)) == ()
+
+
+def test_gitleaks_provisioner_config_actions_always_empty() -> None:
+    """secret-scan.yml is created at the bootstrap level, not via config_actions."""
+    assert GitleaksProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
+    assert GitleaksProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
+
+
+def test_gitleaks_provisioner_workflow_steps_always_empty() -> None:
+    """Gitleaks runs as a standalone workflow, not as a gate step."""
+    assert GitleaksProvisioner().workflow_steps("uv run ") == []
+    assert GitleaksProvisioner().workflow_steps("") == []
