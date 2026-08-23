@@ -6,6 +6,7 @@ from ebpy.decide.worklist import build_worklist
 from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
+from ebpy.render.report import render_diagnosis
 from ebpy.render.worklist import build_worklist_items, render_worklist
 from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.state import append_log, empty_state
@@ -176,3 +177,71 @@ def test_a_frozen_repository_with_nothing_to_grandfather_is_not_told_to_freeze()
 
 def test_an_unfrozen_repository_is_told_to_freeze() -> None:
     assert "Run `ebpy freeze`" in render_quality(empty_state(), "", CURRENT)
+
+
+def _full_diagnosis(*, mypy_strict: bool, pre_commit: bool, agent_instructions: tuple[str, ...]) -> Diagnosis:
+    return Diagnosis(
+        package_manager="uv",
+        requires_python=">=3.11",
+        framework="none",
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "formatter": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=True, strict=mypy_strict),
+            "pytest": ToolSetup(configured=True),
+            "vulture": ToolSetup(configured=True),
+            "secret-scan": ToolSetup(configured=True),
+        },
+        pre_commit=pre_commit,
+        agent_instructions=agent_instructions,
+        ci=CiCoverage(
+            present=False,
+            runners=(),
+            unpinned_actions=(),
+            runs_lint=False,
+            runs_typecheck=False,
+            runs_test=False,
+            runs_ebpy_check=False,
+        ),
+        sizes=SizeDistribution(total=0, over_file_limit=0, largest=()),
+        gaps=(),
+    )
+
+
+def test_tooling_block_renders_every_row_in_order_with_mypy_strict() -> None:
+    """All 11 tooling rows appear in the exact display order when mypy is strict."""
+    rendered = render_diagnosis(
+        _full_diagnosis(mypy_strict=True, pre_commit=True, agent_instructions=("CLAUDE.md",))
+    )
+    # Lines 0-1: header + blank; lines 2-12: the 11 tooling rows.
+    assert rendered.splitlines()[2:13] == [
+        "  package manager   uv",
+        "  python            >=3.11",
+        "  framework         none",
+        "  ruff              yes",
+        "  formatter         yes",
+        "  mypy              strict",
+        "  pytest            yes",
+        "  vulture           yes",
+        "  pre-commit        yes",
+        "  secret scanning   yes",
+        "  agent rules       CLAUDE.md",
+    ]
+
+
+def test_tooling_block_renders_every_row_in_order_with_mypy_configured_but_not_strict() -> None:
+    """All 11 tooling rows appear in the exact display order when mypy is configured but not strict."""
+    rendered = render_diagnosis(_full_diagnosis(mypy_strict=False, pre_commit=False, agent_instructions=()))
+    assert rendered.splitlines()[2:13] == [
+        "  package manager   uv",
+        "  python            >=3.11",
+        "  framework         none",
+        "  ruff              yes",
+        "  formatter         yes",
+        "  mypy              yes (not strict)",
+        "  pytest            yes",
+        "  vulture           yes",
+        "  pre-commit        no",
+        "  secret scanning   yes",
+        "  agent rules       none",
+    ]

@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from ..models import Diagnosis, Gap
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
-from ..tools import DETECTORS
+from ..tools import DETECTORS_BY_NAME
+
+# Explicit row sequence for the tooling block. The leading names appear above the pre-commit row;
+# the trailing name follows it. Declaring the order here means appending a new detector to
+# DETECTORS never silently shifts the pre-commit or agent-rules rows.
+_LEADING_TOOL_NAMES: tuple[str, ...] = ("ruff", "formatter", "mypy", "pytest", "vulture")
+_TRAILING_TOOL_NAME = "secret-scan"
 
 
 def _check(value: bool) -> str:
@@ -12,11 +18,12 @@ def _check(value: bool) -> str:
 
 
 def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
-    # Each tool's row comes from its own detector. The residual signals that no detector owns
-    # frame the block: pre-commit sits just before the last detector row (secret scanning) and
-    # the agent rules line closes it, matching the historical table layout.
-    detector_rows = [detector.render_row(diagnosis.tool_setups[detector.name]) for detector in DETECTORS]
-    *leading_rows, secret_scan_row = detector_rows
+    leading_rows = [
+        DETECTORS_BY_NAME[name].render_row(diagnosis.tool_setups[name]) for name in _LEADING_TOOL_NAMES
+    ]
+    secret_scan_row = DETECTORS_BY_NAME[_TRAILING_TOOL_NAME].render_row(
+        diagnosis.tool_setups[_TRAILING_TOOL_NAME]
+    )
     return [
         f"  package manager   {diagnosis.package_manager}",
         f"  python            {diagnosis.requires_python or 'unspecified'}",
