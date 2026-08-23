@@ -5,16 +5,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ebpy.models import WorkflowFile
 from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.repo.facts import RepoFacts
+from ebpy.tools.gitleaks import GitleaksDetector
 from ebpy.tools.mypy import MypyDetector
+from ebpy.tools.pytest import PytestDetector
 from ebpy.tools.ruff import RuffDetector
+from ebpy.tools.ruff_format import RuffFormatDetector
+from ebpy.tools.vulture import VultureDetector
 
 
 def _facts(
     pyproject: dict[str, Any] | None = None,
     root_entries: tuple[str, ...] = (),
     configs: dict[str, str] | None = None,
+    workflows: tuple[WorkflowFile, ...] = (),
 ) -> RepoFacts:
     return RepoFacts(
         cwd=Path("."),
@@ -22,7 +28,7 @@ def _facts(
         all_files=(),
         pyproject=pyproject,
         source_files=(),
-        workflows=(),
+        workflows=workflows,
         extra_config_text=configs or {},
     )
 
@@ -47,3 +53,28 @@ def test_mypy_detector_reports_strict() -> None:
     assert (s.configured, s.strict) == (True, True)
     s2 = MypyDetector().detect(_facts(pyproject={"tool": {"mypy": {}}}))
     assert (s2.configured, s2.strict) == (True, False)
+
+
+def test_ruff_format_detector_detects_ruff_config() -> None:
+    """RuffFormatDetector.detect returns configured=True when ruff config is present."""
+    assert RuffFormatDetector().detect(_facts(pyproject={"tool": {"ruff": {}}})).configured is True
+    assert RuffFormatDetector().detect(_facts()).configured is False
+
+
+def test_pytest_detector_detects_config() -> None:
+    """PytestDetector.detect returns configured=True when a pytest table is present in pyproject."""
+    assert PytestDetector().detect(_facts(pyproject={"tool": {"pytest": {}}})).configured is True
+    assert PytestDetector().detect(_facts()).configured is False
+
+
+def test_vulture_detector_detects_config() -> None:
+    """VultureDetector.detect returns configured=True when a vulture table is present in pyproject."""
+    assert VultureDetector().detect(_facts(pyproject={"tool": {"vulture": {}}})).configured is True
+    assert VultureDetector().detect(_facts()).configured is False
+
+
+def test_gitleaks_detector_detects_workflow_mention() -> None:
+    """GitleaksDetector.detect returns configured=True when gitleaks appears in a workflow file."""
+    workflow = WorkflowFile(path=".github/workflows/ci.yml", content="uses: gitleaks/gitleaks-action@v2")
+    assert GitleaksDetector().detect(_facts(workflows=(workflow,))).configured is True
+    assert GitleaksDetector().detect(_facts()).configured is False

@@ -103,36 +103,63 @@ def mypy_configured(
     )
 
 
-def detect_tooling(
+def formatter_configured(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
+    """Return True when a formatter (ruff or black) is configured."""
+    # Ruff formats as well as lints, so its config settles formatting too.
+    deps = _dependency_names(pyproject)
+    return (
+        has_ruff_config(root_entries, pyproject)
+        or _tool_table(pyproject, "black") is not None
+        or "black" in deps
+    )
+
+
+def pytest_configured(
     root_entries: tuple[str, ...],
     pyproject: dict[str, Any] | None,
     configs: dict[str, str],
-    workflow_text: str,
-) -> ToolingPresence:
+) -> bool:
+    """Return True when pytest is configured via any standard mechanism."""
     deps = _dependency_names(pyproject)
-    ruff = has_ruff_config(root_entries, pyproject)
-    mypy = mypy_configured(root_entries, pyproject, configs)
-    pytest = (
+    return (
         _tool_table(pyproject, "pytest") is not None
         or "pytest.ini" in root_entries
         or _ini_has_section(configs.get("tox.ini"), "pytest")
         or _ini_has_section(configs.get("setup.cfg"), "tool:pytest")
         or "pytest" in deps
     )
+
+
+def vulture_configured(pyproject: dict[str, Any] | None) -> bool:
+    """Return True when vulture is configured or declared as a dependency."""
+    deps = _dependency_names(pyproject)
+    return _tool_table(pyproject, "vulture") is not None or "vulture" in deps
+
+
+def secret_scan_configured(root_entries: tuple[str, ...], workflow_text: str, pre_commit_text: str) -> bool:
+    """Return True when a known secret-scanning tool is referenced in workflows or pre-commit config."""
+    return (
+        bool(re.search(r"gitleaks|detect-secrets|trufflehog", workflow_text + pre_commit_text, re.IGNORECASE))
+        or ".gitleaks.toml" in root_entries
+    )
+
+
+def detect_tooling(
+    root_entries: tuple[str, ...],
+    pyproject: dict[str, Any] | None,
+    configs: dict[str, str],
+    workflow_text: str,
+) -> ToolingPresence:
     pre_commit_text = configs.get(".pre-commit-config.yaml") or ""
     return ToolingPresence(
-        ruff=ruff,
-        # Ruff formats as well as lints, so its config settles formatting too.
-        formatter=ruff or _tool_table(pyproject, "black") is not None or "black" in deps,
-        mypy=mypy,
+        ruff=has_ruff_config(root_entries, pyproject),
+        formatter=formatter_configured(root_entries, pyproject),
+        mypy=mypy_configured(root_entries, pyproject, configs),
         mypy_strict=mypy_strict_configured(pyproject, configs),
-        pytest=pytest,
-        vulture=_tool_table(pyproject, "vulture") is not None or "vulture" in deps,
+        pytest=pytest_configured(root_entries, pyproject, configs),
+        vulture=vulture_configured(pyproject),
         pre_commit=".pre-commit-config.yaml" in root_entries,
-        secret_scanning=bool(
-            re.search(r"gitleaks|detect-secrets|trufflehog", workflow_text + pre_commit_text, re.IGNORECASE)
-        )
-        or ".gitleaks.toml" in root_entries,
+        secret_scanning=secret_scan_configured(root_entries, workflow_text, pre_commit_text),
         agent_instructions=tuple(name for name in _AGENT_FILES if name in root_entries),
     )
 
