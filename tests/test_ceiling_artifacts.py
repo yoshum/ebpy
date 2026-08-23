@@ -4,14 +4,48 @@ import json
 from pathlib import Path
 
 from ebpy.cell_key import analyzer_of
-from ebpy.models import RuleBaseline
+from ebpy.models import RuleBaseline, State
 from ebpy.store.baseline import write_cells
 from ebpy.store.ceiling_artifacts import (
     align_all_analyzer_rules_to_cells,
     align_analyzer_rules_to_cells,
     read_ceiling_artifacts,
+    reconcile_scope,
 )
+from ebpy.store.config import EbpyConfig
 from ebpy.store.state import empty_state, state_path, write_state
+
+
+def _state(*analyzers: str) -> State:
+    s = empty_state()
+    s.frozen_analyzers = tuple(analyzers)
+    return s
+
+
+def test_absent_config_skips_reconciliation() -> None:
+    """No config means no reconciliation gate; existing behavior is preserved."""
+    assert reconcile_scope(None, _state("ruff")) is None
+
+
+def test_matching_sets_reconcile() -> None:
+    """Declared and frozen analyzer sets that are equal produce no error."""
+    assert reconcile_scope(EbpyConfig(("mypy", "ruff")), _state("ruff", "mypy")) is None
+
+
+def test_declared_but_unfrozen_analyzer_is_flagged() -> None:
+    """An analyzer in config but absent from the frozen roster surfaces in the error message."""
+    msg = reconcile_scope(EbpyConfig(("ruff", "mypy")), _state("ruff"))
+    assert msg is not None
+    assert "mypy" in msg
+    assert "freeze --analyzer" in msg
+
+
+def test_frozen_but_undeclared_analyzer_is_flagged() -> None:
+    """An analyzer in the frozen roster but absent from config surfaces in the error message."""
+    msg = reconcile_scope(EbpyConfig(("ruff",)), _state("ruff", "mypy"))
+    assert msg is not None
+    assert "mypy" in msg
+    assert "--force" in msg
 
 
 def frozen_state(
