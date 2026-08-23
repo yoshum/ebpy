@@ -7,7 +7,7 @@ import sys
 
 from ebpy.cell_key import is_analyzer_name
 from ebpy.measurement.analyzer import Analyzer
-from ebpy.tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME
+from ebpy.tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME, DETECTORS, DETECTORS_BY_NAME
 
 
 def test_analyzer_protocol_exposes_name_noun_measure() -> None:
@@ -29,6 +29,13 @@ def test_tools_package_imports_without_measurement_preloaded() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_detectors_registry_lists_all_tools() -> None:
+    """DETECTORS contains exactly the six expected tools; DETECTORS_BY_NAME keys match."""
+    names = {d.name for d in DETECTORS}
+    assert names == {"ruff", "mypy", "formatter", "pytest", "vulture", "secret-scan"}
+    assert set(DETECTORS_BY_NAME) == names
 
 
 def test_registry_lists_ruff_and_mypy_with_valid_names() -> None:
