@@ -149,7 +149,7 @@ class MypyProvisioner:
             )
         ]
 
-    def workflow_steps(self, _run_prefix: str) -> list[str]:
+    def workflow_steps(self, run_prefix: str) -> list[str]:  # noqa: ARG002
         """Return empty list: type checking runs through ebpy check, not a raw mypy CI step."""
         return []
 

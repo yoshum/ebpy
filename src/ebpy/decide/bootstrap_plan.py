@@ -31,9 +31,11 @@ class BootstrapPlan:
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
     return tuple(
-        pkg
-        for p in PROVISIONERS
-        for pkg in p.packages(diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)))
+        dict.fromkeys(
+            pkg
+            for p in PROVISIONERS
+            for pkg in p.packages(diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)))
+        )
     )
 
 
