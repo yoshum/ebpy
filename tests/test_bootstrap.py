@@ -47,6 +47,46 @@ def test_a_standalone_ruff_toml_carries_no_tool_prefix() -> None:
     assert parsed["lint"]["mccabe"]["max-complexity"] == 10
 
 
+def test_gate_workflow_uv_full_text() -> None:
+    """Pins the full gate_workflow("uv") output so any content change surfaces immediately."""
+    expected = (
+        "name: quality\n"
+        "\n"
+        "on:\n"
+        "  push:\n"
+        "    branches: [main]\n"
+        "  pull_request:\n"
+        "\n"
+        "permissions:\n"
+        "  contents: read\n"
+        "\n"
+        "jobs:\n"
+        "  quality:\n"
+        "    strategy:\n"
+        "      fail-fast: false\n"
+        "      matrix:\n"
+        "        os: [ubuntu-latest, macos-latest, windows-latest]\n"
+        "    runs-on: ${{ matrix.os }}\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0\n"
+        "      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2\n"
+        "        with:\n"
+        '          python-version: "3.12"\n'
+        "      - name: Install\n"
+        "        run: uv sync --all-groups\n"
+        "      - name: Format check\n"
+        "        run: uv run ruff format --check .\n"
+        "      - name: Test\n"
+        "        run: uv run pytest\n"
+        "      - name: Ratchet gate\n"
+        "        run: uv run ebpy check\n"
+        "      - name: Lint report\n"
+        "        if: always()\n"
+        "        run: uv run ebpy report\n"
+    )
+    assert gate_workflow("uv") == expected
+
+
 def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
     workflow = gate_workflow("uv")
     assert "ubuntu-latest, macos-latest, windows-latest" in workflow

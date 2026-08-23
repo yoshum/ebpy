@@ -9,8 +9,10 @@ it without a diff.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import chain
 
 from ..models import PackageManager
+from ..tools import PROVISIONERS
 
 DEFAULT_PYTHON_VERSION = "3.12"
 
@@ -127,10 +129,7 @@ def gate_workflow(manager: PackageManager, python_version: str = DEFAULT_PYTHON_
         *steps.setup,
         "      - name: Install",
         f"        run: {steps.install}",
-        "      - name: Format check",
-        f"        run: {run}ruff format --check .",
-        "      - name: Test",
-        f"        run: {run}pytest",
+        *chain.from_iterable(p.workflow_steps(run) for p in PROVISIONERS),
         "      - name: Ratchet gate",
         f"        run: {run}ebpy check",
         "      - name: Lint report",
