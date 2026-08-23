@@ -1,4 +1,4 @@
-"""Static registries of ebpy's built-in tool capabilities (analyzers and detectors)."""
+"""Static registries of ebpy's built-in tool capabilities (analyzers, detectors, provisioners)."""
 
 from __future__ import annotations
 
@@ -6,17 +6,18 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from ..measurement import Measurement
-from .gitleaks import GitleaksDetector
-from .mypy import MypyAnalyzer, MypyDetector
-from .pytest import PytestDetector
-from .ruff import RuffAnalyzer, RuffDetector
-from .ruff_format import RuffFormatDetector
-from .vulture import VultureDetector
+from .gitleaks import GitleaksDetector, GitleaksProvisioner
+from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
+from .pytest import PytestDetector, PytestProvisioner
+from .ruff import RuffAnalyzer, RuffDetector, RuffProvisioner
+from .ruff_format import RuffFormatDetector, RuffFormatProvisioner
+from .vulture import VultureDetector, VultureProvisioner
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
+    from ..decide.provisioner import Provisioner
     from ..measurement import Analyzer
     from ..repo.detect.detector import ToolDetector
 
@@ -53,6 +54,22 @@ _detectors: list[ToolDetector[Any]] = [
 DETECTORS: tuple[ToolDetector[Any], ...] = tuple(_detectors)
 
 DETECTORS_BY_NAME: Mapping[str, ToolDetector[Any]] = MappingProxyType({d.name: d for d in DETECTORS})
+
+# Build via a typed list so mypy can verify Protocol compatibility and infer
+# tuple[Provisioner, ...] for PROVISIONERS rather than the narrower concrete tuple.
+# Order matches DETECTORS: it is the canonical tool sequence across the whole CLI.
+_provisioners: list[Provisioner] = [
+    RuffProvisioner(),
+    RuffFormatProvisioner(),
+    MypyProvisioner(),
+    PytestProvisioner(),
+    VultureProvisioner(),
+    GitleaksProvisioner(),
+]
+
+PROVISIONERS: tuple[Provisioner, ...] = tuple(_provisioners)
+
+PROVISIONERS_BY_NAME: Mapping[str, Provisioner] = MappingProxyType({p.name: p for p in PROVISIONERS})
 
 
 def measure_repository(cwd: Path) -> Measurement:
