@@ -37,6 +37,7 @@ from ..store.ceiling_artifacts import (
     invalid_artifacts_message,
     read_ceiling_artifacts,
 )
+from ..store.config import read_config
 from ..store.state import (
     copy_state,
     empty_state,
@@ -195,15 +196,17 @@ def build_global_freeze(
     measurement: Measurement,
     force: bool,
     frozen_at: str,
+    scope: list[str],
 ) -> FreezeDecision:
     """Merge every in-scope analyzer's cells into one contract, requiring all to be complete.
 
-    The scope is every analyzer this build ships plus every analyzer the contract being
-    replaced already froze. A rostered analyzer this build has no runner for cannot be
-    measured, so it fails the freeze closed rather than being silently dropped — no
-    invocation, `--force` included, removes an analyzer from a contract.
+    ``scope`` is the sorted analyzer set to pin; it is supplied by the caller so that
+    config-declared sets and the default union (all registered names plus previously
+    frozen names) can both drive this function without the function knowing the source.
+    A rostered analyzer this build has no runner for cannot be measured, so it fails
+    the freeze closed rather than being silently dropped — no invocation, ``--force``
+    included, removes an analyzer from a contract.
     """
-    scope = sorted(set(ANALYZER_NAMES) | set(previous.frozen_analyzers))
     observations = {a: measurement.analyzers.get(a) for a in scope}
     incomplete: list[str] = []
     for analyzer in scope:
@@ -300,6 +303,7 @@ def build_scoped_freeze(
 
 
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
+    config = read_config(cwd)
     artifacts = read_ceiling_artifacts(cwd)
 
     if analyzer is not None:
@@ -307,6 +311,12 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
         precondition_error = _check_scope_preconditions(artifacts, analyzer, force)
         if precondition_error is not None:
             raise CommandError(precondition_error)
+        # When a config is present, only declared analyzers may be targeted.
+        if config is not None and analyzer not in config.analyzers:
+            declared = ", ".join(config.analyzers)
+            raise CommandError(
+                f"{analyzer} is not in the declared analyzer set in .ebpy/config.json ({declared})."
+            )
     elif not force:
         # Global freeze: read before measuring so a repository that must not be frozen
         # cannot have its ceiling raised by the run that discovers it.
@@ -320,7 +330,11 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
 
     measurement = measure_repository(cwd)
     if analyzer is None:
-        decision = build_global_freeze(previous, measurement, force, frozen_at)
+        if config is not None:
+            scope = sorted(config.analyzers)
+        else:
+            scope = sorted(set(ANALYZER_NAMES) | set(previous.frozen_analyzers))
+        decision = build_global_freeze(previous, measurement, force, frozen_at, scope)
     else:
         decision = build_scoped_freeze(previous, artifacts.cells, measurement, analyzer, frozen_at)
     write_cells(cwd, decision.cells)
