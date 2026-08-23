@@ -161,7 +161,9 @@ def configured_analyzers(tooling: ToolingPresence) -> set[str]:
     """Names of analyzers that are both registered and configured in this repository."""
     # Lazy import breaks the cycle: tools → measurement._mypy → measurement → tools.
     from ...tools import ANALYZER_NAMES  # noqa: PLC0415
+
     return {
-        name for name in ANALYZER_NAMES
+        name
+        for name in ANALYZER_NAMES
         if name in _ANALYZER_CONFIGURED and _ANALYZER_CONFIGURED[name](tooling)
     }

@@ -207,8 +207,14 @@ def test_a_diagnosis_survives_a_round_trip_through_json(tmp_path: Path) -> None:
 
 def _tooling(**over: bool) -> ToolingPresence:
     base: dict[str, bool] = {
-        "ruff": False, "formatter": False, "mypy": False, "mypy_strict": False,
-        "pytest": False, "vulture": False, "pre_commit": False, "secret_scanning": False,
+        "ruff": False,
+        "formatter": False,
+        "mypy": False,
+        "mypy_strict": False,
+        "pytest": False,
+        "vulture": False,
+        "pre_commit": False,
+        "secret_scanning": False,
     }
     base.update(over)
     return ToolingPresence(agent_instructions=(), **base)

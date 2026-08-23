@@ -129,11 +129,7 @@ def _configured_nouns(previous: State) -> dict[str, str]:
         return {}
     roster = set(previous.frozen_analyzers)
     configured = configured_analyzers(previous.diagnosis.tooling)
-    return {
-        name: ANALYZERS_BY_NAME[name].noun
-        for name in configured
-        if name not in roster
-    }
+    return {name: ANALYZERS_BY_NAME[name].noun for name in configured if name not in roster}
 
 
 def _non_contract_note(analyzer: str, status: AnalyzerStatus | None, noun: str | None) -> str:
