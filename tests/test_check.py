@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -511,3 +512,71 @@ def test_the_clean_summary_pluralizes_the_analyzer_count() -> None:
     decision = check_measurement(previous, {}, measurement)
 
     assert decision.result.message == "Clean. 0 grandfathered findings left to drain across 2 analyzers."
+
+
+# --- Reconciliation gate (config.json vs frozen roster) ---------------------------------
+
+
+def test_check_fails_when_declared_set_diverges_from_roster(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_check fails closed before measurement when config.json names a smaller analyzer
+    set than the frozen roster — proof: the message contains only reconcile text and the
+    measure_repository stub is never invoked."""
+    write_cells(tmp_path, {"a.py": {"ruff:F401": 1}})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("mypy", "ruff"),
+            rules={"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
+            frozen_at="2026-08-19T00:00:00Z",
+            phase="drain",
+        ),
+    )
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
+
+    measured: list[bool] = []
+
+    def _no_measure(_cwd: Path) -> Measurement:
+        measured.append(True)
+        return Measurement(analyzers={})
+
+    monkeypatch.setattr(check_command, "measure_repository", _no_measure)
+
+    result = run_check(tmp_path, write=False)
+
+    assert result.ok is False
+    assert ".ebpy/config.json and the frozen contract disagree on the analyzer set:" in result.message
+    assert "frozen but not declared: mypy" in result.message
+    assert measured == []  # measurement was never invoked
+
+
+def test_check_proceeds_normally_when_config_matches_frozen_roster(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_check proceeds to measurement when config.json declares exactly the frozen analyzer set."""
+    write_cells(tmp_path, {"a.py": {"ruff:F401": 1}})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("ruff",),
+            rules={"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
+            frozen_at="2026-08-19T00:00:00Z",
+            phase="drain",
+        ),
+    )
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        check_command,
+        "measure_repository",
+        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
+    )
+
+    result = run_check(tmp_path, write=False)
+
+    assert result.ok is True
+    assert "Clean." in result.message
