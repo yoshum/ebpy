@@ -7,7 +7,6 @@ import pytest
 
 from ebpy import measurement
 from ebpy.measurement import (
-    ANALYZER_NAMES,
     Failed,
     Measured,
     Measurement,
@@ -18,7 +17,7 @@ from ebpy.measurement import (
 from ebpy.measurement._mypy import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 from ebpy.measurement._ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
-from ebpy.tools import ANALYZERS, ANALYZERS_BY_NAME
+from ebpy.tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME
 from ebpy.tools import mypy as mypy_tool
 from ebpy.tools import ruff as ruff_tool
 

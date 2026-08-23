@@ -13,7 +13,6 @@ from pathlib import Path
 
 from ..errors import CommandError
 from ..measurement import (
-    ANALYZER_NAMES,
     AnalyzerStatus,
     Failed,
     Measured,
@@ -45,6 +44,7 @@ from ..store.state import (
     with_phase,
     write_state,
 )
+from ..tools import ANALYZER_NAMES
 
 _UNATTRIBUTED_SHOWN = 5
 
