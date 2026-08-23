@@ -8,8 +8,6 @@ import pytest
 from ebpy import measurement
 from ebpy.measurement import (
     ANALYZER_NAMES,
-    ANALYZER_SPECS,
-    ANALYZER_SPECS_BY_NAME,
     Failed,
     Measured,
     Measurement,
@@ -19,14 +17,17 @@ from ebpy.measurement import (
 )
 from ebpy.measurement._mypy import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 from ebpy.measurement._ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
-from ebpy.models import AnalysisMeasurement, ToolingPresence, UnattributedFinding
+from ebpy.models import AnalysisMeasurement, UnattributedFinding
+from ebpy.tools import ANALYZERS, ANALYZERS_BY_NAME
+from ebpy.tools import mypy as mypy_tool
+from ebpy.tools import ruff as ruff_tool
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ruff_result = AnalysisMeasurement(cells={})
     mypy_result = AnalysisMeasurement(cells={})
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: ruff_result)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: mypy_result)
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: ruff_result)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: mypy_result)
 
     result = measure_repository(tmp_path)
 
@@ -45,8 +46,8 @@ def test_mypy_is_measured_after_ruff_fails(tmp_path: Path, monkeypatch: pytest.M
         calls.append("mypy")
         return AnalysisMeasurement(cells={"src/a.py": {"mypy:arg-type": 1}})
 
-    monkeypatch.setattr(measurement, "run_ruff_check", fail_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", run_mypy)
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", fail_ruff)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", run_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -67,9 +68,9 @@ def test_a_failing_ruff_still_leaves_a_measured_mypy_observation(
     def fail_ruff(_cwd: Path) -> AnalysisMeasurement:
         raise RuffFailedError("ruff check failed")
 
-    monkeypatch.setattr(measurement, "run_ruff_check", fail_ruff)
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", fail_ruff)
     monkeypatch.setattr(
-        measurement,
+        mypy_tool,
         "run_mypy_check",
         lambda _cwd: AnalysisMeasurement(cells={"a.py": {"mypy:arg-type": 1}}),
     )
@@ -89,8 +90,8 @@ def test_unavailable_tools_are_not_reported_as_clean(tmp_path: Path, monkeypatch
     def missing_mypy(_cwd: Path) -> AnalysisMeasurement:
         raise MypyNotFoundError("mypy is not installed here")
 
-    monkeypatch.setattr(measurement, "run_ruff_check", missing_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", missing_mypy)
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", missing_ruff)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", missing_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -102,12 +103,12 @@ def test_mypy_failure_is_distinct_from_mypy_being_unavailable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ruff_result = AnalysisMeasurement(cells={})
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: ruff_result)
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: ruff_result)
 
     def fail_mypy(_cwd: Path) -> AnalysisMeasurement:
         raise MypyFailedError("mypy failed (exit 2)")
 
-    monkeypatch.setattr(measurement, "run_mypy_check", fail_mypy)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", fail_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -123,12 +124,12 @@ def test_invalid_mypy_output_is_a_distinct_failure_kind_from_execution_failure(
 ) -> None:
     """MypyInvalidOutputError is a subclass of MypyFailedError and must be caught first,
     or every invalid-output failure would be misreported as a plain execution failure."""
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     def invalid_mypy(_cwd: Path) -> AnalysisMeasurement:
         raise MypyInvalidOutputError("mypy produced an unparseable error line")
 
-    monkeypatch.setattr(measurement, "run_mypy_check", invalid_mypy)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", invalid_mypy)
 
     result = measure_repository(tmp_path)
 
@@ -143,8 +144,8 @@ def test_invalid_lint_output_is_distinct_from_tool_execution_failure(
     def invalid_ruff(_cwd: Path) -> AnalysisMeasurement:
         raise RuffInvalidOutputError("ruff produced unparseable output")
 
-    monkeypatch.setattr(measurement, "run_ruff_check", invalid_ruff)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", invalid_ruff)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     result = measure_repository(tmp_path)
 
@@ -217,38 +218,20 @@ def test_classify_of_no_observation_at_all_is_no_runner() -> None:
 
 def test_analyzer_names_are_derived_from_the_registry() -> None:
     """The name list is the registry's keys, sorted, so the two cannot drift apart."""
-    assert tuple(sorted(spec.name for spec in ANALYZER_SPECS)) == ANALYZER_NAMES
-    assert set(ANALYZER_SPECS_BY_NAME) == set(ANALYZER_NAMES)
+    assert tuple(sorted(a.name for a in ANALYZERS)) == ANALYZER_NAMES
+    assert set(ANALYZERS_BY_NAME) == set(ANALYZER_NAMES)
 
 
 def test_measure_repository_produces_one_observation_per_registered_analyzer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Every analyzer in the registry is attempted, and no other name appears."""
-    monkeypatch.setattr(measurement, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     result = measure_repository(tmp_path)
 
     assert set(result.analyzers) == set(ANALYZER_NAMES)
-
-
-def test_each_spec_reads_its_own_configured_flag_from_tooling() -> None:
-    """`configured` names the ToolingPresence field for that analyzer, so a repository that
-    set up exactly one tool is reported as configuring exactly that analyzer."""
-    only_ruff = ToolingPresence(
-        ruff=True,
-        formatter=False,
-        mypy=False,
-        mypy_strict=False,
-        pytest=False,
-        vulture=False,
-        pre_commit=False,
-        secret_scanning=False,
-        agent_instructions=(),
-    )
-    configured = {spec.name for spec in ANALYZER_SPECS if spec.configured(only_ruff)}
-    assert configured == {"ruff"}
 
 
 def test_two_different_failures_do_not_arrive_as_the_same_sentence(
@@ -264,11 +247,11 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
 
         return raise_it
 
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    monkeypatch.setattr(measurement, "run_ruff_check", failing("Cause: Failed to parse pyproject.toml"))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", failing("Cause: Failed to parse pyproject.toml"))
     parse_failure = measure_repository(tmp_path).analyzers["ruff"]
-    monkeypatch.setattr(measurement, "run_ruff_check", failing("Cause: Unknown rule selector `NOPE999`"))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", failing("Cause: Unknown rule selector `NOPE999`"))
     selector_failure = measure_repository(tmp_path).analyzers["ruff"]
 
     assert parse_failure != selector_failure
@@ -282,8 +265,8 @@ def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: p
             "head: first cause", detail="head:\n  Cause: first\n  Cause: deeper\n  detail line"
         )
 
-    monkeypatch.setattr(measurement, "run_ruff_check", raise_it)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
 
@@ -299,8 +282,8 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     def raise_it(_cwd: Path) -> AnalysisMeasurement:
         raise RuffFailedError("flooded", detail=flood)
 
-    monkeypatch.setattr(measurement, "run_ruff_check", raise_it)
-    monkeypatch.setattr(measurement, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
 
