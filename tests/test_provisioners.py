@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import get_protocol_members
 
 import pytest
 
-from ebpy.decide.provisioner import FileAction, Provisioner
+from ebpy.decide.provisioner import FileAction, InstallAction, Provisioner
 
 
 def test_provisioner_protocol_shape() -> None:
     """Provisioner exposes the four methods/attributes that every concrete tool provisioner must implement."""
-    assert {"name", "packages", "config_actions", "workflow_steps"} <= get_protocol_members(Provisioner)
+    assert {m for m in dir(Provisioner) if not m.startswith("_")} == {
+        "name",
+        "packages",
+        "config_actions",
+        "workflow_steps",
+    }
 
 
 def test_file_action_is_a_frozen_dataclass() -> None:
@@ -29,3 +33,17 @@ def test_file_action_is_immutable() -> None:
     action = FileAction(path="x", content="y", mode="append", reason="r")
     with pytest.raises(dataclasses.FrozenInstanceError):
         action.path = "z"  # type: ignore[misc]
+
+
+def test_install_action_is_a_frozen_dataclass_with_tuple_fields() -> None:
+    """InstallAction carries both tuple fields and can be round-tripped."""
+    action = InstallAction(packages=("ruff",), argv=("uv", "add", "--dev", "ruff"))
+    assert action.packages == ("ruff",)
+    assert action.argv == ("uv", "add", "--dev", "ruff")
+
+
+def test_install_action_is_immutable() -> None:
+    """InstallAction must be frozen — mutation raises FrozenInstanceError."""
+    action = InstallAction(packages=("ruff",), argv=("uv", "add", "--dev", "ruff"))
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        action.packages = ("mypy",)  # type: ignore[misc]
