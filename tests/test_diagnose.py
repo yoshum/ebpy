@@ -4,11 +4,16 @@ import tomllib
 from pathlib import Path
 
 from ebpy.decide.diagnose import diagnose
-from ebpy.models import SourceFile, WorkflowFile, diagnosis_from_dict
+from ebpy.models import SourceFile, ToolingPresence, WorkflowFile, diagnosis_from_dict
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.repo.detect.package_manager import detect_package_manager
 from ebpy.repo.detect.sizes import summarize_sizes
-from ebpy.repo.detect.tooling import detect_framework, detect_tooling, mypy_strict_configured
+from ebpy.repo.detect.tooling import (
+    configured_analyzers,
+    detect_framework,
+    detect_tooling,
+    mypy_strict_configured,
+)
 from ebpy.repo.facts import gather_facts
 
 
@@ -198,3 +203,20 @@ def test_a_diagnosis_survives_a_round_trip_through_json(tmp_path: Path) -> None:
     diagnosis = diagnose(gather_facts(tmp_path))
     restored = diagnosis_from_dict(diagnosis.to_dict())
     assert restored == diagnosis
+
+
+def _tooling(**over: bool) -> ToolingPresence:
+    base: dict[str, bool] = {
+        "ruff": False, "formatter": False, "mypy": False, "mypy_strict": False,
+        "pytest": False, "vulture": False, "pre_commit": False, "secret_scanning": False,
+    }
+    base.update(over)
+    return ToolingPresence(agent_instructions=(), **base)
+
+
+def test_configured_analyzers_returns_only_registered_and_configured_tools() -> None:
+    """Only tools that are both in the registry AND configured in tooling are returned."""
+    assert configured_analyzers(_tooling(ruff=True)) == {"ruff"}
+    assert configured_analyzers(_tooling(ruff=True, mypy=True)) == {"ruff", "mypy"}
+    # formatter and pytest are not analyzers, so they are excluded
+    assert configured_analyzers(_tooling(formatter=True, pytest=True)) == set()

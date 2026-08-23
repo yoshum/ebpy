@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME  # re-export
 from ._values import (
     _DETAIL_LINES as _DETAIL_LINES,
 )
@@ -17,12 +18,11 @@ from ._values import (
     Unavailable,
     classify,
 )
-from ..tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME  # re-export
 
 __all__ = [
-    "ANALYZER_NAMES",
     "ANALYZERS",
     "ANALYZERS_BY_NAME",
+    "ANALYZER_NAMES",
     "AnalyzerStatus",
     "Failed",
     "FailureKind",
