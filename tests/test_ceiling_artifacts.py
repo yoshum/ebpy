@@ -48,6 +48,19 @@ def test_frozen_but_undeclared_analyzer_is_flagged() -> None:
     assert "--force" in msg
 
 
+def test_config_adding_and_dropping_simultaneously_reports_both_directions() -> None:
+    """When config both adds an analyzer and drops another, both directions appear in the message."""
+    # Frozen roster: {ruff, mypy}; config declares {ruff, vulture}.
+    msg = reconcile_scope(EbpyConfig(("ruff", "vulture")), _state("ruff", "mypy"))
+    assert msg is not None
+    # vulture is declared but not yet frozen — needs freeze --analyzer
+    assert "vulture" in msg
+    assert "freeze --analyzer" in msg
+    # mypy is frozen but not declared — needs --force to drop
+    assert "mypy" in msg
+    assert "--force" in msg
+
+
 def frozen_state(
     cwd: Path, rules: dict[str, int] | None = None, analyzers: tuple[str, ...] | None = None
 ) -> None:

@@ -81,3 +81,10 @@ def test_invalid_json_raises_command_error(tmp_path: Path) -> None:
     (tmp_path / ".ebpy" / "config.json").write_text("{not valid json", encoding="utf-8")
     with pytest.raises(CommandError):
         read_config(tmp_path)
+
+
+def test_non_string_analyzer_element_is_rejected(tmp_path: Path) -> None:
+    """An analyzers list containing a non-string element raises CommandError."""
+    _write(tmp_path, {"version": 1, "analyzers": [1, "ruff"]})
+    with pytest.raises(CommandError):
+        read_config(tmp_path)

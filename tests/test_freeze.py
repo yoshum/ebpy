@@ -19,7 +19,14 @@ from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import CeilingArtifacts, read_ceiling_artifacts
-from ebpy.store.state import Ledger, apply_analyzer_rule_counts, empty_state, state_path, with_phase
+from ebpy.store.state import (
+    Ledger,
+    apply_analyzer_rule_counts,
+    empty_state,
+    state_path,
+    with_phase,
+    write_state,
+)
 from ebpy.tools import ANALYZER_NAMES
 
 # ---------------------------------------------------------------------------
@@ -837,3 +844,40 @@ def test_global_freeze_with_no_config_uses_union_scope(
     assert artifacts.kind == "frozen"
     assert artifacts.ledger.state is not None
     assert set(artifacts.ledger.state.frozen_analyzers) == set(ANALYZER_NAMES)
+
+
+def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A config narrowed to [ruff] combined with --force drops mypy from a ruff+mypy contract."""
+    # Build an existing frozen pair covering both ruff and mypy.
+    ebpy_dir = tmp_path / ".ebpy"
+    ebpy_dir.mkdir()
+    initial_state = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 1}, "freeze")
+    initial_state = apply_analyzer_rule_counts(initial_state, "mypy", {"mypy:arg-type": 2}, "freeze")
+    initial_state.frozen_at = _FROZEN_AT
+    initial_state.frozen_analyzers = ("mypy", "ruff")
+    initial_state = with_phase(initial_state, "drain")
+    write_cells(tmp_path, {"src/a.py": {"ruff:F401": 1}, "src/b.py": {"mypy:arg-type": 2}})
+    write_state(tmp_path, initial_state)
+
+    # Config now declares only ruff — a narrower set than the frozen roster.
+    (ebpy_dir / "config.json").write_text(json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8")
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 2}})
+            ),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    run_freeze(tmp_path, force=True, analyzer=None)
+
+    result = read_ceiling_artifacts(tmp_path)
+    assert result.kind == "frozen"
+    assert result.ledger.state is not None
+    assert result.ledger.state.frozen_analyzers == ("ruff",)
+    assert not any(k.startswith("mypy:") for k in result.ledger.state.rules)
