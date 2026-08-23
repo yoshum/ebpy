@@ -184,10 +184,8 @@ def test_check_never_reconstructs_a_note_from_the_diagnosis() -> None:
     assert "configured in this repository" not in decision.result.message
 
 
-def test_a_configured_analyzer_that_ran_outside_the_contract_gets_one_merged_note() -> None:
-    """The "it ran, so its findings are unratcheted" fact and the "it is configured, freeze
-    puts it under the ceiling" fact are the same analyzer, so they collapse into a single
-    paragraph rather than double-warning about mypy."""
+def test_a_configured_analyzer_that_ran_outside_the_contract_is_named_once() -> None:
+    """A configured analyzer that ran outside the contract is named exactly once, not twice."""
     previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
     measurement = Measurement(
         analyzers={
@@ -201,7 +199,7 @@ def test_a_configured_analyzer_that_ran_outside_the_contract_gets_one_merged_not
     assert decision.result.ok is True
     assert decision.result.message.count("mypy ran but is not in the frozen contract") == 1
     assert decision.result.message.count("is configured in this repository") == 0
-    # The actionable freeze guidance still survives the merge.
+    # Freeze guidance is still present.
     assert "ebpy freeze --analyzer mypy" in decision.result.message
 
 
