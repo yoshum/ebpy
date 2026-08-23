@@ -11,7 +11,6 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from ...models import Framework, ToolingPresence
-from ...tools import ANALYZER_NAMES
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -90,6 +89,20 @@ def mypy_strict_configured(pyproject: dict[str, Any] | None, configs: dict[str, 
     return False
 
 
+def mypy_configured(
+    root_entries: tuple[str, ...],
+    pyproject: dict[str, Any] | None,
+    configs: dict[str, str],
+) -> bool:
+    """Return True if any mypy configuration is present in standard locations."""
+    return (
+        _tool_table(pyproject, "mypy") is not None
+        or "mypy.ini" in root_entries
+        or ".mypy.ini" in root_entries
+        or _ini_has_section(configs.get("setup.cfg"), "mypy")
+    )
+
+
 def detect_tooling(
     root_entries: tuple[str, ...],
     pyproject: dict[str, Any] | None,
@@ -98,12 +111,7 @@ def detect_tooling(
 ) -> ToolingPresence:
     deps = _dependency_names(pyproject)
     ruff = has_ruff_config(root_entries, pyproject)
-    mypy = (
-        _tool_table(pyproject, "mypy") is not None
-        or "mypy.ini" in root_entries
-        or ".mypy.ini" in root_entries
-        or _ini_has_section(configs.get("setup.cfg"), "mypy")
-    )
+    mypy = mypy_configured(root_entries, pyproject, configs)
     pytest = (
         _tool_table(pyproject, "pytest") is not None
         or "pytest.ini" in root_entries
@@ -160,6 +168,11 @@ _ANALYZER_CONFIGURED: dict[str, Callable[[ToolingPresence], bool]] = {
 
 def configured_analyzers(tooling: ToolingPresence) -> set[str]:
     """Names of analyzers that are both registered and configured in this repository."""
+    # Lazy import: this module is imported by tools/* (RuffDetector uses has_ruff_config),
+    # so a module-level `from ...tools import ...` would form an import cycle. This bridge
+    # is removed later in the D increment along with the need for it.
+    from ...tools import ANALYZER_NAMES  # noqa: PLC0415
+
     return {
         name
         for name in ANALYZER_NAMES
