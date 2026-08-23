@@ -12,15 +12,13 @@ from dataclasses import dataclass
 from ..generate.configs import (
     DEPENDABOT_CONTENT,
     GITATTRIBUTES_CONTENT,
-    MYPY_INI_CONTENT,
-    MYPY_PYPROJECT_SECTION,
     python_version_from_requires,
-    ruff_pyproject_section,
-    ruff_toml_content,
 )
 from ..generate.workflows import gate_workflow, secret_scan_workflow
 from ..models import Diagnosis
 from ..package_manager import DEV_INSTALL_PREFIXES
+from ..repo.detect.detector import ToolSetup
+from ..tools import PROVISIONERS
 from .provisioner import FileAction, InstallAction
 
 
@@ -32,52 +30,24 @@ class BootstrapPlan:
 
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
-    setups = diagnosis.tool_setups
-    return tuple(name for name in ("ruff", "mypy", "pytest", "vulture") if not setups[name].configured)
+    return tuple(
+        pkg
+        for p in PROVISIONERS
+        for pkg in p.packages(diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)))
+    )
 
 
 def _config_actions(diagnosis: Diagnosis, has_pyproject: bool) -> list[FileAction]:
-    actions: list[FileAction] = []
     target = python_version_from_requires(diagnosis.requires_python)
-    if not diagnosis.tool_setups["ruff"].configured:
-        if has_pyproject:
-            actions.append(
-                FileAction(
-                    path="pyproject.toml",
-                    content="\n" + ruff_pyproject_section(target),
-                    mode="append",
-                    reason="lint + format config; the rule tiers the ratchet will freeze",
-                )
-            )
-        else:
-            actions.append(
-                FileAction(
-                    path="ruff.toml",
-                    content=ruff_toml_content(target),
-                    mode="create",
-                    reason="lint + format config (no pyproject.toml to append to)",
-                )
-            )
-    if not diagnosis.tool_setups["mypy"].configured:
-        if has_pyproject:
-            actions.append(
-                FileAction(
-                    path="pyproject.toml",
-                    content="\n" + MYPY_PYPROJECT_SECTION,
-                    mode="append",
-                    reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
-                )
-            )
-        else:
-            actions.append(
-                FileAction(
-                    path="mypy.ini",
-                    content=MYPY_INI_CONTENT,
-                    mode="create",
-                    reason="type checking, strict (no pyproject.toml to append to)",
-                )
-            )
-    return actions
+    return [
+        action
+        for p in PROVISIONERS
+        for action in p.config_actions(
+            diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)),
+            has_pyproject,
+            target,
+        )
+    ]
 
 
 def build_plan(
