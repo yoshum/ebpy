@@ -8,7 +8,6 @@ the exceptions in it have reasons that are not in the file.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
 
 from ..generate.configs import (
     DEPENDABOT_CONTENT,
@@ -22,21 +21,7 @@ from ..generate.configs import (
 from ..generate.workflows import gate_workflow, secret_scan_workflow
 from ..models import Diagnosis
 from ..package_manager import DEV_INSTALL_PREFIXES
-
-
-@dataclass(frozen=True)
-class FileAction:
-    path: str
-    content: str
-    # append: pyproject.toml gains a section under the configs that already exist in it.
-    mode: Literal["create", "append"]
-    reason: str
-
-
-@dataclass(frozen=True)
-class InstallAction:
-    packages: tuple[str, ...]
-    argv: tuple[str, ...]
+from .provisioner import FileAction, InstallAction
 
 
 @dataclass(frozen=True)
