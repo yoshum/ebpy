@@ -18,8 +18,15 @@ if TYPE_CHECKING:
 class Analyzer(Protocol):
     """An analysis tool that can measure a repository's current violations."""
 
-    name: str
-    noun: str
+    @property
+    def name(self) -> str:
+        """Unique short identifier for the tool (e.g. "ruff")."""
+        ...
+
+    @property
+    def noun(self) -> str:
+        """Human-readable noun for violations this tool finds (e.g. "Lint violations")."""
+        ...
 
     def measure(self, cwd: Path) -> Observation[AnalysisMeasurement]:
         """Run the tool against the repository at cwd and return the observation."""
