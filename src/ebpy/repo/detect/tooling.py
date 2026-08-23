@@ -11,10 +11,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from ...models import Framework
-    from .detector import ToolSetup
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
@@ -176,13 +173,3 @@ def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
 def requires_python(pyproject: dict[str, Any] | None) -> str | None:
     value = ((pyproject or {}).get("project") or {}).get("requires-python")
     return value if isinstance(value, str) else None
-
-
-def configured_analyzers(tool_setups: Mapping[str, ToolSetup]) -> set[str]:
-    """Names of analyzers that are both registered and configured in this repository."""
-    # Lazy import: this module is imported by tools/* (RuffDetector uses has_ruff_config),
-    # so a module-level `from ...tools import ...` would form an import cycle. This bridge
-    # is removed later in the D increment along with the need for it.
-    from ...tools import ANALYZER_NAMES  # noqa: PLC0415
-
-    return {name for name in ANALYZER_NAMES if name in tool_setups and tool_setups[name].configured}
