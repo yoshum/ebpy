@@ -127,7 +127,7 @@ def _configured_nouns(previous: State) -> dict[str, str]:
     if previous.diagnosis is None:
         return {}
     roster = set(previous.frozen_analyzers)
-    configured = configured_analyzers(previous.diagnosis.tooling)
+    configured = configured_analyzers(previous.diagnosis.tool_setups)
     return {name: ANALYZERS_BY_NAME[name].noun for name in configured if name not in roster}
 
 

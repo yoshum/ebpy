@@ -37,10 +37,14 @@ ANALYZER_NAMES: tuple[str, ...] = tuple(sorted(ANALYZERS_BY_NAME))
 # most detectors use ToolSetup but MypyDetector uses MypySetup, and S appears
 # in both covariant (detect return) and contravariant (gaps/render_row parameter)
 # positions, making ToolDetector invariant in S.
+#
+# Order is the diagnosis display order: it drives both the gap sequence and the report
+# rows. secret-scan is last so the residual pre-commit row can sit just before it, matching
+# the historical table layout.
 _detectors: list[ToolDetector[Any]] = [
     RuffDetector(),
-    MypyDetector(),
     RuffFormatDetector(),
+    MypyDetector(),
     PytestDetector(),
     VultureDetector(),
     GitleaksDetector(),

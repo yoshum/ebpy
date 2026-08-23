@@ -3,10 +3,11 @@ from __future__ import annotations
 from ebpy.decide.drain_order import build_drain_plan
 from ebpy.decide.freshness import Freshness
 from ebpy.decide.worklist import build_worklist
-from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolingPresence
+from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.worklist import build_worklist_items, render_worklist
+from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.state import append_log, empty_state
 
 CURRENT = Freshness(stale=False, reason="current")
@@ -18,17 +19,12 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
         package_manager="uv",
         requires_python=None,
         framework="none",
-        tooling=ToolingPresence(
-            ruff=True,
-            formatter=False,
-            mypy=mypy_configured,
-            mypy_strict=False,
-            pytest=False,
-            vulture=False,
-            pre_commit=False,
-            secret_scanning=False,
-            agent_instructions=(),
-        ),
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=mypy_configured, strict=False),
+        },
+        pre_commit=False,
+        agent_instructions=(),
         ci=CiCoverage(
             present=False,
             runners=(),

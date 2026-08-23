@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..models import Diagnosis, Gap
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
+from ..tools import DETECTORS
 
 
 def _check(value: bool) -> str:
@@ -11,20 +12,19 @@ def _check(value: bool) -> str:
 
 
 def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
-    tooling = diagnosis.tooling
-    mypy = "strict" if tooling.mypy_strict else ("yes (not strict)" if tooling.mypy else "no")
+    # Each tool's row comes from its own detector. The residual signals that no detector owns
+    # frame the block: pre-commit sits just before the last detector row (secret scanning) and
+    # the agent rules line closes it, matching the historical table layout.
+    detector_rows = [detector.render_row(diagnosis.tool_setups[detector.name]) for detector in DETECTORS]
+    *leading_rows, secret_scan_row = detector_rows
     return [
         f"  package manager   {diagnosis.package_manager}",
         f"  python            {diagnosis.requires_python or 'unspecified'}",
         f"  framework         {diagnosis.framework}",
-        f"  ruff              {_check(tooling.ruff)}",
-        f"  formatter         {_check(tooling.formatter)}",
-        f"  mypy              {mypy}",
-        f"  pytest            {_check(tooling.pytest)}",
-        f"  vulture           {_check(tooling.vulture)}",
-        f"  pre-commit        {_check(tooling.pre_commit)}",
-        f"  secret scanning   {_check(tooling.secret_scanning)}",
-        f"  agent rules       {', '.join(tooling.agent_instructions) or 'none'}",
+        *leading_rows,
+        f"  pre-commit        {_check(diagnosis.pre_commit)}",
+        secret_scan_row,
+        f"  agent rules       {', '.join(diagnosis.agent_instructions) or 'none'}",
     ]
 
 

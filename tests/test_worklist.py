@@ -7,8 +7,8 @@ from ebpy.models import (
     Gap,
     RuleBaseline,
     SizeDistribution,
-    ToolingPresence,
 )
+from ebpy.repo.detect.detector import ToolSetup
 from ebpy.store.state import empty_state
 
 
@@ -17,17 +17,9 @@ def _diagnosis_with_gaps(*gaps: Gap) -> Diagnosis:
         package_manager="uv",
         requires_python=None,
         framework="none",
-        tooling=ToolingPresence(
-            ruff=True,
-            formatter=False,
-            mypy=False,
-            mypy_strict=False,
-            pytest=False,
-            vulture=False,
-            pre_commit=False,
-            secret_scanning=False,
-            agent_instructions=(),
-        ),
+        tool_setups={"ruff": ToolSetup(configured=True)},
+        pre_commit=False,
+        agent_instructions=(),
         ci=CiCoverage(
             present=False,
             runners=(),

@@ -136,7 +136,7 @@ def _unratcheted_marker(state: State, roster: set[str]) -> str:
     """
     if state.diagnosis is None:
         return ""
-    unratcheted = sorted(configured_analyzers(state.diagnosis.tooling) - roster)
+    unratcheted = sorted(configured_analyzers(state.diagnosis.tool_setups) - roster)
     if not unratcheted:
         return ""
     return " (" + ", ".join(f"{analyzer} is configured but not ratcheted" for analyzer in unratcheted) + ")"

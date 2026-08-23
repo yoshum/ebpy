@@ -10,10 +10,11 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from ...models import Framework, ToolingPresence
-
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Mapping
+
+    from ...models import Framework
+    from .detector import ToolSetup
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
@@ -144,24 +145,17 @@ def secret_scan_configured(root_entries: tuple[str, ...], workflow_text: str, pr
     )
 
 
-def detect_tooling(
-    root_entries: tuple[str, ...],
-    pyproject: dict[str, Any] | None,
-    configs: dict[str, str],
-    workflow_text: str,
-) -> ToolingPresence:
-    pre_commit_text = configs.get(".pre-commit-config.yaml") or ""
-    return ToolingPresence(
-        ruff=has_ruff_config(root_entries, pyproject),
-        formatter=formatter_configured(root_entries, pyproject),
-        mypy=mypy_configured(root_entries, pyproject, configs),
-        mypy_strict=mypy_strict_configured(pyproject, configs),
-        pytest=pytest_configured(root_entries, pyproject, configs),
-        vulture=vulture_configured(pyproject),
-        pre_commit=".pre-commit-config.yaml" in root_entries,
-        secret_scanning=secret_scan_configured(root_entries, workflow_text, pre_commit_text),
-        agent_instructions=tuple(name for name in _AGENT_FILES if name in root_entries),
-    )
+def pre_commit_configured(root_entries: tuple[str, ...]) -> bool:
+    """Return True when a pre-commit config sits at the repository root.
+
+    pre-commit is a repository convention rather than an analyzer, so no tool detector owns it.
+    """
+    return ".pre-commit-config.yaml" in root_entries
+
+
+def detect_agent_instructions(root_entries: tuple[str, ...]) -> tuple[str, ...]:
+    """List the agent instruction files present at the root, in the order ebpy recognises them."""
+    return tuple(name for name in _AGENT_FILES if name in root_entries)
 
 
 _FRAMEWORKS: tuple[tuple[str, Framework], ...] = (
@@ -184,24 +178,11 @@ def requires_python(pyproject: dict[str, Any] | None) -> str | None:
     return value if isinstance(value, str) else None
 
 
-# Temporary bridge to the diagnosis side: maps analyzer name to the ToolingPresence field
-# that indicates it is configured. Replaced by per-detector detection (ToolDetector) in
-# the D increment; until then, the registry ensures we only report names that actually exist.
-_ANALYZER_CONFIGURED: dict[str, Callable[[ToolingPresence], bool]] = {
-    "ruff": lambda t: t.ruff,
-    "mypy": lambda t: t.mypy,
-}
-
-
-def configured_analyzers(tooling: ToolingPresence) -> set[str]:
+def configured_analyzers(tool_setups: Mapping[str, ToolSetup]) -> set[str]:
     """Names of analyzers that are both registered and configured in this repository."""
     # Lazy import: this module is imported by tools/* (RuffDetector uses has_ruff_config),
     # so a module-level `from ...tools import ...` would form an import cycle. This bridge
     # is removed later in the D increment along with the need for it.
     from ...tools import ANALYZER_NAMES  # noqa: PLC0415
 
-    return {
-        name
-        for name in ANALYZER_NAMES
-        if name in _ANALYZER_CONFIGURED and _ANALYZER_CONFIGURED[name](tooling)
-    }
+    return {name for name in ANALYZER_NAMES if name in tool_setups and tool_setups[name].configured}

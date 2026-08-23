@@ -15,8 +15,8 @@ from ebpy.models import (
     RuleBaseline,
     SizeDistribution,
     State,
-    ToolingPresence,
 )
+from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
 
@@ -39,17 +39,12 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
         package_manager="uv",
         requires_python=None,
         framework="none",
-        tooling=ToolingPresence(
-            ruff=True,
-            formatter=False,
-            mypy=mypy_configured,
-            mypy_strict=False,
-            pytest=False,
-            vulture=False,
-            pre_commit=False,
-            secret_scanning=False,
-            agent_instructions=(),
-        ),
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=mypy_configured, strict=False),
+        },
+        pre_commit=False,
+        agent_instructions=(),
         ci=CiCoverage(
             present=False,
             runners=(),

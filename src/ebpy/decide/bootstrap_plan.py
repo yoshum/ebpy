@@ -47,19 +47,14 @@ class BootstrapPlan:
 
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
-    wanted = [
-        ("ruff", diagnosis.tooling.ruff),
-        ("mypy", diagnosis.tooling.mypy),
-        ("pytest", diagnosis.tooling.pytest),
-        ("vulture", diagnosis.tooling.vulture),
-    ]
-    return tuple(name for name, present in wanted if not present)
+    setups = diagnosis.tool_setups
+    return tuple(name for name in ("ruff", "mypy", "pytest", "vulture") if not setups[name].configured)
 
 
 def _config_actions(diagnosis: Diagnosis, has_pyproject: bool) -> list[FileAction]:
     actions: list[FileAction] = []
     target = python_version_from_requires(diagnosis.requires_python)
-    if not diagnosis.tooling.ruff:
+    if not diagnosis.tool_setups["ruff"].configured:
         if has_pyproject:
             actions.append(
                 FileAction(
@@ -78,7 +73,7 @@ def _config_actions(diagnosis: Diagnosis, has_pyproject: bool) -> list[FileActio
                     reason="lint + format config (no pyproject.toml to append to)",
                 )
             )
-    if not diagnosis.tooling.mypy:
+    if not diagnosis.tool_setups["mypy"].configured:
         if has_pyproject:
             actions.append(
                 FileAction(
