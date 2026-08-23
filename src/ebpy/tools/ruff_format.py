@@ -10,6 +10,7 @@ from ..repo.detect.tooling import _dependency_names, _tool_table
 from .ruff import has_ruff_config
 
 if TYPE_CHECKING:
+    from ..decide.provisioner import FileAction
     from ..repo.facts import RepoFacts
 
 
@@ -54,3 +55,31 @@ class RuffFormatDetector:
     def render_row(self, setup: ToolSetup) -> str:
         """Render a one-line formatter row for the diagnosis table."""
         return f"  formatter         {'yes' if setup.configured else 'no'}"
+
+
+@dataclass(frozen=True)
+class RuffFormatProvisioner:
+    """Inert provisioner placeholder for a future standalone formatter (e.g. black).
+
+    Ruff subsumes formatting today, so all operations delegate to RuffProvisioner.
+    This class exists so the registry has a named slot for "formatter" provisioning.
+    """
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for the formatter tool."""
+        return "formatter"
+
+    def packages(self, _setup: ToolSetup) -> tuple[str, ...]:
+        """Return empty tuple: ruff covers formatting, no additional package needed."""
+        return ()
+
+    def config_actions(
+        self, _setup: ToolSetup, _has_pyproject: bool, _target_version: str
+    ) -> list[FileAction]:
+        """Return empty list: ruff.toml already includes format settings."""
+        return []
+
+    def workflow_steps(self, _run_prefix: str) -> list[str]:
+        """Return empty list: the Format check CI step is owned by RuffProvisioner."""
+        return []

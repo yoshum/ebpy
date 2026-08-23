@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ...decide.provisioner import FileAction
+from ...generate.configs import ruff_pyproject_section, ruff_toml_content
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
 from ...repo.detect.tooling import _tool_table
@@ -61,6 +63,49 @@ class RuffDetector:
     def render_row(self, setup: ToolSetup) -> str:
         """Render a one-line ruff row for the diagnosis table."""
         return f"  ruff              {'yes' if setup.configured else 'no'}"
+
+
+@dataclass(frozen=True)
+class RuffProvisioner:
+    """Provisioner for ruff: installs the package, writes the config, and adds the CI format-check step."""
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for ruff."""
+        return "ruff"
+
+    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+        """Return ("ruff",) when ruff is absent, empty tuple when already configured."""
+        return ("ruff",) if not setup.configured else ()
+
+    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:
+        """Append a [tool.ruff] section to pyproject.toml, or create ruff.toml when there is no pyproject."""
+        if setup.configured:
+            return []
+        if has_pyproject:
+            return [
+                FileAction(
+                    path="pyproject.toml",
+                    content="\n" + ruff_pyproject_section(target_version),
+                    mode="append",
+                    reason="lint + format config; the rule tiers the ratchet will freeze",
+                )
+            ]
+        return [
+            FileAction(
+                path="ruff.toml",
+                content=ruff_toml_content(target_version),
+                mode="create",
+                reason="lint + format config (no pyproject.toml to append to)",
+            )
+        ]
+
+    def workflow_steps(self, run_prefix: str) -> list[str]:
+        """Return the Format check CI step lines, matching the gate_workflow output."""
+        return [
+            "      - name: Format check",
+            f"        run: {run_prefix}ruff format --check .",
+        ]
 
 
 @dataclass(frozen=True)

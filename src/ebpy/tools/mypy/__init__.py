@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ...decide.provisioner import FileAction
+from ...generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
 from ...repo.detect.tooling import _ini_has_section, _tool_table
@@ -110,6 +112,46 @@ class MypyDetector:
         """Render a one-line mypy row for the diagnosis table."""
         state = "strict" if setup.strict else ("yes (not strict)" if setup.configured else "no")
         return f"  mypy              {state}"
+
+
+@dataclass(frozen=True)
+class MypyProvisioner:
+    """Provisioner for mypy: installs the package and writes strict type-checking config."""
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for mypy."""
+        return "mypy"
+
+    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+        """Return ("mypy",) when mypy is absent, empty tuple when already configured."""
+        return ("mypy",) if not setup.configured else ()
+
+    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
+        """Append a [tool.mypy] section to pyproject.toml, or create mypy.ini when there is no pyproject."""
+        if setup.configured:
+            return []
+        if has_pyproject:
+            return [
+                FileAction(
+                    path="pyproject.toml",
+                    content="\n" + MYPY_PYPROJECT_SECTION,
+                    mode="append",
+                    reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
+                )
+            ]
+        return [
+            FileAction(
+                path="mypy.ini",
+                content=MYPY_INI_CONTENT,
+                mode="create",
+                reason="type checking, strict (no pyproject.toml to append to)",
+            )
+        ]
+
+    def workflow_steps(self, _run_prefix: str) -> list[str]:
+        """Return empty list: type checking runs through ebpy check, not a raw mypy CI step."""
+        return []
 
 
 @dataclass(frozen=True)
