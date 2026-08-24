@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 296 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 298 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **54**
+- Open violations: **52**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,12 +19,12 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 54 findings across 6 rules
-  - [ ] `ruff:PLR2004` — 2 left
+- [ ] **P3 drain** — 52 findings across 5 rules
   - [ ] `ruff:PLC1901` — 3 left
   - [ ] `ruff:RUF105` — 6 left
   - [ ] `ruff:SLF001` — 8 left
   - [ ] `ruff:PLC2701` — 14 left
+  - [ ] `ruff:RUF067` — 21 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -46,7 +46,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
-| `ruff:PLR2004` | 2 | 2 | 0 | draining |
 
 ## Outstanding
 
@@ -58,6 +57,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | a13213a1 | drained | ruff:PLR2004 | 2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change. |
 | 2026-08-24 | 2c887a55 | drained | ruff:D401 | 2 test docstrings made imperative; rule graduated. |
 | 2026-08-24 | 2c887a55 | drained | ruff:D205 | 74 test docstrings restructured to summary+body; rule graduated. |
 | 2026-08-24 | 0812cd98 | drained | ruff:D401 | 17 src docstrings made imperative while keeping the why. No behaviour change. |
@@ -77,7 +77,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 4c9332ec | drained | ruff:D100 | 21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug |
 | 2026-08-24 | cbe92432 | drained | ruff:D209 | 95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting) |
 | 2026-08-24 | 75240937 | drained | ruff:TC003 | 20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene |
-| 2026-08-24 | 22fb31a3 | drained | ruff:D403 | 6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording |
 
 ## Notes
 

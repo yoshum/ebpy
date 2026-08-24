@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T13:14:35Z",
+  "updatedAt": "2026-08-24T13:23:50Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -53,11 +53,6 @@
     "ruff:PLC2701": {
       "baseline": 14,
       "current": 14,
-      "status": "draining"
-    },
-    "ruff:PLR2004": {
-      "baseline": 2,
-      "current": 2,
       "status": "draining"
     },
     "ruff:RUF067": {
@@ -369,6 +364,13 @@
       "kind": "drained",
       "rule": "ruff:D401",
       "text": "2 test docstrings made imperative; rule graduated."
+    },
+    {
+      "at": "2026-08-24T13:23:50Z",
+      "commit": "a13213a1cbd5809558c9b3985b18321f76b25803",
+      "kind": "drained",
+      "rule": "ruff:PLR2004",
+      "text": "2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change."
     }
   ]
 }
