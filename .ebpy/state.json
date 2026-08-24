@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T11:58:37Z",
+  "updatedAt": "2026-08-24T12:07:21Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -45,16 +45,6 @@
     "ruff"
   ],
   "rules": {
-    "ruff:D205": {
-      "baseline": 74,
-      "current": 74,
-      "status": "draining"
-    },
-    "ruff:D401": {
-      "baseline": 2,
-      "current": 2,
-      "status": "draining"
-    },
     "ruff:PLC1901": {
       "baseline": 3,
       "current": 3,
@@ -380,6 +370,20 @@
       "kind": "drained",
       "rule": "ruff:D401",
       "text": "17 src docstrings made imperative while keeping the why. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T12:07:21Z",
+      "commit": "2c887a55ab1baa0f7005dc2167753930d2312457",
+      "kind": "drained",
+      "rule": "ruff:D205",
+      "text": "74 test docstrings restructured to summary+body; rule graduated."
+    },
+    {
+      "at": "2026-08-24T12:07:21Z",
+      "commit": "2c887a55ab1baa0f7005dc2167753930d2312457",
+      "kind": "drained",
+      "rule": "ruff:D401",
+      "text": "2 test docstrings made imperative; rule graduated."
     }
   ]
 }
