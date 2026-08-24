@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T09:50:34Z",
+  "updatedAt": "2026-08-24T09:58:51Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -68,11 +68,6 @@
     "ruff:D205": {
       "baseline": 96,
       "current": 96,
-      "status": "draining"
-    },
-    "ruff:D209": {
-      "baseline": 95,
-      "current": 95,
       "status": "draining"
     },
     "ruff:D401": {
@@ -328,6 +323,13 @@
       "kind": "drained",
       "rule": "ruff:TC003",
       "text": "20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene"
+    },
+    {
+      "at": "2026-08-24T09:58:51Z",
+      "commit": "cbe92432213635a760dd39e046ded33d36d51735",
+      "kind": "drained",
+      "rule": "ruff:D209",
+      "text": "95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting)"
     }
   ]
 }
