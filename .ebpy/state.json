@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:15:12Z",
+  "updatedAt": "2026-08-24T07:18:33Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -150,11 +150,6 @@
       "current": 1,
       "status": "draining"
     },
-    "ruff:PT011": {
-      "baseline": 4,
-      "current": 4,
-      "status": "draining"
-    },
     "ruff:PT018": {
       "baseline": 10,
       "current": 10,
@@ -259,6 +254,13 @@
       "kind": "drained",
       "rule": "ruff:PLR0916",
       "text": "1 violation in ruff/_runner.py; extracted _read_diagnostic pure function so per-field validation reads as guards instead of one 8-term boolean; behaviour-preserving refactor, not a real bug"
+    },
+    {
+      "at": "2026-08-24T07:18:33Z",
+      "commit": "6ab6e121a3d30799eb639bc0fe3d63e8e4e618f0",
+      "kind": "drained",
+      "rule": "ruff:PT011",
+      "text": "4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement"
     }
   ]
 }
