@@ -359,6 +359,13 @@
       "kind": "drained",
       "rule": "ruff:FURB118",
       "text": "1 lambda in store/state.py state_to_dict replaced with operator.itemgetter(0); same trivial item[0] pattern. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:18:21Z",
+      "commit": "f9179139fcc6042d775b1c9322659865c34c4a3d",
+      "kind": "drained",
+      "rule": "ruff:ANN401",
+      "text": "8 Any annotations tightened: 6 JSON validators + _legacy_version to object (isinstance-narrowed), with_diagnosis to Diagnosis, test helper to Callable[[Path], AnalysisMeasurement]. None skipped; mypy clean. No bug."
     }
   ]
 }

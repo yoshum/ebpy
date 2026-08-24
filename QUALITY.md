@@ -3,7 +3,7 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 290 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 291 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
@@ -63,6 +63,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | f9179139 | drained | ruff:ANN401 | 8 Any annotations tightened: 6 JSON validators + _legacy_version to object (isinstance-narrowed), with_diagnosis to Diagnosis, test helper to Callable[[Path], AnalysisMeasurement]. None skipped; mypy clean. No bug. |
 | 2026-08-24 | 61ad5b5e | drained | ruff:FURB118 | 1 lambda in store/state.py state_to_dict replaced with operator.itemgetter(0); same trivial item[0] pattern. Mechanical, no bug. |
 | 2026-08-24 | 7d093cd5 | drained | ruff:D403 | 5 docstring first-word capitalizations in test_freeze.py and test_runners.py. Mechanical, no bug. |
 | 2026-08-24 | 5d48102a | drained | ruff:PT018 | 3 compound asserts (freeze.py, test_freeze.py, test_runners.py) split into single-condition asserts. Mechanical, no bug. |
@@ -82,7 +83,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 844b88d6 | drained | ruff:PT018 | 7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages |
 | 2026-08-24 | 414e9de1 | drained | ruff:TC002 | 1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix |
 | 2026-08-24 | 17c4efdc | drained | ruff:TC001 | 34 of 38 violations across 20 files; moved annotation-only first-party imports into TYPE_CHECKING blocks; not a bug — import hygiene; 4 left in commands/freeze.py (leave-until-last) |
-| 2026-08-24 | 3cd6be2c | drained | ruff:D102 | 5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug — fully graduates |
 
 ## Notes
 
