@@ -2,9 +2,6 @@
   "version": 2,
   "cells": {
     "src/ebpy/catalog.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -24,9 +21,6 @@
       }
     },
     "src/ebpy/cli.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       }
@@ -48,9 +42,6 @@
       }
     },
     "src/ebpy/commands/check.py": {
-      "ruff:D101": {
-        "count": 2
-      },
       "ruff:D103": {
         "count": 1
       },
@@ -67,9 +58,6 @@
       }
     },
     "src/ebpy/commands/freeze.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 1
       },
@@ -90,9 +78,6 @@
       }
     },
     "src/ebpy/commands/install.py": {
-      "ruff:D101": {
-        "count": 2
-      },
       "ruff:D103": {
         "count": 1
       },
@@ -120,9 +105,6 @@
       }
     },
     "src/ebpy/commands/prune.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -147,9 +129,6 @@
       }
     },
     "src/ebpy/commands/skills_install.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -166,9 +145,6 @@
       }
     },
     "src/ebpy/decide/analysis_report.py": {
-      "ruff:D101": {
-        "count": 4
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -177,9 +153,6 @@
       }
     },
     "src/ebpy/decide/bootstrap_plan.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -193,9 +166,6 @@
       }
     },
     "src/ebpy/decide/drain_order.py": {
-      "ruff:D101": {
-        "count": 5
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -210,9 +180,6 @@
       }
     },
     "src/ebpy/decide/freshness.py": {
-      "ruff:D101": {
-        "count": 2
-      },
       "ruff:D103": {
         "count": 1
       }
@@ -260,9 +227,6 @@
       }
     },
     "src/ebpy/models.py": {
-      "ruff:D101": {
-        "count": 11
-      },
       "ruff:D103": {
         "count": 1
       }
@@ -320,9 +284,6 @@
       }
     },
     "src/ebpy/render/worklist.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -374,9 +335,6 @@
       }
     },
     "src/ebpy/repo/facts.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 4
       },
@@ -407,9 +365,6 @@
       }
     },
     "src/ebpy/secret_scan.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 1
       },
@@ -564,9 +519,6 @@
       }
     },
     "src/ebpy/util.py": {
-      "ruff:D101": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 1
       }

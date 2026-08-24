@@ -51,6 +51,8 @@ _UNATTRIBUTED_SHOWN = 5
 
 @dataclass(frozen=True)
 class FreezeDecision:
+    """The outcome of a freeze: the cells to pin, the state to persist, and the message to report."""
+
     cells: CellCountsView
     state: State
     message: str

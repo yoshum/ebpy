@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class ExecResult:
+    """The result of running a subprocess: its exit code, stdout and stderr."""
+
     code: int
     stdout: str
     stderr: str

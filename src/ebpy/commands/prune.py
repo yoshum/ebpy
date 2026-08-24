@@ -44,6 +44,8 @@ NO_FROZEN_CEILING = "\n".join(
 
 @dataclass(frozen=True)
 class PruneDecision:
+    """The outcome of a prune: the lowered cells, the state to persist, and the message to report."""
+
     cells: CellCounts
     state: State
     message: str

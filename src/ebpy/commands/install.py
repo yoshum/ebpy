@@ -27,12 +27,16 @@ REF_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._/-]*")
 
 @dataclass(frozen=True)
 class InstallResult:
+    """The outcome of an install: whether it succeeded, and the message explaining it."""
+
     ok: bool
     message: str
 
 
 @dataclass(frozen=True)
 class InstallTarget:
+    """The ebpy revision an install will pin, with a description of where it came from."""
+
     revision: str
     description: str
 

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class WorklistItem:
+    """One line of the worklist: whether it is done, its label, detail, and any child lines."""
+
     done: bool
     label: str
     detail: str = ""

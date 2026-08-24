@@ -16,6 +16,8 @@ SECRET_FINDING_EXIT_CODE = 2
 
 @dataclass(frozen=True)
 class SecretVerdict:
+    """A secret scan's verdict: whether it is clean, its gitleaks-style exit code, and the message."""
+
     ok: bool
     # Mirrors gitleaks: 0 clean, 2 findings, 1 the scan itself failed. Collapsing them
     # loses the distinction the whole exit-code choice exists for.

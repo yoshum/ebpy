@@ -31,6 +31,8 @@ _SKIPPED_DIRS = {
 
 @dataclass(frozen=True)
 class RepoFacts:
+    """Everything read from disk once, so decisions stay pure: the tree, pyproject, sources and workflows."""
+
     cwd: Path
     # Repo-relative names of files in the repository root (not recursive).
     root_entries: tuple[str, ...]

@@ -20,6 +20,8 @@ STALE_DAY_COUNT = 30
 
 @dataclass(frozen=True)
 class FreshnessInput:
+    """What deciding freshness needs: when and where the diagnosis was taken, and how far HEAD has moved."""
+
     diagnosed_at: str | None
     diagnosed_commit: str | None
     head_commit: str | None
@@ -30,6 +32,8 @@ class FreshnessInput:
 
 @dataclass(frozen=True)
 class Freshness:
+    """Whether the diagnosis is stale, and the reason to show if it is."""
+
     stale: bool
     reason: str
 

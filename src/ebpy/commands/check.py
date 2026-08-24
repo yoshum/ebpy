@@ -31,12 +31,16 @@ _WORST_SAMPLE = 5
 
 @dataclass(frozen=True)
 class CheckResult:
+    """The gate's verdict: whether nothing rose, and the message explaining it."""
+
     ok: bool
     message: str
 
 
 @dataclass(frozen=True)
 class CheckDecision:
+    """The outcome of a check: the verdict to report and the state to persist."""
+
     result: CheckResult
     state: State
 

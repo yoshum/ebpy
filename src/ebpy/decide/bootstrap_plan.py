@@ -31,6 +31,8 @@ class InstallAction:
 
 @dataclass(frozen=True)
 class BootstrapPlan:
+    """What bootstrap would do, as data: the install action, the files to write, and what it skips."""
+
     install: InstallAction | None
     # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
     files: tuple[CreateFile | AppendText, ...]

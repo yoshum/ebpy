@@ -50,6 +50,8 @@ Python {DEFAULT_PYTHON_VERSION} is the default for generated workflows.
 
 @dataclass(frozen=True)
 class Outcome:
+    """A command's result as data: the text to print and the exit code to return."""
+
     output: str
     code: int
 

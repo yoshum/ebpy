@@ -39,6 +39,8 @@ def area_of(file: str) -> str:
 
 @dataclass(frozen=True)
 class ReportRow:
+    """One rule's row in a section: the rule, its total, and its per-area counts in the section's order."""
+
     rule: str
     total: int
     # Counts in the same order as the section's areas, so the renderer does no lookups.
@@ -47,6 +49,8 @@ class ReportRow:
 
 @dataclass(frozen=True)
 class ReportSection:
+    """A group of rules under a shared title, the areas they span, and the rows that fill the matrix."""
+
     title: str
     total: int
     areas: tuple[str, ...]
@@ -55,6 +59,8 @@ class ReportSection:
 
 @dataclass(frozen=True)
 class AnalyzerSummary:
+    """One analyzer's state in the report: its findings, files, and any failure or unattributed detail."""
+
     in_contract: bool
     status: AnalyzerStatus
     # Attributed cell total for a Measured observation; None when unavailable or failed.
@@ -68,6 +74,8 @@ class AnalyzerSummary:
 
 @dataclass(frozen=True)
 class AnalysisReport:
+    """The backlog as a rule-by-area matrix: new totals, sections, and each analyzer's summary."""
+
     new_total: int
     backlog_total: int
     # Rule totals only: the report answers "what does this debt look like",

@@ -16,6 +16,8 @@ from pathlib import PurePosixPath
 
 @dataclass(frozen=True)
 class CatalogEntry:
+    """One catalogued callable: its name, where it is defined, and the first sentence of its docstring."""
+
     name: str
     file: str
     line: int

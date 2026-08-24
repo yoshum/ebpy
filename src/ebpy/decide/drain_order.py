@@ -26,6 +26,8 @@ HEAVY_FILES_SHOWN = 5
 
 @dataclass(frozen=True)
 class Totals:
+    """The backlog counted three ways: total violations, distinct files, and distinct rules."""
+
     violations: int
     files: int
     rules: int
@@ -33,6 +35,8 @@ class Totals:
 
 @dataclass(frozen=True)
 class RuleSpread:
+    """One rule's spread: how many violations it has and across how many files."""
+
     rule: str
     violations: int
     files: int
@@ -40,6 +44,8 @@ class RuleSpread:
 
 @dataclass(frozen=True)
 class DirectoryTail:
+    """The last files carrying a rule in a directory, with the rule and its remaining violations."""
+
     directory: str
     rule: str
     files: tuple[str, ...]
@@ -48,6 +54,8 @@ class DirectoryTail:
 
 @dataclass(frozen=True)
 class HeavyFile:
+    """A file heavy enough to leave for last: how many rules it carries and how many violations."""
+
     file: str
     rules: int
     violations: int
@@ -55,6 +63,8 @@ class HeavyFile:
 
 @dataclass(frozen=True)
 class DrainPlan:
+    """The computed drain order: totals, take-first cells, rule spreads, directory tails and heavy files."""
+
     totals: Totals
     take_first: tuple[Suppression, ...]
     rules: tuple[RuleSpread, ...]

@@ -22,6 +22,8 @@ MANIFEST_NAME = ".ebpy-manifest.json"
 
 @dataclass(frozen=True)
 class Bundle:
+    """The skills to install: their file contents, the directories ebpy manages, and the skill count."""
+
     files: dict[Path, bytes]
     managed_roots: tuple[str, ...]
     skill_count: int
