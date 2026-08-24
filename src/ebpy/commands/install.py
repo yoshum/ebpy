@@ -45,7 +45,7 @@ def _direct_url_data() -> dict[str, object] | None:
         loaded: object = json.loads(direct_url)
     except json.JSONDecodeError:
         return None
-    return cast(dict[str, object], loaded) if isinstance(loaded, dict) else None
+    return cast("dict[str, object]", loaded) if isinstance(loaded, dict) else None
 
 
 def _current_source() -> str:
@@ -54,7 +54,7 @@ def _current_source() -> str:
         url = data.get("url")
         vcs = data.get("vcs_info")
         if isinstance(url, str) and isinstance(vcs, dict):
-            commit = cast(dict[str, object], vcs).get("commit_id")
+            commit = cast("dict[str, object]", vcs).get("commit_id")
             if isinstance(commit, str) and commit:
                 git_url = url if url.startswith("git+") else f"git+{url}"
                 return f"{git_url}@{commit}"
@@ -68,7 +68,7 @@ def _bootstrap_ref() -> str | None:
     vcs = data.get("vcs_info") if data is not None else None
     if not isinstance(vcs, dict):
         return None
-    requested = cast(dict[str, object], vcs).get("requested_revision")
+    requested = cast("dict[str, object]", vcs).get("requested_revision")
     return requested if isinstance(requested, str) and requested else None
 
 

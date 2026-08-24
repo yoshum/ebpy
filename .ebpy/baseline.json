@@ -136,9 +136,6 @@
       "ruff:TC003": {
         "count": 1
       },
-      "ruff:TC006": {
-        "count": 3
-      },
       "ruff:TID252": {
         "count": 6
       }
@@ -222,9 +219,6 @@
       },
       "ruff:TC003": {
         "count": 1
-      },
-      "ruff:TC006": {
-        "count": 2
       },
       "ruff:TID252": {
         "count": 1
@@ -1064,9 +1058,6 @@
       },
       "ruff:TC003": {
         "count": 1
-      },
-      "ruff:TC006": {
-        "count": 7
       }
     },
     "tests/test_mypy_lifecycle.py": {

@@ -178,12 +178,12 @@ def test_measurement_freezes_the_analyzer_mapping_and_every_cell_mapping() -> No
 
     analyzers["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
 
-    kept = cast(Measured[AnalysisMeasurement], result.analyzers["ruff"])
+    kept = cast("Measured[AnalysisMeasurement]", result.analyzers["ruff"])
     assert kept.value.cells["a.py"]["ruff:F401"] == 1
     with pytest.raises(TypeError):
-        cast(Any, result.analyzers)["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
+        cast("Any", result.analyzers)["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
     with pytest.raises(TypeError):
-        cast(Any, kept.value.cells["a.py"])["ruff:F401"] = 2
+        cast("Any", kept.value.cells["a.py"])["ruff:F401"] = 2
 
 
 def test_classify_of_a_measured_observation_with_no_unattributed_findings_is_complete() -> None:
@@ -253,8 +253,8 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
     selector_failure = measure_repository(tmp_path).analyzers["ruff"]
 
     assert parse_failure != selector_failure
-    assert "Failed to parse pyproject.toml" in cast(Failed, parse_failure).detail
-    assert "Unknown rule selector" in cast(Failed, selector_failure).detail
+    assert "Failed to parse pyproject.toml" in cast("Failed", parse_failure).detail
+    assert "Unknown rule selector" in cast("Failed", selector_failure).detail
 
 
 def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -266,7 +266,7 @@ def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: p
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
 
     assert ruff.detail.splitlines() == ["head:", "  Cause: first", "  Cause: deeper", "  detail line"]
     # The runner chose the summary; it is not simply the detail's first line.
@@ -283,7 +283,7 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
 
     assert ruff.detail.splitlines()[-1] == "... (truncated)"
     assert len(ruff.detail.splitlines()) == measurement.observation._DETAIL_LINES + 1

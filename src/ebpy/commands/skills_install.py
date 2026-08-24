@@ -80,12 +80,12 @@ def _manifest_hashes(destination: Path) -> dict[Path, str]:
         return {}
     if not isinstance(loaded, dict):
         return {}
-    files = cast(dict[str, object], loaded).get("files")
+    files = cast("dict[str, object]", loaded).get("files")
     if not isinstance(files, dict):
         return {}
     return {
         Path(relative): digest
-        for relative, digest in cast(dict[str, object], files).items()
+        for relative, digest in cast("dict[str, object]", files).items()
         if isinstance(relative, str) and isinstance(digest, str)
     }
 
