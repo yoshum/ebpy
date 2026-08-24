@@ -26,7 +26,9 @@ def _frozen_state(cwd: Path, rules: dict[str, int], analyzers: tuple[str, ...]) 
 
 
 def test_status_lists_the_frozen_analyzers_and_no_regression_count(tmp_path: Path) -> None:
-    """The roster line names every analyzer the ledger holds a ceiling for, and no line in
+    """Status lists the frozen analyzers and reports no regression count anywhere.
+
+    The roster line names every analyzer the ledger holds a ceiling for, and no line in
     the output reports a regression count anywhere — state v2 stores only held counts, so a
     regression is structurally unrepresentable and the deleted verdict line must not have
     grown back next to the new one.

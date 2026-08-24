@@ -1,5 +1,6 @@
-"""End to end, against a real repository with both Ruff and mypy: the ratchet's
-"can fall, never rise" claim must hold for mypy cells, not only ruff cells.
+"""End-to-end lifecycle over a real repository with both Ruff and mypy.
+
+The ratchet's "can fall, never rise" claim must hold for mypy cells, not only ruff cells.
 
 Each test stands alone: it builds its own fixture repo and drives the CLI through
 a complete lifecycle sub-arc. Tests are slow because they spawn real processes;
@@ -319,8 +320,9 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze
 def test_a_scoped_ruff_freeze_builds_a_narrow_contract_when_mypy_is_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Freeze --analyzer ruff pins a ruff-only contract on a repository without mypy, then
-    check gates ruff alone and names mypy as an unratcheted, configured analyzer.
+    """Freeze --analyzer ruff pins a ruff-only contract on a repository without mypy.
+
+    Check then gates ruff alone and names mypy as an unratcheted, configured analyzer.
 
     This is the staged-adoption path: a repository whose toolchain is incomplete freezes what
     it can measure today. mypy absence is simulated as in the global-refusal test above.

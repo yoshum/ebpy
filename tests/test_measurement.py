@@ -125,7 +125,9 @@ def test_mypy_failure_is_distinct_from_mypy_being_unavailable(
 def test_invalid_mypy_output_is_a_distinct_failure_kind_from_execution_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """MypyInvalidOutputError is a subclass of MypyFailedError and must be caught first,
+    """Invalid mypy output is a distinct failure kind from execution failure.
+
+    MypyInvalidOutputError is a subclass of MypyFailedError and must be caught first,
     or every invalid-output failure would be misreported as a plain execution failure.
     """
     monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
@@ -215,7 +217,9 @@ def test_classify_of_a_failed_observation_is_failed() -> None:
 
 
 def test_classify_of_no_observation_at_all_is_no_runner() -> None:
-    """A ceiling contract naming an analyzer this ebpy build has no runner for is its own
+    """No observation at all classifies as no-runner.
+
+    A ceiling contract naming an analyzer this ebpy build has no runner for is its own
     status, kept apart from a tool that broke so callers can word the unfixable case.
     """
     assert classify(None) == "no-runner"

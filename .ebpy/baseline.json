@@ -70,46 +70,12 @@
         "count": 1
       }
     },
-    "tests/test_analysis_report.py": {
-      "ruff:D205": {
-        "count": 4
-      }
-    },
     "tests/test_baseline.py": {
-      "ruff:D205": {
-        "count": 4
-      },
       "ruff:PLC2701": {
         "count": 1
       }
     },
-    "tests/test_bootstrap.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "tests/test_ceiling_artifacts.py": {
-      "ruff:D205": {
-        "count": 5
-      }
-    },
-    "tests/test_check.py": {
-      "ruff:D205": {
-        "count": 10
-      }
-    },
-    "tests/test_diagnose.py": {
-      "ruff:D205": {
-        "count": 2
-      }
-    },
     "tests/test_freeze.py": {
-      "ruff:D205": {
-        "count": 12
-      },
-      "ruff:D401": {
-        "count": 1
-      },
       "ruff:SLF001": {
         "count": 4
       }
@@ -122,42 +88,11 @@
         "count": 1
       }
     },
-    "tests/test_legacy_artifacts.py": {
-      "ruff:D205": {
-        "count": 7
-      }
-    },
-    "tests/test_lifecycle.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "tests/test_log.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
     "tests/test_measurement.py": {
-      "ruff:D205": {
-        "count": 2
-      },
       "ruff:PLC2701": {
         "count": 6
       },
       "ruff:SLF001": {
-        "count": 1
-      }
-    },
-    "tests/test_mypy_lifecycle.py": {
-      "ruff:D205": {
-        "count": 2
-      }
-    },
-    "tests/test_prune.py": {
-      "ruff:D205": {
-        "count": 12
-      },
-      "ruff:D401": {
         "count": 1
       }
     },
@@ -167,9 +102,6 @@
       }
     },
     "tests/test_runners.py": {
-      "ruff:D205": {
-        "count": 7
-      },
       "ruff:PLC2701": {
         "count": 7
       }
@@ -177,16 +109,6 @@
     "tests/test_skills_install.py": {
       "ruff:SLF001": {
         "count": 2
-      }
-    },
-    "tests/test_state.py": {
-      "ruff:D205": {
-        "count": 3
-      }
-    },
-    "tests/test_status.py": {
-      "ruff:D205": {
-        "count": 1
       }
     }
   }

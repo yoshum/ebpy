@@ -160,7 +160,9 @@ def test_a_failed_analyzer_falls_back_to_its_baseline_and_says_so() -> None:
 
 
 def test_an_incomplete_contract_analyzer_shows_its_syntax_errors_in_the_markdown() -> None:
-    """An analyzer left incomplete by a syntax error has failure=None, so the failure
+    """The Markdown names an incomplete analyzer's unparsed files, not just the table's 'incomplete'.
+
+    An analyzer left incomplete by a syntax error has failure=None, so the failure
     banner alone would render only 'incomplete' in the table. The Markdown must still name
     the unparsed files and warn that the backlog fell back to the baseline, matching what
     the JSON carries.
@@ -185,7 +187,9 @@ def test_an_incomplete_contract_analyzer_shows_its_syntax_errors_in_the_markdown
 
 
 def test_a_failed_out_of_contract_analyzer_still_shows_its_failure_reason() -> None:
-    """A fresh repository has no contract, so every analyzer is out of contract. A failed run's
+    """A failed out-of-contract analyzer still shows its failure reason.
+
+    A fresh repository has no contract, so every analyzer is out of contract. A failed run's
     reason must still reach the Markdown — "nobody looked" cannot render as "nothing found" just
     because there is no ceiling yet. The consequence line notes the analyzer has no ceiling rather
     than claiming a baseline fallback.
@@ -207,7 +211,9 @@ def test_a_failed_out_of_contract_analyzer_still_shows_its_failure_reason() -> N
 
 
 def test_an_incomplete_out_of_contract_analyzer_names_its_unparsed_files() -> None:
-    """An out-of-contract analyzer left incomplete by a syntax error must still name the files it
+    """An out-of-contract incomplete analyzer still names its unparsed files.
+
+    An out-of-contract analyzer left incomplete by a syntax error must still name the files it
     could not parse — the same detail an in-contract incomplete run gets, minus the baseline
     consequence.
     """
@@ -228,7 +234,9 @@ def test_an_incomplete_out_of_contract_analyzer_names_its_unparsed_files() -> No
 
 
 def test_a_contract_analyzer_with_no_runner_is_named_in_a_banner() -> None:
-    """A contract naming an analyzer this build cannot run classifies as "no-runner" and carries no
+    """A contract analyzer with no runner is named in a banner, not just the table.
+
+    A contract naming an analyzer this build cannot run classifies as "no-runner" and carries no
     tool detail (observation is None). It must still produce a banner rather than silently rendering
     only the bare status in the table — a missing runner is exactly the kind of unmeasured state the
     banners exist to surface.

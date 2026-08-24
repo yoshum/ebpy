@@ -55,7 +55,9 @@ def test_paths_are_reported_relative_and_posix(tmp_path: Path) -> None:
 
 
 def test_ruff_delegates_path_normalization_to_cell_key(tmp_path: Path) -> None:
-    """The runner calls cell_key.normalize_analyzer_path rather than reimplementing it, so a
+    """The ruff runner delegates path normalization to cell_key rather than reimplementing it.
+
+    The runner calls cell_key.normalize_analyzer_path rather than reimplementing it, so a
     later change to that shared normalization is felt here too instead of silently diverging.
     """
     raw = str(tmp_path / "pkg" / "mod.py")
@@ -331,7 +333,9 @@ def test_mypy_exit_one_with_no_parsed_error_is_invalid_output(
 def test_mypy_exit_one_with_an_unlocated_error_line_surfaces_the_real_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Mypy can exit 1 with an error that carries no `:line:` location (a non-blocker
+    """Mypy exit 1 with an unlocated error line surfaces the real error.
+
+    Mypy can exit 1 with an error that carries no `:line:` location (a non-blocker
     emitted with line=-1, e.g. under `follow_imports = error`). The parser attributes no
     cell to it, but it is a real error, not invalid output — so it must reach the user as
     an ordinary MypyFailedError carrying the text, not be mistaken for garbled output.
@@ -351,6 +355,7 @@ def test_mypy_exit_two_from_a_syntax_error_is_a_measurement_not_a_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A file that does not parse makes mypy exit 2 while printing `[syntax]` error lines.
+
     Like Ruff's unparseable files, these stay measured-but-unattributed rather than sinking
     the whole run into a failure that would misdirect the user to fix a configuration error.
     """
@@ -368,7 +373,9 @@ def test_mypy_exit_two_from_a_syntax_error_is_a_measurement_not_a_failure(
 def test_mypy_exit_two_with_no_syntax_lines_stays_a_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A config or usage error exits 2 without any `[syntax]` line, so there is nothing to
+    """Mypy exit 2 with no `[syntax]` line stays a failure.
+
+    A config or usage error exits 2 without any `[syntax]` line, so there is nothing to
     measure and the run must still be reported as a failure.
     """
     fatal_mypy(monkeypatch, "mypy.ini: [mypy]: Unrecognized option: bogus\n")
@@ -380,7 +387,9 @@ def test_mypy_exit_two_with_no_syntax_lines_stays_a_failure(
 def test_mypy_exit_two_mixing_a_real_finding_with_a_syntax_error_is_a_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """If exit 2 carries a cell-bearing error alongside a syntax error, mypy did not complete a
+    """Mypy exit 2 mixing a real finding with a syntax error fails closed.
+
+    If exit 2 carries a cell-bearing error alongside a syntax error, mypy did not complete a
     trustworthy run: the cells cannot be trusted as a full measurement, so the run fails closed.
     """
     fatal_mypy(
@@ -462,9 +471,10 @@ def test_mypy_parser_takes_the_trailing_code_when_the_message_has_brackets(tmp_p
 
 
 def test_mypy_parser_ignores_a_note_whose_message_body_contains_error_prefix(tmp_path: Path) -> None:
-    """A note is not an error, even when its own text spells one out. Only a diagnostic
-    whose category directly after the location is `error:` counts, so a note quoting an
-    expected type of `error: T` must not refuse the whole measurement.
+    """A note is not an error, even when its own text spells one out.
+
+    Only a diagnostic whose category directly after the location is `error:` counts, so a
+    note quoting an expected type of `error: T` must not refuse the whole measurement.
     """
     output = "\n".join(
         [
@@ -482,7 +492,9 @@ def test_mypy_parser_refuses_an_error_line_with_no_code(tmp_path: Path) -> None:
 
 
 def test_mypy_parser_treats_a_syntax_error_as_unattributed_not_a_cell(tmp_path: Path) -> None:
-    """A file that does not parse is invisible to every type rule, so mypy's `[syntax]` error
+    """Mypy's parser records a `[syntax]` error as unattributed, not as a cell.
+
+    A file that does not parse is invisible to every type rule, so mypy's `[syntax]` error
     is recorded as unattributed rather than as a cell the baseline could grandfather — the same
     treatment Ruff's `invalid-syntax` gets.
     """

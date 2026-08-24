@@ -105,7 +105,9 @@ def test_ci_steps_are_recognised() -> None:
 
 
 def test_the_gate_counts_as_running_lint_and_typecheck() -> None:
-    """`ebpy check` measures ruff and mypy through the seam, so a workflow that runs it
+    """A workflow that runs the gate counts as running lint and typecheck.
+
+    `ebpy check` measures ruff and mypy through the seam, so a workflow that runs it
     covers lint and typecheck without a separate `ruff check` or `mypy` step — which the
     ratchet model omits deliberately, since a raw step demands zero violations.
     """
@@ -193,7 +195,9 @@ def test_mypy_present_but_loose_is_a_tighten_gap_not_a_bootstrap_one(tmp_path: P
 
 
 def test_the_mypy_gap_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path) -> None:
-    """Mypy is now ratcheted per file per rule, the same as Ruff — not as one global error
+    """The mypy gap describes per-cell ratcheting, not a global counter.
+
+    Mypy is now ratcheted per file per rule, the same as Ruff — not as one global error
     counter. The gap the user reads must describe today's model, so the retired "counter"
     wording is refused here where it would otherwise slip past CI unpinned.
     """

@@ -60,7 +60,7 @@ def _fresh_artifacts() -> CeilingArtifacts:
 
 
 def _frozen_artifacts_ruff_only() -> CeilingArtifacts:
-    """A valid frozen pair that contains only ruff (simulates a v1-migrated contract)."""
+    """Build a valid frozen pair that contains only ruff (simulates a v1-migrated contract)."""
     cells: dict[str, dict[str, int]] = {"src/a.py": {"ruff:F401": 1}}
     state = empty_state()
     state = apply_analyzer_rule_counts(state, "ruff", {"ruff:F401": 1}, "freeze")
@@ -81,7 +81,9 @@ def test_freeze_refuses_a_baseline_without_its_ledger(
     capsys: pytest.CaptureFixture[str],
     cells: dict[str, dict[str, int]],
 ) -> None:
-    """Losing `.ebpy/state.json` is ordinary: every command rewrites it, so a merge
+    """Freeze refuses a baseline that has lost its ledger.
+
+    Losing `.ebpy/state.json` is ordinary: every command rewrites it, so a merge
     conflict is enough. A freeze that re-pinned today's counts because of it would
     grandfather everything added since.
     """
@@ -162,7 +164,9 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
 
 
 def test_forcing_does_not_strip_the_ledger_it_read_from_disk() -> None:
-    """`--force` clears rules to pin a new contract — on its own copy, not the on-disk state.
+    """Forcing does not strip the ledger it read from disk.
+
+    `--force` clears rules to pin a new contract — on its own copy, not the on-disk state.
     The roster is preserved so the forced freeze still covers every analyzer the old contract
     named rather than dropping one it cannot measure.
     """
@@ -261,7 +265,9 @@ def test_the_incomplete_refusal_names_fixing_the_file_and_the_analyzers_exclude(
 
 
 def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> None:
-    """The refusal and unattributed remediation were generalized to any analyzer, so a
+    """An incomplete mypy refusal does not tell the user to edit ruff.
+
+    The refusal and unattributed remediation were generalized to any analyzer, so a
     mypy syntax error must not tell the user to edit Ruff's exclude — the advice names the
     analyzer that actually could not parse the file.
     """
@@ -342,7 +348,9 @@ def test_force_refuses_an_unavailable_analyzer_because_force_never_shrinks_the_c
 
 
 def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_measure() -> None:
-    """A contract may name an analyzer a newer ebpy froze but this build has no runner for.
+    """A global freeze refuses to drop a rostered analyzer this build cannot measure.
+
+    A contract may name an analyzer a newer ebpy froze but this build has no runner for.
     A global freeze must not silently drop it — that would break "no invocation removes an
     analyzer" — so an unmeasurable rostered analyzer fails the freeze closed.
     """
@@ -365,7 +373,9 @@ def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_m
 
 
 def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> None:
-    """When every rostered analyzer is measurable, a forced global freeze keeps the full
+    """A global freeze re-pins every rostered analyzer it can measure.
+
+    When every rostered analyzer is measurable, a forced global freeze keeps the full
     roster rather than narrowing it to this build's default set.
     """
     previous = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 9}, "freeze")
@@ -419,7 +429,9 @@ def test_the_unavailable_refusal_points_at_bootstrap() -> None:
 
 
 def test_scoped_freeze_is_allowed_on_a_fresh_pair() -> None:
-    """A fresh pair has no contract to preserve, so `freeze --analyzer NAME` is the
+    """A scoped freeze is allowed on a fresh pair.
+
+    A fresh pair has no contract to preserve, so `freeze --analyzer NAME` is the
     staged-adoption path: it builds a narrow contract holding only NAME from the start.
     """
     artifacts = _fresh_artifacts()
@@ -430,7 +442,9 @@ def test_scoped_freeze_is_allowed_on_a_fresh_pair() -> None:
 
 
 def test_scoped_freeze_on_a_fresh_pair_builds_a_narrow_contract() -> None:
-    """The first freeze can be scoped: a repository whose toolchain is incomplete pins only
+    """A scoped freeze on a fresh pair builds a narrow contract.
+
+    The first freeze can be scoped: a repository whose toolchain is incomplete pins only
     the analyzer it can measure, stamping frozen_at and advancing to drain so the pair is a
     valid frozen contract — the narrow roster the check and render machinery expect.
     """
@@ -456,7 +470,9 @@ def test_scoped_freeze_on_a_fresh_pair_builds_a_narrow_contract() -> None:
 def test_scoped_freeze_on_a_fresh_pair_yields_a_valid_frozen_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Driving the whole command on a fresh repository with `--analyzer` writes a pair that
+    """A scoped freeze on a fresh pair yields a valid frozen contract.
+
+    Driving the whole command on a fresh repository with `--analyzer` writes a pair that
     reads back as a valid frozen contract, not an invalid half-freeze.
     """
     measurement = Measurement(
@@ -587,7 +603,9 @@ def test_a_scoped_freeze_of_a_new_analyzer_says_it_was_added() -> None:
 
 
 def test_a_scoped_re_pin_says_it_replaced_rather_than_added() -> None:
-    """--force --analyzer on an analyzer already in the roster replaces its namespace; the
+    """A scoped re-pin says it replaced rather than added.
+
+    `--force --analyzer` on an analyzer already in the roster replaces its namespace; the
     message must not claim it was "added", which would misdescribe a re-pin.
     """
     artifacts = _frozen_artifacts_ruff_only()
@@ -609,7 +627,9 @@ def test_a_scoped_re_pin_says_it_replaced_rather_than_added() -> None:
 
 
 def test_a_scoped_re_pin_of_an_all_clean_analyzer_reports_zero_violations() -> None:
-    """Re-pinning an analyzer that now measures clean grandfathers nothing; the totals must
+    """A scoped re-pin of an all-clean analyzer reports zero violations.
+
+    Re-pinning an analyzer that now measures clean grandfathers nothing; the totals must
     reflect the measured namespace, not report a phantom rule.
     """
     artifacts = _frozen_artifacts_ruff_only()
@@ -734,7 +754,9 @@ def test_no_invocation_can_remove_an_analyzer_from_the_roster() -> None:
 
 
 def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
-    """The 'across N rules' figure must be the count of distinct rule IDs, not
+    """The freeze message counts distinct rules, not cells.
+
+    The 'across N rules' figure must be the count of distinct rule IDs, not
     the number of file x rule cell pairs.  A single rule appearing in multiple
     files is still one rule.
     """
@@ -766,7 +788,9 @@ def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
 
 
 def test_the_freeze_message_reports_the_analyzer_count_the_skills_tell_agents_to_relay() -> None:
-    """The global message names how many analyzers were frozen, so the figure an agent
+    """The freeze message reports the analyzer count the skills tell agents to relay.
+
+    The global message names how many analyzers were frozen, so the figure an agent
     relays ('N violations across R rules and A analyzers') matches what the tool emitted.
     """
     measurement = Measurement(

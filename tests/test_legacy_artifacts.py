@@ -50,7 +50,9 @@ def _write_v1_baseline(cwd: Path) -> None:
 
 
 def test_a_version_one_state_reads_as_invalid_rather_than_upgrading(tmp_path: Path) -> None:
-    """A state.json still at version 1 is no longer normalised in memory; it is refused so the
+    """A version-1 state reads as invalid rather than being upgraded.
+
+    A state.json still at version 1 is no longer normalised in memory; it is refused so the
     reader never guesses at a contract from a format it no longer understands.
     """
     _write_v1_baseline(tmp_path)
@@ -60,7 +62,9 @@ def test_a_version_one_state_reads_as_invalid_rather_than_upgrading(tmp_path: Pa
 
 
 def test_a_bare_unversioned_baseline_reads_as_invalid(tmp_path: Path) -> None:
-    """A baseline.json with bare rule keys and no version wrapper is a version-1 artifact; it is
+    """A bare unversioned baseline reads as invalid.
+
+    A baseline.json with bare rule keys and no version wrapper is a version-1 artifact; it is
     unreadable rather than silently reinterpreted as version 2.
     """
     _write_v1_baseline(tmp_path)
@@ -70,7 +74,9 @@ def test_a_bare_unversioned_baseline_reads_as_invalid(tmp_path: Path) -> None:
 
 
 def test_the_refusal_points_at_freeze_force(tmp_path: Path) -> None:
-    """The invalid-artifacts message must name `ebpy freeze --force`, the only way to re-pin a
+    """The refusal points at `ebpy freeze --force`.
+
+    The invalid-artifacts message must name `ebpy freeze --force`, the only way to re-pin a
     contract over an artifact ebpy will not read.
     """
     _write_v1_baseline(tmp_path)
@@ -82,7 +88,9 @@ def test_the_refusal_points_at_freeze_force(tmp_path: Path) -> None:
 
 
 def test_a_version_one_repository_is_named_as_old_format_not_corruption(tmp_path: Path) -> None:
-    """A repository frozen by a version-1 ebpy must be told it holds an old format, not that its
+    """A version-1 repository is named as old format, not corruption.
+
+    A repository frozen by a version-1 ebpy must be told it holds an old format, not that its
     files are corrupt: "old format" and "unreadable bytes" are different facts and must not render
     the same. The dedicated message names the version and points at `ebpy freeze --force`.
     """
@@ -97,7 +105,9 @@ def test_a_version_one_repository_is_named_as_old_format_not_corruption(tmp_path
 
 
 def test_repinning_a_version_one_repository_is_told_it_drops_log_and_diagnosis(tmp_path: Path) -> None:
-    """Re-pinning over a version-1 contract discards more than the ceiling: the work log, the last
+    """Re-pinning a version-1 repository is told it drops the log and diagnosis.
+
+    Re-pinning over a version-1 contract discards more than the ceiling: the work log, the last
     diagnosis and the commit it was taken at are all lost, because a forced freeze starts from an
     empty state. The message must say so before the user runs it, not surprise them after.
     """
@@ -110,7 +120,9 @@ def test_repinning_a_version_one_repository_is_told_it_drops_log_and_diagnosis(t
 
 
 def test_corrupt_state_is_not_reported_as_a_version_one_repository(tmp_path: Path) -> None:
-    """Bytes that are not valid JSON are corruption, not an old format: the generic "unreadable"
+    """Corrupt state is not reported as a version-1 repository.
+
+    Bytes that are not valid JSON are corruption, not an old format: the generic "unreadable"
     message must stand, and the version-1 wording must not be borrowed for a file whose version
     could never be read.
     """
@@ -124,7 +136,9 @@ def test_corrupt_state_is_not_reported_as_a_version_one_repository(tmp_path: Pat
 
 
 def test_this_repositorys_own_artifacts_are_version_two_and_agree() -> None:
-    """The repository's own .ebpy/baseline.json and .ebpy/state.json must be version 2 and must
+    """The repository's own artifacts are version 2 and agree.
+
+    The repository's own .ebpy/baseline.json and .ebpy/state.json must be version 2 and must
     classify as a valid frozen contract — the tool eats its own cooking.
     """
     repo_root = Path(__file__).resolve().parents[1]
