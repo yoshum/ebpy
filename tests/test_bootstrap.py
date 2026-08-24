@@ -197,6 +197,21 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
     assert any("quality.yml" in note for note in plan.skipped)
 
 
+def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:
+    """build_plan must iterate PROVISIONERS in registry order and splice each AddWorkflowStep
+    into quality.yml; a broken loop or dropped partition would produce wrong/empty CI steps."""
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    # A bare repo with no lockfile resolves to pip; run_prefix_for("pip") is empty.
+    quality = next(a for a in plan.files if a.path == ".github/workflows/quality.yml")
+    content = quality.content
+    assert "      - name: Format check" in content
+    assert "        run: ruff format --check ." in content
+    assert "      - name: Test" in content
+    assert "        run: pytest" in content
+    assert content.index("Format check") < content.index("Test")
+
+
 def test_a_dry_run_says_what_it_would_do_and_nothing_else(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     rendered = render_plan(plan_for(tmp_path), dry_run=True)
