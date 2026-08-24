@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from ebpy.measurement._ruff import parse_ruff_json
 from ebpy.models import CellCountsView
 from ebpy.store.baseline import (
     Ceiling,
@@ -22,6 +21,7 @@ from ebpy.store.baseline import (
     split_against_baseline,
     write_cells,
 )
+from ebpy.tools.ruff._runner import parse_ruff_json
 
 
 def test_a_v2_baseline_round_trips_through_write_and_read(tmp_path: Path) -> None:

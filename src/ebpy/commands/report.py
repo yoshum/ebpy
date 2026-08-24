@@ -8,9 +8,9 @@ from pathlib import Path
 
 from ..decide.analysis_report import report_from_measurement
 from ..errors import CommandError
-from ..measurement import measure_repository
 from ..render.analysis_report import render_analysis_report
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ..tools import measure_repository
 
 # Actions sets this to a file every job may append markdown to. Writing there is what
 # makes this a CI report without anyone editing a workflow, and outside Actions it is

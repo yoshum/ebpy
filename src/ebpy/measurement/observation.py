@@ -37,12 +37,16 @@ def _default_summary(observation: Unavailable | Failed) -> None:
 
 @dataclass(frozen=True)
 class Measured(Generic[T]):
+    """A tool ran and produced a usable value — the one observation a ceiling can be built on."""
+
     tool: str
     value: T
 
 
 @dataclass(frozen=True)
 class Unavailable:
+    """A tool could not run at all (not installed, not configured) — nothing to measure."""
+
     tool: str
     detail: str
     # One line for a sentence or a table row. Defaults to the detail's first line, which
@@ -50,18 +54,37 @@ class Unavailable:
     summary: str = ""
 
     def __post_init__(self) -> None:
+        """Fall back to the detail's first line when the runner supplied no summary."""
         _default_summary(self)
+
+    @classmethod
+    def from_tool_error(cls, tool: str, error: BaseException) -> Unavailable:
+        """Build an Unavailable from a tool error, capturing its detail and summary readings."""
+        return cls(tool=tool, detail=_describe(error), summary=_summarize(error))
 
 
 @dataclass(frozen=True)
 class Failed:
+    """A tool ran but did not yield a measurement — it errored or produced output ebpy cannot read."""
+
     tool: str
     failure_kind: FailureKind
     detail: str
     summary: str = ""
 
     def __post_init__(self) -> None:
+        """Fall back to the detail's first line when the runner supplied no summary."""
         _default_summary(self)
+
+    @classmethod
+    def from_tool_error(cls, tool: str, failure_kind: FailureKind, error: BaseException) -> Failed:
+        """Build a Failed from a tool error, capturing its detail and summary readings."""
+        return cls(
+            tool=tool,
+            failure_kind=failure_kind,
+            detail=_describe(error),
+            summary=_summarize(error),
+        )
 
 
 Observation: TypeAlias = Measured[T] | Unavailable | Failed
@@ -74,6 +97,7 @@ AnalyzerStatus = Literal["complete", "incomplete", "unavailable", "failed", "no-
 
 
 def classify(observation: Observation[AnalysisMeasurement] | None) -> AnalyzerStatus:
+    """Reduce an observation (or its absence) to the status a caller reasons about."""
     if observation is None:
         return "no-runner"
     if isinstance(observation, Failed):
@@ -85,11 +109,14 @@ def classify(observation: Observation[AnalysisMeasurement] | None) -> AnalyzerSt
 
 @dataclass(frozen=True)
 class Measurement:
+    """One observation per analyzer, validated and frozen — the whole of what a run measured."""
+
     # Mapping, not dict: a frozen dataclass holding a mutable dict is frozen in name only,
     # and a measurement edited after the fact is no longer a record of what was measured.
     analyzers: Mapping[str, Observation[AnalysisMeasurement]]
 
     def __post_init__(self) -> None:
+        """Reject an analyzer name, tool, or rule that does not belong, then freeze the mapping."""
         for name, observation in self.analyzers.items():
             if not is_analyzer_name(name):
                 raise ValueError(f"not a valid analyzer name: {name!r}")
@@ -105,7 +132,7 @@ class Measurement:
         object.__setattr__(self, "analyzers", MappingProxyType(dict(self.analyzers)))
 
 
-def _summary(error: BaseException) -> str:
+def _summarize(error: BaseException) -> str:
     """Return the one line for a reader with room for one — a sentence, or a table row."""
     if isinstance(error, ToolError):
         return error.summary
@@ -113,7 +140,7 @@ def _summary(error: BaseException) -> str:
     return lines[0] if lines else type(error).__name__
 
 
-def _detail(error: BaseException) -> str:
+def _describe(error: BaseException) -> str:
     """Everything the tool said, bounded but not flattened.
 
     Cutting this down to one line here would lose it for every reader at once, while a

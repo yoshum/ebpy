@@ -13,7 +13,6 @@ from ..measurement import (
     Observation,
     Unavailable,
     classify,
-    measure_repository,
 )
 from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
@@ -21,7 +20,7 @@ from ..repo.detect.tooling import configured_analyzers
 from ..store.baseline import cells_for, finding_total, split_against_baseline
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
-from ..tools import ANALYZERS_BY_NAME
+from ..tools import ANALYZERS_BY_NAME, measure_repository
 
 _WORST_SAMPLE = 5
 

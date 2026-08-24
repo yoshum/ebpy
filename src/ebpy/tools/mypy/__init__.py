@@ -5,18 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..measurement._mypy import (
+from ...measurement import Failed, Measured, Observation, Unavailable
+from ._runner import (
     MypyFailedError,
     MypyInvalidOutputError,
     MypyNotFoundError,
     run_mypy_check,
 )
-from ..measurement._values import Failed, Measured, Observation, Unavailable, _detail, _summary
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..models import AnalysisMeasurement
+    from ...models import AnalysisMeasurement
 
 
 @dataclass(frozen=True)
@@ -31,20 +31,10 @@ class MypyAnalyzer:
         try:
             return Measured(tool="mypy", value=run_mypy_check(cwd))
         except MypyNotFoundError as error:
-            return Unavailable(tool="mypy", detail=_detail(error), summary=_summary(error))
+            return Unavailable.from_tool_error("mypy", error)
         # MypyInvalidOutputError subclasses MypyFailedError, so it must be caught first —
         # otherwise every invalid-output failure would be misreported as execution-failed.
         except MypyInvalidOutputError as error:
-            return Failed(
-                tool="mypy",
-                failure_kind="invalid-output",
-                detail=_detail(error),
-                summary=_summary(error),
-            )
+            return Failed.from_tool_error("mypy", "invalid-output", error)
         except (MypyFailedError, OSError) as error:
-            return Failed(
-                tool="mypy",
-                failure_kind="execution-failed",
-                detail=_detail(error),
-                summary=_summary(error),
-            )
+            return Failed.from_tool_error("mypy", "execution-failed", error)

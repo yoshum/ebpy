@@ -11,6 +11,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from ...models import Framework, ToolingPresence
+from ...tools import ANALYZER_NAMES
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -159,9 +160,6 @@ _ANALYZER_CONFIGURED: dict[str, Callable[[ToolingPresence], bool]] = {
 
 def configured_analyzers(tooling: ToolingPresence) -> set[str]:
     """Names of analyzers that are both registered and configured in this repository."""
-    # Lazy import breaks the cycle: tools → measurement._mypy → measurement → tools.
-    from ...tools import ANALYZER_NAMES  # noqa: PLC0415
-
     return {
         name
         for name in ANALYZER_NAMES

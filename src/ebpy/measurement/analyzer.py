@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from ..models import AnalysisMeasurement
-    from ._values import Observation
+    from .observation import Observation
 
 
 class Analyzer(Protocol):

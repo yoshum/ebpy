@@ -12,14 +12,13 @@ from ebpy.measurement import (
     Measurement,
     Unavailable,
     classify,
-    measure_repository,
 )
-from ebpy.measurement._mypy import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
-from ebpy.measurement._ruff import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
-from ebpy.tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME
+from ebpy.tools import ANALYZER_NAMES, ANALYZERS, ANALYZERS_BY_NAME, measure_repository
 from ebpy.tools import mypy as mypy_tool
 from ebpy.tools import ruff as ruff_tool
+from ebpy.tools.mypy._runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
+from ebpy.tools.ruff._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -287,7 +286,7 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
 
     assert ruff.detail.splitlines()[-1] == "... (truncated)"
-    assert len(ruff.detail.splitlines()) == measurement._DETAIL_LINES + 1
+    assert len(ruff.detail.splitlines()) == measurement.observation._DETAIL_LINES + 1
 
 
 def test_an_observation_without_a_summary_falls_back_to_its_first_line() -> None:

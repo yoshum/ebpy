@@ -1,13 +1,13 @@
-"""The stable value seam between repository tools and ratchet decisions."""
+"""The stable value seam between repository tools and ratchet decisions.
+
+This is an abstract leaf: it names the observation value types and the Analyzer
+contract, and imports nothing from the concrete ``tools`` runners that satisfy it.
+"""
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from ._values import (
-    _DETAIL_LINES as _DETAIL_LINES,
-)
-from ._values import (
+from .analyzer import Analyzer
+from .observation import (
     AnalyzerStatus,
     Failed,
     FailureKind,
@@ -19,6 +19,7 @@ from ._values import (
 )
 
 __all__ = [
+    "Analyzer",
     "AnalyzerStatus",
     "Failed",
     "FailureKind",
@@ -27,12 +28,4 @@ __all__ = [
     "Observation",
     "Unavailable",
     "classify",
-    "measure_repository",
 ]
-
-
-def measure_repository(cwd: Path) -> Measurement:
-    """Measure every registered analyzer, retaining partial success as data."""
-    from ..tools import ANALYZERS  # noqa: PLC0415
-
-    return Measurement(analyzers={a.name: a.measure(cwd) for a in ANALYZERS})

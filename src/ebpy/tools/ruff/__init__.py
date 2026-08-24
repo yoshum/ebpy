@@ -5,18 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..measurement._ruff import (
+from ...measurement import Failed, Measured, Observation, Unavailable
+from ._runner import (
     RuffFailedError,
     RuffInvalidOutputError,
     RuffNotFoundError,
     run_ruff_check,
 )
-from ..measurement._values import Failed, Measured, Observation, Unavailable, _detail, _summary
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..models import AnalysisMeasurement
+    from ...models import AnalysisMeasurement
 
 
 @dataclass(frozen=True)
@@ -31,18 +31,8 @@ class RuffAnalyzer:
         try:
             return Measured(tool="ruff", value=run_ruff_check(cwd))
         except RuffNotFoundError as error:
-            return Unavailable(tool="ruff", detail=_detail(error), summary=_summary(error))
+            return Unavailable.from_tool_error("ruff", error)
         except RuffInvalidOutputError as error:
-            return Failed(
-                tool="ruff",
-                failure_kind="invalid-output",
-                detail=_detail(error),
-                summary=_summary(error),
-            )
+            return Failed.from_tool_error("ruff", "invalid-output", error)
         except (RuffFailedError, OSError) as error:
-            return Failed(
-                tool="ruff",
-                failure_kind="execution-failed",
-                detail=_detail(error),
-                summary=_summary(error),
-            )
+            return Failed.from_tool_error("ruff", "execution-failed", error)
