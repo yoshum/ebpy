@@ -22,6 +22,7 @@ from ebpy.tools.mypy._runner import MypyFailedError, MypyInvalidOutputError, Myp
 from ebpy.tools.ruff._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 
@@ -243,7 +244,7 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
 ) -> None:
     """The reason a tool refused is the whole value of being told it refused."""
 
-    def failing(detail: str) -> Any:
+    def failing(detail: str) -> Callable[[Path], AnalysisMeasurement]:
         def raise_it(_cwd: Path) -> AnalysisMeasurement:
             raise RuffFailedError(
                 "ruff check failed (exit 2)", detail=f"ruff check failed (exit 2):\n{detail}"

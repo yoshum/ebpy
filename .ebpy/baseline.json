@@ -121,9 +121,6 @@
       }
     },
     "src/ebpy/store/state.py": {
-      "ruff:ANN401": {
-        "count": 7
-      },
       "ruff:D401": {
         "count": 2
       },
@@ -258,9 +255,6 @@
       }
     },
     "tests/test_measurement.py": {
-      "ruff:ANN401": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 2
       },

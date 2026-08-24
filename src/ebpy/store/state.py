@@ -31,6 +31,8 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
+    from ebpy.models import Diagnosis
+
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
 
@@ -86,7 +88,7 @@ def _entry_from_dict(raw: dict[str, Any]) -> LogEntry:
     )
 
 
-def _is_optional_string(value: Any) -> bool:
+def _is_optional_string(value: object) -> bool:
     return value is None or isinstance(value, str)
 
 
@@ -104,7 +106,7 @@ def _valid_common_fields(raw: dict[str, Any]) -> bool:
     )
 
 
-def _valid_log(log: Any) -> bool:
+def _valid_log(log: object) -> bool:
     return isinstance(log, list) and all(
         isinstance(entry, dict)
         and isinstance(entry.get("at"), str)
@@ -116,7 +118,7 @@ def _valid_log(log: Any) -> bool:
     )
 
 
-def _valid_frozen_analyzers(value: Any) -> TypeGuard[list[str]]:
+def _valid_frozen_analyzers(value: object) -> TypeGuard[list[str]]:
     return (
         isinstance(value, list)
         and all(isinstance(name, str) and is_analyzer_name(name) for name in value)
@@ -124,7 +126,7 @@ def _valid_frozen_analyzers(value: Any) -> TypeGuard[list[str]]:
     )
 
 
-def _valid_v2_rule(rule: Any) -> bool:
+def _valid_v2_rule(rule: object) -> bool:
     baseline = rule.get("baseline") if isinstance(rule, dict) else None
     current = rule.get("current") if isinstance(rule, dict) else None
     return (
@@ -136,7 +138,7 @@ def _valid_v2_rule(rule: Any) -> bool:
     )
 
 
-def _valid_v2_rules(rules: Any, frozen_analyzers: list[str]) -> bool:
+def _valid_v2_rules(rules: object, frozen_analyzers: list[str]) -> bool:
     if not isinstance(rules, dict):
         return False
     roster = set(frozen_analyzers)
@@ -237,7 +239,7 @@ def read_ledger(cwd: Path) -> Ledger:
     return Ledger(exists=True, state=state, legacy_version=_legacy_version(raw))
 
 
-def _legacy_version(raw: Any) -> int | None:
+def _legacy_version(raw: object) -> int | None:
     """The schema version of a state.json this ebpy can no longer read, or None.
 
     Only a file that parses as JSON and names an integer version below the current one counts
@@ -263,7 +265,7 @@ def write_state(cwd: Path, state: State) -> None:
     path.write_text(json.dumps(state_to_dict(state), indent=2) + "\n", encoding="utf-8")
 
 
-def with_diagnosis(state: State, diagnosis: Any, commit: str | None) -> State:
+def with_diagnosis(state: State, diagnosis: Diagnosis, commit: str | None) -> State:
     """Attach a diagnosis to the ledger with the time and commit it was taken at."""
     state.diagnosis = diagnosis
     state.diagnosed_at = _now()
