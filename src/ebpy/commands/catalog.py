@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..catalog import CatalogEntry, catalog_sources, extract_exports, render_catalog
-from ..repo.facts import list_source_paths, read_sources
+from ebpy.catalog import CatalogEntry, catalog_sources, extract_exports, render_catalog
+from ebpy.repo.facts import list_source_paths, read_sources
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 CATALOG_FILE = "docs/shared-helpers.md"
 
 
 def run_catalog(cwd: Path) -> str:
+    """Run ``ebpy catalog``: regenerate docs/shared-helpers.md from the public functions in source."""
     sources = read_sources(cwd, catalog_sources(list_source_paths(cwd)))
     entries: list[CatalogEntry] = []
     for path, text in sorted(sources.items()):

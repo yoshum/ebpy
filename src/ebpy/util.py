@@ -4,17 +4,23 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass(frozen=True)
 class ExecResult:
+    """The result of running a subprocess: its exit code, stdout and stderr."""
+
     code: int
     stdout: str
     stderr: str
 
 
 def run(argv: list[str], cwd: Path) -> ExecResult:
+    """Run a subprocess to completion, capturing its output; a nonzero exit is returned, not raised."""
     completed = subprocess.run(
         argv,
         cwd=cwd,

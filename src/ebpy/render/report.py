@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from ..models import Diagnosis, Gap
-from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
-from ..tools import DETECTORS
+from typing import TYPE_CHECKING
+
+from ebpy.repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
+from ebpy.tools import DETECTORS
+
+if TYPE_CHECKING:
+    from ebpy.models import Diagnosis, Gap
 
 
 def _check(value: bool) -> str:
@@ -62,12 +66,12 @@ def _gap_lines(gaps: tuple[Gap, ...]) -> list[str]:
         return ["", "No gaps found. Freeze the baseline and start draining."]
     lines = ["", f"{len(gaps)} gap(s):"]
     for gap in gaps:
-        lines.append(f"  [{gap.phase}] {gap.title}")
-        lines.append(f"      {gap.detail}")
+        lines.extend((f"  [{gap.phase}] {gap.title}", f"      {gap.detail}"))
     return lines
 
 
 def render_diagnosis(diagnosis: Diagnosis) -> str:
+    """Render the ``ebpy diagnose`` report as text."""
     return "\n".join(
         [
             "ebpy diagnose",

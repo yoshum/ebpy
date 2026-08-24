@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..repo.git import is_git_repository
-from ..secret_scan import (
+from ebpy.repo.git import is_git_repository
+from ebpy.secret_scan import (
     FOUND_IN_HISTORY,
     FOUND_IN_WORKING_TREE,
     MISSING_GITLEAKS,
@@ -15,7 +15,10 @@ from ..secret_scan import (
     combine_scans,
     interpret_gitleaks,
 )
-from ..util import run
+from ebpy.util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _FLAGS = ["--redact", "--verbose", "--exit-code", str(SECRET_FINDING_EXIT_CODE)]
 
@@ -33,6 +36,10 @@ _SCANS: tuple[tuple[list[str], str], ...] = (
 
 
 def run_secrets(cwd: Path) -> SecretVerdict:
+    """Run ``ebpy secrets``: scan history and the working tree with gitleaks.
+
+    An empty scan is never reported as clean.
+    """
     # Measured, not assumed: outside a work tree `gitleaks git` logs an error, scans
     # zero commits, and exits 0. Passing that on would be a clean result for a scan
     # that read nothing.

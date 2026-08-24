@@ -7,15 +7,14 @@ the work log, and the diagnosis provenance. Everything QUALITY.md shows is rende
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+import operator
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any, Literal, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
-from ..cell_key import analyzer_of, is_analyzer_name, is_rule_id
-from ..models import (
+from ebpy.cell_key import analyzer_of, is_analyzer_name, is_rule_id
+from ebpy.models import (
     LOG_KINDS,
     PHASE_ORDER,
     LogEntry,
@@ -28,8 +27,18 @@ from ..models import (
     diagnosis_from_dict,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from pathlib import Path
+
+    from ebpy.models import Diagnosis
+
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
+
+# The on-disk schema version of the ledger. A file naming an integer version below this is a
+# format we retired (see `_legacy_version`); anything else is not a ledger this ebpy reads.
+STATE_SCHEMA_VERSION = 2
 
 # `observe` records today's number without touching the ceiling — what `diagnose` and
 # `check` do. `freeze` lowers the ceiling to today's number if it improved, and never
@@ -64,10 +73,12 @@ def _now() -> str:
 
 
 def state_path(cwd: Path) -> Path:
+    """Locate ``.ebpy/state.json`` under a repository root."""
     return cwd / STATE_DIR / STATE_FILE
 
 
 def empty_state() -> State:
+    """Build the ledger a repository has before its first freeze records any rule."""
     return State(updated_at=_now())
 
 
@@ -81,7 +92,7 @@ def _entry_from_dict(raw: dict[str, Any]) -> LogEntry:
     )
 
 
-def _is_optional_string(value: Any) -> bool:
+def _is_optional_string(value: object) -> bool:
     return value is None or isinstance(value, str)
 
 
@@ -92,14 +103,14 @@ def _valid_common_fields(raw: dict[str, Any]) -> bool:
         raw.get("tool", "ebpy") == "ebpy"
         and phase in PHASE_ORDER
         and ("updatedAt" not in raw or isinstance(raw["updatedAt"], str))
-        and (frozen_at is None or (isinstance(frozen_at, str) and frozen_at != ""))
+        and (frozen_at is None or (isinstance(frozen_at, str) and bool(frozen_at)))
         and _is_optional_string(raw.get("diagnosedAt"))
         and _is_optional_string(raw.get("diagnosedCommit"))
         and (raw.get("diagnosis") is None or isinstance(raw.get("diagnosis"), dict))
     )
 
 
-def _valid_log(log: Any) -> bool:
+def _valid_log(log: object) -> bool:
     return isinstance(log, list) and all(
         isinstance(entry, dict)
         and isinstance(entry.get("at"), str)
@@ -111,7 +122,7 @@ def _valid_log(log: Any) -> bool:
     )
 
 
-def _valid_frozen_analyzers(value: Any) -> TypeGuard[list[str]]:
+def _valid_frozen_analyzers(value: object) -> TypeGuard[list[str]]:
     return (
         isinstance(value, list)
         and all(isinstance(name, str) and is_analyzer_name(name) for name in value)
@@ -119,7 +130,7 @@ def _valid_frozen_analyzers(value: Any) -> TypeGuard[list[str]]:
     )
 
 
-def _valid_v2_rule(rule: Any) -> bool:
+def _valid_v2_rule(rule: object) -> bool:
     baseline = rule.get("baseline") if isinstance(rule, dict) else None
     current = rule.get("current") if isinstance(rule, dict) else None
     return (
@@ -131,7 +142,7 @@ def _valid_v2_rule(rule: Any) -> bool:
     )
 
 
-def _valid_v2_rules(rules: Any, frozen_analyzers: list[str]) -> bool:
+def _valid_v2_rules(rules: object, frozen_analyzers: list[str]) -> bool:
     if not isinstance(rules, dict):
         return False
     roster = set(frozen_analyzers)
@@ -146,7 +157,7 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
     if not _valid_frozen_analyzers(frozen_analyzers):
         return False
     return (
-        raw.get("version") == 2
+        raw.get("version") == STATE_SCHEMA_VERSION
         and "counters" not in raw
         and _valid_common_fields(raw)
         and _valid_v2_rules(raw.get("rules"), frozen_analyzers)
@@ -155,6 +166,7 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
 
 
 def state_from_dict(raw: dict[str, Any]) -> State | None:
+    """Build a State from raw JSON, or None when it is not a valid version-2 ledger."""
     if not _has_valid_v2_shape(raw):
         return None
     try:
@@ -180,8 +192,13 @@ def state_from_dict(raw: dict[str, Any]) -> State | None:
 
 
 def state_to_dict(state: State) -> dict[str, Any]:
+    """Render a State as the version-2 JSON written to state.json.
+
+    Rules and analyzers are sorted so the file diffs stably across runs, and a log entry's
+    ``rule`` key is omitted rather than written null when it carries none.
+    """
     return {
-        "version": 2,
+        "version": STATE_SCHEMA_VERSION,
         "tool": state.tool,
         "phase": state.phase,
         "updatedAt": state.updated_at,
@@ -192,7 +209,7 @@ def state_to_dict(state: State) -> dict[str, Any]:
         "frozenAnalyzers": sorted(state.frozen_analyzers),
         "rules": {
             name: {"baseline": rule.baseline, "current": rule.current, "status": rule.status}
-            for name, rule in sorted(state.rules.items(), key=lambda item: item[0])
+            for name, rule in sorted(state.rules.items(), key=operator.itemgetter(0))
         },
         "log": [
             {
@@ -208,6 +225,11 @@ def state_to_dict(state: State) -> dict[str, Any]:
 
 
 def read_ledger(cwd: Path) -> Ledger:
+    """Read the ledger from disk as a Ledger that separates absence from corruption.
+
+    A symlink at the path or its parent is treated as present-but-unreadable rather than
+    followed, so a tampered ``.ebpy`` cannot redirect the read.
+    """
     path = state_path(cwd)
     if path.parent.is_symlink() or path.is_symlink():
         return Ledger(exists=True, state=None)
@@ -221,8 +243,8 @@ def read_ledger(cwd: Path) -> Ledger:
     return Ledger(exists=True, state=state, legacy_version=_legacy_version(raw))
 
 
-def _legacy_version(raw: Any) -> int | None:
-    """The schema version of a state.json this ebpy can no longer read, or None.
+def _legacy_version(raw: object) -> int | None:
+    """Return the schema version of a state.json this ebpy can no longer read, or None.
 
     Only a file that parses as JSON and names an integer version below the current one counts
     as legacy — that is a format we retired, distinct from bytes that never parsed at all.
@@ -230,12 +252,13 @@ def _legacy_version(raw: Any) -> int | None:
     if not isinstance(raw, dict):
         return None
     version = raw.get("version")
-    if type(version) is int and version < 2:
+    if type(version) is int and version < STATE_SCHEMA_VERSION:
         return version
     return None
 
 
 def write_state(cwd: Path, state: State) -> None:
+    """Write state to state.json, stamping ``updatedAt`` and replacing any symlink at the path."""
     path = state_path(cwd)
     if path.parent.is_symlink():
         path.parent.unlink()
@@ -246,7 +269,8 @@ def write_state(cwd: Path, state: State) -> None:
     path.write_text(json.dumps(state_to_dict(state), indent=2) + "\n", encoding="utf-8")
 
 
-def with_diagnosis(state: State, diagnosis: Any, commit: str | None) -> State:
+def with_diagnosis(state: State, diagnosis: Diagnosis, commit: str | None) -> State:
+    """Attach a diagnosis to the ledger with the time and commit it was taken at."""
     state.diagnosis = diagnosis
     state.diagnosed_at = _now()
     state.diagnosed_commit = commit
@@ -254,28 +278,37 @@ def with_diagnosis(state: State, diagnosis: Any, commit: str | None) -> State:
 
 
 def append_log(state: State, kind: LogKind, text: str, commit: str | None, rule: str | None = None) -> State:
+    """Append a work-log entry, keeping only the most recent ``MAX_LOG_ENTRIES``."""
     state.log = [*state.log, LogEntry(at=_now(), commit=commit, kind=kind, text=text, rule=rule)]
     state.log = state.log[-MAX_LOG_ENTRIES:]
     return state
 
 
 def log_of_kind(state: State, kind: LogKind) -> list[LogEntry]:
+    """Return the log entries of a single kind, in the order they were recorded."""
     return [entry for entry in state.log if entry.kind == kind]
 
 
 def with_phase(state: State, phase: Phase) -> State:
+    """Move the ledger to a workflow phase."""
     state.phase = phase
     return state
 
 
 def next_baseline(existing: int | None, current: int, mode: BaselineMode) -> int:
+    """Compute a rule's next ceiling for a baseline mode.
+
+    ``freeze`` lowers the ceiling to today's count but never raises it; ``observe`` holds the
+    existing ceiling; ``rebaseline`` resets it to today's count. With no existing ceiling, any
+    mode takes today's count.
+    """
     if existing is None or mode == "rebaseline":
         return current
     return min(existing, current) if mode == "freeze" else existing
 
 
 def copy_state(state: State) -> State:
-    """A caller's own State, safe to hand to the helpers below.
+    """Return a caller's own copy of State, safe to hand to the helpers below.
 
     `State` is deliberately the one mutable value in the codebase, so `apply_analyzer_rule_counts`,
     `replace_analyzer_rules` and `with_phase` rewrite the object they are given. A decision function
@@ -333,6 +366,7 @@ def replace_analyzer_rules(state: State, analyzer: str, counts: Mapping[RuleId, 
 
 
 def improvements(state: State) -> list[Regression]:
+    """Return the rules whose current count sits below their ceiling — the drain a freeze can bank."""
     return [
         Regression(name=name, baseline=rule.baseline, current=rule.current)
         for name, rule in state.rules.items()
@@ -341,4 +375,5 @@ def improvements(state: State) -> list[Regression]:
 
 
 def total_violations(state: State) -> int:
+    """Return the total number of live violations across every rule."""
     return sum(rule.current for rule in state.rules.values())

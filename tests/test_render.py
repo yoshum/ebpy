@@ -1,9 +1,13 @@
+"""Rendering the notes block, the quality table, `next`, and the tooling and gap rows."""
+
 from __future__ import annotations
+
+from dataclasses import replace
 
 from ebpy.decide.drain_order import build_drain_plan
 from ebpy.decide.freshness import Freshness
 from ebpy.decide.worklist import build_worklist
-from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolSetup
+from ebpy.models import CiCoverage, Diagnosis, Gap, RuleBaseline, SizeDistribution, Suppression, ToolSetup
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.report import render_diagnosis
@@ -50,6 +54,12 @@ def test_notes_survive_a_re_render() -> None:
 def test_a_file_without_markers_yields_no_notes() -> None:
     assert extract_notes("# Quality\n\nnothing here\n") == ""
     assert extract_notes(None) == ""
+
+
+def test_empty_notes_render_the_placeholder() -> None:
+    """With no saved notes, the block shows the placeholder rather than an empty line."""
+    rendered = render_quality(empty_state(), "", CURRENT)
+    assert "_Anything written between these markers survives a re-render._" in rendered
 
 
 def test_rendering_is_pure() -> None:
@@ -244,4 +254,24 @@ def test_tooling_block_renders_every_row_in_order_with_mypy_configured_but_not_s
         "  secret scanning   yes",
         "  pre-commit        no",
         "  agent rules       none",
+    ]
+
+
+def test_each_gap_renders_a_title_row_then_an_indented_detail_row() -> None:
+    """Every gap contributes exactly two lines in order: the phase-tagged title, then its detail."""
+    diagnosis = replace(
+        _full_diagnosis(mypy_strict=False, pre_commit=False, agent_instructions=()),
+        gaps=(
+            Gap(id="a", title="ruff is unconfigured", detail="add a ruff table", phase="bootstrap"),
+            Gap(id="b", title="no baseline", detail="run ebpy freeze", phase="freeze"),
+        ),
+    )
+    rendered = render_diagnosis(diagnosis)
+    assert rendered.splitlines()[-6:] == [
+        "",
+        "2 gap(s):",
+        "  [bootstrap] ruff is unconfigured",
+        "      add a ruff table",
+        "  [freeze] no baseline",
+        "      run ebpy freeze",
     ]

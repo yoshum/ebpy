@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .decide.freshness import Freshness, FreshnessInput, assess_freshness
-from .models import State
 from .render.quality import QUALITY_FILE, extract_notes, render_quality
 from .repo.git import commits_since, head_commit
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from .models import State
+
 
 def freshness_of(cwd: Path, state: State) -> Freshness:
+    """Assess whether the recorded diagnosis still describes the working tree's current HEAD."""
     head = head_commit(cwd)
     return assess_freshness(
         FreshnessInput(
@@ -25,6 +30,7 @@ def freshness_of(cwd: Path, state: State) -> Freshness:
 
 
 def write_quality_file(cwd: Path, state: State) -> Path:
+    """Re-render QUALITY.md from state, carrying the owner's notes block across unchanged."""
     path = cwd / QUALITY_FILE
     try:
         existing: str | None = path.read_text(encoding="utf-8")

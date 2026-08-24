@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ...models import Framework
+    from ebpy.models import Framework
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
@@ -27,7 +27,7 @@ def _normalise(name: str) -> str:
     return name.lower().replace("_", "-")
 
 
-def _names_in_requirements(items: Any) -> set[str]:
+def _names_in_requirements(items: object) -> set[str]:
     """`ruff>=0.5` and `Ruff [extra] ; python_version < "3.12"` are the same package."""
     if not isinstance(items, list):
         return set()
@@ -61,8 +61,11 @@ def _poetry_names(pyproject: dict[str, Any] | None) -> set[str]:
 
 
 def _dependency_names(pyproject: dict[str, Any] | None) -> set[str]:
-    """Every declared dependency name, normalised: PEP 621 dependencies and optional
-    groups, PEP 735 dependency-groups, and poetry's own tables."""
+    """Collect every declared dependency name, normalised.
+
+    Covers PEP 621 dependencies and optional groups, PEP 735 dependency-groups, and
+    poetry's own tables.
+    """
     return _pep621_names(pyproject) | _poetry_names(pyproject)
 
 
@@ -91,6 +94,7 @@ _FRAMEWORKS: tuple[tuple[str, Framework], ...] = (
 
 
 def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
+    """Identify the web framework from the project's dependencies, or 'none'."""
     deps = _dependency_names(pyproject)
     for name, framework in _FRAMEWORKS:
         if name in deps:
@@ -99,5 +103,6 @@ def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
 
 
 def requires_python(pyproject: dict[str, Any] | None) -> str | None:
+    """Return the project's declared requires-python, or None when absent or not a string."""
     value = ((pyproject or {}).get("project") or {}).get("requires-python")
     return value if isinstance(value, str) else None

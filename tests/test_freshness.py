@@ -1,3 +1,5 @@
+"""When a diagnosis is current and when it goes stale — on age, on commits, or on a rewritten history."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -55,3 +57,10 @@ def test_a_commit_no_longer_in_this_history_is_stale() -> None:
 
 def test_an_unparseable_timestamp_does_not_crash_the_age_check() -> None:
     assert not assess_freshness(make(diagnosed_at="whenever")).stale
+
+
+def test_a_z_suffixed_timestamp_is_parsed_for_the_age_check() -> None:
+    """A diagnosed_at stored with a trailing "Z" is parsed, so its age still counts."""
+    verdict = assess_freshness(make(diagnosed_at="2026-07-01T00:00:00Z"))
+    assert verdict.stale
+    assert "47 days old" in verdict.reason

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from .commands.bootstrap import run_bootstrap
 from .commands.catalog import run_catalog
@@ -25,6 +24,9 @@ from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
 from .tools import ANALYZER_NAMES
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 USAGE_EPILOG = f"""\
 commands:
@@ -48,6 +50,8 @@ Python {DEFAULT_PYTHON_VERSION} is the default for generated workflows.
 
 @dataclass(frozen=True)
 class Outcome:
+    """A command's result as data: the text to print and the exit code to return."""
+
     output: str
     code: int
 
@@ -61,6 +65,7 @@ class _Result(Protocol):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the ebpy argument parser, repeating the global --cwd/--json flags after each subcommand."""
     parser = argparse.ArgumentParser(
         prog="ebpy",
         description="Make a Python codebase that can only get better.",
@@ -213,6 +218,7 @@ def _dispatch(args: argparse.Namespace, cwd: Path) -> Outcome:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse argv, dispatch the subcommand, and return the process exit code."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.command:

@@ -55,12 +55,16 @@ class ToolSetup:
 
 @dataclass(frozen=True)
 class SourceFile:
+    """A source file and its line count, as measured for the size distribution."""
+
     path: str
     lines: int
 
 
 @dataclass(frozen=True)
 class UnattributedFinding:
+    """A finding no rule can grandfather — typically a syntax error that hides a file from every rule."""
+
     file: str
     line: int
     message: str
@@ -76,6 +80,7 @@ class AnalysisMeasurement:
     unattributed: tuple[UnattributedFinding, ...] = ()
 
     def __post_init__(self) -> None:
+        """Freeze ``cells`` into nested read-only proxies so the frozen value is deeply immutable."""
         frozen_cells = {file: MappingProxyType(dict(rules)) for file, rules in self.cells.items()}
         object.__setattr__(self, "cells", MappingProxyType(frozen_cells))
 
@@ -87,12 +92,16 @@ class AnalysisMeasurement:
 
 @dataclass(frozen=True)
 class WorkflowFile:
+    """A CI workflow file: its repository path and full text."""
+
     path: str
     content: str
 
 
 @dataclass(frozen=True)
 class CiCoverage:
+    """What the repository's CI does: its runners, any unpinned actions, and which gate steps it runs."""
+
     present: bool
     # Runner labels seen across all workflows, e.g. ("ubuntu-latest", "macos-latest").
     runners: tuple[str, ...]
@@ -107,6 +116,8 @@ class CiCoverage:
 
 @dataclass(frozen=True)
 class SizeDistribution:
+    """The backlog sized by file: the total, how many exceed the file-line limit, and the largest few."""
+
     total: int
     over_file_limit: int
     largest: tuple[SourceFile, ...]
@@ -114,6 +125,8 @@ class SizeDistribution:
 
 @dataclass(frozen=True)
 class Gap:
+    """One thing a phase must close before it is done, tagged with the phase that owns it."""
+
     id: str
     title: str
     detail: str
@@ -122,6 +135,8 @@ class Gap:
 
 @dataclass(frozen=True)
 class Diagnosis:
+    """The full picture one diagnose produces: package manager, tools, CI, sizes and each phase's gaps."""
+
     package_manager: PackageManager
     requires_python: str | None
     framework: Framework
@@ -138,6 +153,7 @@ class Diagnosis:
     gaps: tuple[Gap, ...]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the diagnosis to a JSON-ready dict with camelCase keys."""
         return {
             "packageManager": self.package_manager,
             "requiresPython": self.requires_python,
@@ -164,6 +180,7 @@ class Diagnosis:
 
 
 def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
+    """Rebuild a Diagnosis from its stored JSON form."""
     # A legacy `tooling` object from before the per-detector shape is ignored: provenance is
     # regenerated on the next `diagnose`, so there is nothing here worth reconstructing it for.
     tool_setups_raw = raw.get("toolSetups") or {}
@@ -213,6 +230,8 @@ def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
 
 @dataclass(frozen=True)
 class RuleBaseline:
+    """One rule in the ratchet: the frozen ceiling, today's count, and its off/draining/enforced status."""
+
     baseline: int
     current: int
     status: RuleStatus
@@ -223,6 +242,8 @@ STATE_VERSION = 2
 
 @dataclass(frozen=True)
 class LogEntry:
+    """One line of the work log: when and where it was written, its kind, and the rule it concerns."""
+
     at: str
     # HEAD when this was written. Without it a note cannot be aged.
     commit: str | None
@@ -233,6 +254,8 @@ class LogEntry:
 
 @dataclass
 class State:
+    """The mutable ledger: phase, freeze provenance, diagnosis, per-rule ceilings and the work log."""
+
     version: int = STATE_VERSION
     tool: str = "ebpy"
     phase: Phase = "diagnose"
@@ -261,6 +284,8 @@ class Suppression:
 
 @dataclass(frozen=True)
 class Regression:
+    """A rule whose current count rose above its baseline — the one thing the ratchet forbids."""
+
     name: str
     baseline: int
     current: int

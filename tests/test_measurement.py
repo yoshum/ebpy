@@ -1,7 +1,8 @@
+"""The measurement seam: one observation per analyzer, and how each is classified from tool output."""
+
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
@@ -19,6 +20,10 @@ from ebpy.tools import mypy as mypy_tool
 from ebpy.tools import ruff as ruff_tool
 from ebpy.tools.mypy._runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 from ebpy.tools.ruff._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -120,8 +125,11 @@ def test_mypy_failure_is_distinct_from_mypy_being_unavailable(
 def test_invalid_mypy_output_is_a_distinct_failure_kind_from_execution_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """MypyInvalidOutputError is a subclass of MypyFailedError and must be caught first,
-    or every invalid-output failure would be misreported as a plain execution failure."""
+    """Invalid mypy output is a distinct failure kind from execution failure.
+
+    MypyInvalidOutputError is a subclass of MypyFailedError and must be caught first,
+    or every invalid-output failure would be misreported as a plain execution failure.
+    """
     monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     def invalid_mypy(_cwd: Path) -> AnalysisMeasurement:
@@ -178,12 +186,12 @@ def test_measurement_freezes_the_analyzer_mapping_and_every_cell_mapping() -> No
 
     analyzers["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
 
-    kept = cast(Measured[AnalysisMeasurement], result.analyzers["ruff"])
+    kept = cast("Measured[AnalysisMeasurement]", result.analyzers["ruff"])
     assert kept.value.cells["a.py"]["ruff:F401"] == 1
     with pytest.raises(TypeError):
-        cast(Any, result.analyzers)["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
+        cast("Any", result.analyzers)["ruff"] = Measured(tool="ruff", value=AnalysisMeasurement(cells={}))
     with pytest.raises(TypeError):
-        cast(Any, kept.value.cells["a.py"])["ruff:F401"] = 2
+        cast("Any", kept.value.cells["a.py"])["ruff:F401"] = 2
 
 
 def test_classify_of_a_measured_observation_with_no_unattributed_findings_is_complete() -> None:
@@ -209,8 +217,11 @@ def test_classify_of_a_failed_observation_is_failed() -> None:
 
 
 def test_classify_of_no_observation_at_all_is_no_runner() -> None:
-    """A ceiling contract naming an analyzer this ebpy build has no runner for is its own
-    status, kept apart from a tool that broke so callers can word the unfixable case."""
+    """No observation at all classifies as no-runner.
+
+    A ceiling contract naming an analyzer this ebpy build has no runner for is its own
+    status, kept apart from a tool that broke so callers can word the unfixable case.
+    """
     assert classify(None) == "no-runner"
 
 
@@ -237,7 +248,7 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
 ) -> None:
     """The reason a tool refused is the whole value of being told it refused."""
 
-    def failing(detail: str) -> Any:
+    def failing(detail: str) -> Callable[[Path], AnalysisMeasurement]:
         def raise_it(_cwd: Path) -> AnalysisMeasurement:
             raise RuffFailedError(
                 "ruff check failed (exit 2)", detail=f"ruff check failed (exit 2):\n{detail}"
@@ -253,8 +264,8 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
     selector_failure = measure_repository(tmp_path).analyzers["ruff"]
 
     assert parse_failure != selector_failure
-    assert "Failed to parse pyproject.toml" in cast(Failed, parse_failure).detail
-    assert "Unknown rule selector" in cast(Failed, selector_failure).detail
+    assert "Failed to parse pyproject.toml" in cast("Failed", parse_failure).detail
+    assert "Unknown rule selector" in cast("Failed", selector_failure).detail
 
 
 def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -266,7 +277,7 @@ def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: p
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
 
     assert ruff.detail.splitlines() == ["head:", "  Cause: first", "  Cause: deeper", "  detail line"]
     # The runner chose the summary; it is not simply the detail's first line.
@@ -283,7 +294,7 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast(Failed, measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
 
     assert ruff.detail.splitlines()[-1] == "... (truncated)"
     assert len(ruff.detail.splitlines()) == measurement.observation._DETAIL_LINES + 1

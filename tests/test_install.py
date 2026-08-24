@@ -1,16 +1,22 @@
+"""`ebpy install`: resolving the ref to pin, following the package manager, rejecting unsafe requests."""
+
 from __future__ import annotations
 
 import json
 from importlib import metadata as importlib_metadata
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ebpy.cli import main
 from ebpy.commands import install
 from ebpy.commands.install import REPOSITORY_URL, run_install
-from ebpy.models import PackageManager
 from ebpy.util import ExecResult
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from ebpy.models import PackageManager
 
 
 @pytest.fixture

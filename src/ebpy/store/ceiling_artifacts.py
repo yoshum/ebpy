@@ -7,16 +7,18 @@ read.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from ..models import CellCounts, CellCountsView, RuleId, State
 from .baseline import Ceiling, analyzers_in, cells_for, read_ceiling, rule_totals
 from .state import Ledger, read_ledger, replace_analyzer_rules
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from ebpy.models import CellCounts, CellCountsView, RuleId, State
+
     from .config import EbpyConfig
 
 ArtifactKind = Literal["fresh", "frozen", "invalid"]
@@ -65,6 +67,11 @@ class CeilingArtifacts:
 
 
 def invalid_artifacts_message(artifacts: CeilingArtifacts) -> str:
+    """Build the operator-facing message for an invalid ceiling pair.
+
+    A retired schema version is routed to its own explanation; every other case reports the
+    stored detail and refuses to reconstruct a ceiling from partial data.
+    """
     assert artifacts.detail is not None
     if artifacts.legacy_version is not None:
         return _legacy_artifacts_message(artifacts.legacy_version)
@@ -79,7 +86,7 @@ def invalid_artifacts_message(artifacts: CeilingArtifacts) -> str:
 
 
 def _legacy_artifacts_message(version: int) -> str:
-    """A repository frozen by a retired ebpy: an old format, not corrupt bytes.
+    """Explain that a repository was frozen by a retired ebpy — an old format, not corrupt bytes.
 
     `ebpy freeze --force` is the only way forward, and it starts from an empty state — so it
     discards not just the old ceiling but the work log, the last diagnosis and the commit it
@@ -113,7 +120,7 @@ def _ledger_rule_ceilings(state: State) -> dict[RuleId, int]:
 
 
 def _validate_frozen_pair(cells: CellCounts, state: State) -> tuple[ArtifactKind, str | None]:
-    """The three ways a frozen pair's data can still disagree.
+    """Check the three ways a frozen pair's data can still disagree.
 
     Checked in this order because an analyzer missing from the roster always makes the
     rule-totals comparison disagree too (its cells have nowhere to be accounted for in the

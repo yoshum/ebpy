@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import _dependency_names, _tool_table
+from ebpy.models import Gap, ToolSetup
+from ebpy.repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction, ProvisionContext
-    from ..repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.repo.facts import RepoFacts
 
 
 def vulture_configured(pyproject: dict[str, Any] | None) -> bool:
@@ -64,6 +64,6 @@ class VultureProvisioner:
         """Return ("vulture",) when vulture is absent, empty tuple when already configured."""
         return ("vulture",) if not setup.configured else ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Return empty list: vulture has no generated config and no gate step today."""
         return []

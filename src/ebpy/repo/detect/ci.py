@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from ...models import CiCoverage, WorkflowFile
+from ebpy.models import CiCoverage, WorkflowFile
 
 # `latest` or a version (`22.04`, `13`, `2022`). Loosening the suffix to any word would
 # match workflow FILENAMES like `windows-daily.yaml` and report a runner never used.
@@ -23,7 +23,7 @@ _COMMIT_PIN = re.compile(r"@(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
 
 
 def unpinned_actions(workflows: tuple[WorkflowFile, ...]) -> tuple[str, ...]:
-    """The `uses:` references that name a tag or branch instead of a commit.
+    """Find the `uses:` references that name a tag or branch instead of a commit.
 
     Local actions (`./.github/actions/x`) and container steps (`docker://`) are not
     included: neither resolves through a moveable git ref, so neither is a pin anybody
@@ -39,6 +39,11 @@ def unpinned_actions(workflows: tuple[WorkflowFile, ...]) -> tuple[str, ...]:
 
 
 def detect_ci(workflows: tuple[WorkflowFile, ...]) -> CiCoverage:
+    """Summarise what the CI workflows actually run into a CiCoverage.
+
+    A baseline only gates when something rejects a regression, so ``runs_ebpy_check`` is kept
+    apart from mere lint/typecheck presence: a repo can have thorough CI and enforce nothing.
+    """
     combined = "\n".join(workflow.content for workflow in workflows)
     runners = tuple(sorted(set(_RUNNER_PATTERN.findall(combined))))
     # The baseline is only a ratchet if something rejects a regression. A repo can
@@ -59,5 +64,6 @@ def detect_ci(workflows: tuple[WorkflowFile, ...]) -> CiCoverage:
 
 
 def missing_runners(coverage: CiCoverage) -> list[str]:
+    """Report the OS runner families (ubuntu, macos, windows) that CI does not cover."""
     families = {runner.split("-")[0] for runner in coverage.runners}
     return [family for family in ("ubuntu", "macos", "windows") if family not in families]

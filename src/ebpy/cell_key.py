@@ -17,10 +17,12 @@ ANALYZER_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 
 
 def is_analyzer_name(name: str) -> bool:
+    """Report whether a string is a well-formed analyzer namespace."""
     return ANALYZER_NAME.fullmatch(name) is not None
 
 
 def qualify_rule(analyzer: str, local_code: str) -> str:
+    """Join an analyzer name and its local code into a namespaced rule ID, rejecting malformed halves."""
     if not is_analyzer_name(analyzer):
         raise ValueError(f"not a valid analyzer name: {analyzer!r}")
     if not local_code or "\n" in local_code or "\r" in local_code:
@@ -50,11 +52,12 @@ def split_rule(rule: str) -> tuple[str, str]:
 
 
 def analyzer_of(rule: str) -> str:
+    """Return the analyzer namespace of a rule ID."""
     return split_rule(rule)[0]
 
 
 def is_rule_id(value: object) -> bool:
-    """The total predicate persistence readers use on untrusted JSON: never raises."""
+    """Report whether the value is a namespaced rule id; never raises on untrusted JSON."""
     return isinstance(value, str) and _partition(value) is not None
 
 

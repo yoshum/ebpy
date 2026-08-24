@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T06:19:18Z",
+  "updatedAt": "2026-08-24T13:37:16Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -45,199 +45,9 @@
     "ruff"
   ],
   "rules": {
-    "ruff:ANN401": {
-      "baseline": 10,
-      "current": 10,
-      "status": "draining"
-    },
-    "ruff:D100": {
-      "baseline": 21,
-      "current": 21,
-      "status": "draining"
-    },
-    "ruff:D101": {
-      "baseline": 36,
-      "current": 36,
-      "status": "draining"
-    },
-    "ruff:D102": {
-      "baseline": 5,
-      "current": 5,
-      "status": "draining"
-    },
-    "ruff:D103": {
-      "baseline": 377,
-      "current": 377,
-      "status": "draining"
-    },
-    "ruff:D104": {
-      "baseline": 4,
-      "current": 4,
-      "status": "draining"
-    },
-    "ruff:D105": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:D107": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:D205": {
-      "baseline": 96,
-      "current": 96,
-      "status": "draining"
-    },
-    "ruff:D209": {
-      "baseline": 95,
-      "current": 95,
-      "status": "draining"
-    },
-    "ruff:D301": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:D401": {
-      "baseline": 19,
-      "current": 19,
-      "status": "draining"
-    },
-    "ruff:D403": {
-      "baseline": 11,
-      "current": 11,
-      "status": "draining"
-    },
-    "ruff:FURB110": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:FURB113": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:FURB118": {
-      "baseline": 3,
-      "current": 3,
-      "status": "draining"
-    },
-    "ruff:FURB162": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PERF401": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLC1901": {
-      "baseline": 3,
-      "current": 3,
-      "status": "draining"
-    },
-    "ruff:PLC2701": {
-      "baseline": 14,
-      "current": 14,
-      "status": "draining"
-    },
-    "ruff:PLC2801": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLR0914": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLR0916": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLR2004": {
-      "baseline": 2,
-      "current": 2,
-      "status": "draining"
-    },
-    "ruff:PLR6201": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLR6301": {
-      "baseline": 33,
-      "current": 33,
-      "status": "draining"
-    },
-    "ruff:PLW0717": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PT011": {
-      "baseline": 4,
-      "current": 4,
-      "status": "draining"
-    },
-    "ruff:PT018": {
-      "baseline": 10,
-      "current": 10,
-      "status": "draining"
-    },
-    "ruff:RUF027": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
     "ruff:RUF067": {
       "baseline": 21,
       "current": 21,
-      "status": "draining"
-    },
-    "ruff:RUF105": {
-      "baseline": 6,
-      "current": 6,
-      "status": "draining"
-    },
-    "ruff:RUF201": {
-      "baseline": 10,
-      "current": 10,
-      "status": "draining"
-    },
-    "ruff:SLF001": {
-      "baseline": 8,
-      "current": 8,
-      "status": "draining"
-    },
-    "ruff:TC001": {
-      "baseline": 38,
-      "current": 38,
-      "status": "draining"
-    },
-    "ruff:TC002": {
-      "baseline": 2,
-      "current": 2,
-      "status": "draining"
-    },
-    "ruff:TC003": {
-      "baseline": 40,
-      "current": 40,
-      "status": "draining"
-    },
-    "ruff:TC006": {
-      "baseline": 12,
-      "current": 12,
-      "status": "draining"
-    },
-    "ruff:TID252": {
-      "baseline": 340,
-      "current": 340,
       "status": "draining"
     }
   },
@@ -247,6 +57,314 @@
       "commit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
       "kind": "note",
       "text": "ported ever-better to Python: ratchet, diagnose, freeze, drain"
+    },
+    {
+      "at": "2026-08-24T06:21:30Z",
+      "commit": "8c5308dc572e6925350ddfc6fd0c0392f6e1755c",
+      "kind": "drained",
+      "rule": "ruff:PERF401",
+      "text": "1 violation in catalog.py; extract_exports rebuilt as a list comprehension. Not a bug \u2014 a mechanical simplification. Rule fully graduated from the baseline."
+    },
+    {
+      "at": "2026-08-24T06:29:32Z",
+      "commit": "e3e27b97d6a6c82cf5af215b1f7fd14755c3c33e",
+      "kind": "drained",
+      "rule": "ruff:FURB162",
+      "text": "1 violation in decide/freshness.py; removed the redundant .replace(Z,+00:00) since fromisoformat handles Z on py>=3.11. Added a test pinning Z-suffixed parsing. Not a bug \u2014 a mechanical simplification. Rule graduated."
+    },
+    {
+      "at": "2026-08-24T07:02:07Z",
+      "commit": "22d97c8da5fca82af2fd10f3229448648aabccce",
+      "kind": "drained",
+      "rule": "ruff:FURB113",
+      "text": "1 violation in render/report.py; _gap_lines now uses lines.extend((title,detail)) instead of two appends. Not a bug \u2014 mechanical simplification. Rule fully graduated from the baseline."
+    },
+    {
+      "at": "2026-08-24T07:05:03Z",
+      "commit": "242261a3dfad7f71bc4b1909e721cd942533c713",
+      "kind": "drained",
+      "rule": "ruff:FURB110",
+      "text": "1 violation; replaced ternary notes fallback with 'or' in render/quality.py; not a bug, pure readability"
+    },
+    {
+      "at": "2026-08-24T07:08:49Z",
+      "commit": "134aefead975c3661adf04e74a4da06e05fd776a",
+      "kind": "drained",
+      "rule": "ruff:PLR6201",
+      "text": "1 violation; changed mypy exit-code membership test from a tuple to a set literal and added a characterization test; not a real bug, behaviour-preserving refactor"
+    },
+    {
+      "at": "2026-08-24T07:15:12Z",
+      "commit": "2da1cb12d4a65fbfd3f5f4d557dbce0a24c11a59",
+      "kind": "drained",
+      "rule": "ruff:PLR0916",
+      "text": "1 violation in ruff/_runner.py; extracted _read_diagnostic pure function so per-field validation reads as guards instead of one 8-term boolean; behaviour-preserving refactor, not a real bug"
+    },
+    {
+      "at": "2026-08-24T07:18:33Z",
+      "commit": "6ab6e121a3d30799eb639bc0fe3d63e8e4e618f0",
+      "kind": "drained",
+      "rule": "ruff:PT011",
+      "text": "4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement"
+    },
+    {
+      "at": "2026-08-24T07:24:07Z",
+      "commit": "382bbee689c4989583c22a0dbd1eaee7e64ab542",
+      "kind": "drained",
+      "rule": "ruff:PLR0914",
+      "text": "1 violation; extracted _prune_one_analyzer pure helper to drop prune_measurement below the local-variable ceiling; not a bug, a clean refactor with added test coverage"
+    },
+    {
+      "at": "2026-08-24T07:28:46Z",
+      "commit": "3c6eafd425584d032fca6497e3811fd191709969",
+      "kind": "drained",
+      "rule": "ruff:PLW0717",
+      "text": "1 violation; split _swap_staged_bundle's try clause into _move_existing_aside and _move_staged_into_place; not a real bug, but the split preserves the partial-progress-for-rollback invariant and is now test-pinned"
+    },
+    {
+      "at": "2026-08-24T07:30:13Z",
+      "commit": "45e3fcd23a89d85a27ee74cfa6f51a5f1fe25d2a",
+      "kind": "drained",
+      "rule": "ruff:TC006",
+      "text": "12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:32:02Z",
+      "commit": "b0d17551d11363f204540d6c057d45be5b7ed61c",
+      "kind": "drained",
+      "rule": "ruff:D301",
+      "text": "1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:32:48Z",
+      "commit": "47eeae337bdd407c9a36ba3f1d52fab4a4364cc2",
+      "kind": "drained",
+      "rule": "ruff:D105",
+      "text": "1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy"
+    },
+    {
+      "at": "2026-08-24T07:33:04Z",
+      "commit": "8db9fb3954b96b1c44754ab52ff1e11c0f84330e",
+      "kind": "drained",
+      "rule": "ruff:D107",
+      "text": "1 violation; documented ToolError.__init__ in errors.py; not a bug, docstring-only, rule fully graduates for src/ebpy"
+    },
+    {
+      "at": "2026-08-24T07:37:39Z",
+      "commit": "ebe95816538345e9e263cfef8835524575abd07c",
+      "kind": "drained",
+      "rule": "ruff:RUF201",
+      "text": "10 violations in pyproject.toml; replaced rule codes with names in ruff ignore lists; not a bug \u2014 config readability, behaviour unchanged"
+    },
+    {
+      "at": "2026-08-24T07:39:19Z",
+      "commit": "808114ee102269dd62426273a12dece9693317fd",
+      "kind": "drained",
+      "rule": "ruff:FURB118",
+      "text": "2 of 3 violations (status.py, worklist.py); replaced (count,name) lambda sort key with operator.itemgetter(1,0); not a bug \u2014 clarity; 1 left in store/state.py (leave-until-last)"
+    },
+    {
+      "at": "2026-08-24T07:40:05Z",
+      "commit": "1a630f96289d98856fa8219d55bae6e0031e10bf",
+      "kind": "drained",
+      "rule": "ruff:D104",
+      "text": "4 violations across 4 subpackage __init__ files; added package docstrings naming each responsibility; not a bug \u2014 fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:41:21Z",
+      "commit": "3cd6be2c12ea122ff542709921ea17e078ca8cb5",
+      "kind": "drained",
+      "rule": "ruff:D102",
+      "text": "5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug \u2014 fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:44:49Z",
+      "commit": "17c4efdc55d3875e1156e65a4d12a31bf51e487a",
+      "kind": "drained",
+      "rule": "ruff:TC001",
+      "text": "34 of 38 violations across 20 files; moved annotation-only first-party imports into TYPE_CHECKING blocks; not a bug \u2014 import hygiene; 4 left in commands/freeze.py (leave-until-last)"
+    },
+    {
+      "at": "2026-08-24T07:48:56Z",
+      "commit": "414e9de15988a0fb1874e63d8ef30919ec181b68",
+      "kind": "drained",
+      "rule": "ruff:TC002",
+      "text": "1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix"
+    },
+    {
+      "at": "2026-08-24T07:50:16Z",
+      "commit": "844b88d63408a731aefb0219c29459e430036686",
+      "kind": "drained",
+      "rule": "ruff:PT018",
+      "text": "7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages"
+    },
+    {
+      "at": "2026-08-24T07:51:28Z",
+      "commit": "428adea696257d833cb710c839933de20f028b3f",
+      "kind": "drained",
+      "rule": "ruff:ANN401",
+      "text": "2 violations in repo/detect/tooling.py and store/baseline.py; Any -> object for isinstance-narrowed JSON inputs; not a real bug, tighter typing"
+    },
+    {
+      "at": "2026-08-24T07:52:36Z",
+      "commit": "22fb31a3949b316fbb7912fd16b104a044416d57",
+      "kind": "drained",
+      "rule": "ruff:D403",
+      "text": "6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording"
+    },
+    {
+      "at": "2026-08-24T09:50:34Z",
+      "commit": "752409374cb500755ec54664e0394c97f7844ebd",
+      "kind": "drained",
+      "rule": "ruff:TC003",
+      "text": "20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene"
+    },
+    {
+      "at": "2026-08-24T09:58:51Z",
+      "commit": "cbe92432213635a760dd39e046ded33d36d51735",
+      "kind": "drained",
+      "rule": "ruff:D209",
+      "text": "95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting)"
+    },
+    {
+      "at": "2026-08-24T10:04:34Z",
+      "commit": "4c9332ecfbccc411138ffc7dd917ba3b49b4b181",
+      "kind": "drained",
+      "rule": "ruff:D100",
+      "text": "21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug"
+    },
+    {
+      "at": "2026-08-24T10:08:31Z",
+      "commit": "695de06954ad072ea286d81abc9b2cfa20ace58d",
+      "kind": "drained",
+      "rule": "ruff:D101",
+      "text": "36 classes across 16 files; added one-line docstrings to public dataclasses/value objects; no real bug"
+    },
+    {
+      "at": "2026-08-24T10:11:28Z",
+      "commit": "37613734d9d9a2ae9352ecf9929281b4f0ef601e",
+      "kind": "deferred",
+      "rule": "ruff:TID252",
+      "text": "340 across 47 files; whole-repo relative->absolute import migration reverses an established convention \u2014 owner decision, see #54"
+    },
+    {
+      "at": "2026-08-24T10:11:28Z",
+      "commit": "37613734d9d9a2ae9352ecf9929281b4f0ef601e",
+      "kind": "deferred",
+      "rule": "ruff:D103",
+      "text": "377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md \u2014 owner decision on exempting tests/, see #55"
+    },
+    {
+      "at": "2026-08-24T10:22:44Z",
+      "commit": "a86da30ebd58208b88fa855b4bda151028ea72ac",
+      "kind": "drained",
+      "rule": "ruff:TID252",
+      "text": "340 across 47 files; migrated relative imports to absolute per #54. Mechanical, no behaviour change; rule graduated."
+    },
+    {
+      "at": "2026-08-24T11:04:33Z",
+      "commit": "e2a9e19e7093bd6227f1a414e00320be6c5701fd",
+      "kind": "drained",
+      "rule": "ruff:D103",
+      "text": "72 src-side functions documented; tests exempted separately. No behaviour change; rule graduated."
+    },
+    {
+      "at": "2026-08-24T11:15:00Z",
+      "commit": "c228771bc34f84a7d7842a235c857abc97eaed71",
+      "kind": "drained",
+      "rule": "ruff:TC003",
+      "text": "20 violations across 17 test files, freeze.py and store/state.py; type-only stdlib imports moved behind TYPE_CHECKING. Mechanical, no behaviour change, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:14Z",
+      "commit": "c549e499862f0990ecafbae8e8c1cf547f0d9605",
+      "kind": "drained",
+      "rule": "ruff:TC001",
+      "text": "4 violations in freeze.py; first-party type-only imports guarded by TYPE_CHECKING. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:29Z",
+      "commit": "ce13d00869ff125266ef479e6a24e2492f09e5eb",
+      "kind": "drained",
+      "rule": "ruff:TC002",
+      "text": "1 violation in test_check.py; type-only third-party (pytest) import guarded by TYPE_CHECKING. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:52Z",
+      "commit": "5d48102a0318600b4f24fb9eb26e5a6539bae087",
+      "kind": "drained",
+      "rule": "ruff:PT018",
+      "text": "3 compound asserts (freeze.py, test_freeze.py, test_runners.py) split into single-condition asserts. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:16:09Z",
+      "commit": "7d093cd5fc4f759956198e98808bfe79d77e09a1",
+      "kind": "drained",
+      "rule": "ruff:D403",
+      "text": "5 docstring first-word capitalizations in test_freeze.py and test_runners.py. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:16:28Z",
+      "commit": "61ad5b5efcea447a47e35d6f21892d047dac70c1",
+      "kind": "drained",
+      "rule": "ruff:FURB118",
+      "text": "1 lambda in store/state.py state_to_dict replaced with operator.itemgetter(0); same trivial item[0] pattern. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:18:21Z",
+      "commit": "f9179139fcc6042d775b1c9322659865c34c4a3d",
+      "kind": "drained",
+      "rule": "ruff:ANN401",
+      "text": "8 Any annotations tightened: 6 JSON validators + _legacy_version to object (isinstance-narrowed), with_diagnosis to Diagnosis, test helper to Callable[[Path], AnalysisMeasurement]. None skipped; mypy clean. No bug."
+    },
+    {
+      "at": "2026-08-24T11:58:37Z",
+      "commit": "0812cd98e3e8091c1a03c6547222f584e923381e",
+      "kind": "drained",
+      "rule": "ruff:D205",
+      "text": "22 src docstrings restructured to summary+body. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T11:58:37Z",
+      "commit": "0812cd98e3e8091c1a03c6547222f584e923381e",
+      "kind": "drained",
+      "rule": "ruff:D401",
+      "text": "17 src docstrings made imperative while keeping the why. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T12:07:21Z",
+      "commit": "2c887a55ab1baa0f7005dc2167753930d2312457",
+      "kind": "drained",
+      "rule": "ruff:D205",
+      "text": "74 test docstrings restructured to summary+body; rule graduated."
+    },
+    {
+      "at": "2026-08-24T12:07:21Z",
+      "commit": "2c887a55ab1baa0f7005dc2167753930d2312457",
+      "kind": "drained",
+      "rule": "ruff:D401",
+      "text": "2 test docstrings made imperative; rule graduated."
+    },
+    {
+      "at": "2026-08-24T13:23:50Z",
+      "commit": "a13213a1cbd5809558c9b3985b18321f76b25803",
+      "kind": "drained",
+      "rule": "ruff:PLR2004",
+      "text": "2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T13:25:17Z",
+      "commit": "e5aa39824c37899e7ee050cf3ee1029964e8157f",
+      "kind": "drained",
+      "rule": "ruff:PLC1901",
+      "text": "1 in store/state.py; frozen_at (already str-narrowed) != '' -> truthiness. tests' PLC1901 handled via config. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T13:37:16Z",
+      "commit": "07f774993d16c7db903ca2c76f4025c43db99e5a",
+      "kind": "drained",
+      "rule": "ruff:RUF105",
+      "text": "6 noqa:ARG002 removed; ARG002 moved to a src/ebpy/tools/** per-file-ignore (protocol methods). No behaviour change; rule graduated."
     }
   ]
 }

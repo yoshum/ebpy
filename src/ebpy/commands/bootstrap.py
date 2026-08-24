@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
-from ..decide.diagnose import diagnose
-from ..decide.provisioner import AppendText
-from ..repo.facts import gather_facts
-from ..util import run
+from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.decide.diagnose import diagnose
+from ebpy.decide.provisioner import AppendText
+from ebpy.repo.facts import gather_facts
+from ebpy.util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:
@@ -31,6 +34,7 @@ def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:
 
 
 def run_bootstrap(cwd: Path, dry_run: bool, python_version: str) -> str:
+    """Run ``ebpy bootstrap``: plan the toolchain setup and, unless a dry run, apply it."""
     facts = gather_facts(cwd)
     # The plan reads only the tool setups and required Python; the roster feeds the
     # "configured but not ratcheted" gap, which the plan ignores, so an empty roster is enough.

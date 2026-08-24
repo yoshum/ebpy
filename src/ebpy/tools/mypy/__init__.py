@@ -6,11 +6,12 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...decide.provisioner import AppendText, CreateFile
-from ...generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
-from ...measurement import Failed, Measured, Observation, Unavailable
-from ...models import Gap, ToolSetup
-from ...repo.detect.tooling import _ini_has_section, _tool_table
+from ebpy.decide.provisioner import AppendText, CreateFile
+from ebpy.generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
+from ebpy.measurement import Failed, Measured, Observation, Unavailable
+from ebpy.models import Gap, ToolSetup
+from ebpy.repo.detect.tooling import _ini_has_section, _tool_table
+
 from ._runner import (
     MypyFailedError,
     MypyInvalidOutputError,
@@ -21,9 +22,9 @@ from ._runner import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ...decide.provisioner import FileAction, ProvisionContext
-    from ...models import AnalysisMeasurement
-    from ...repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import AnalysisMeasurement
+    from ebpy.repo.facts import RepoFacts
 
 
 def mypy_configured(

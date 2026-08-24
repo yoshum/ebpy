@@ -8,12 +8,16 @@ cold knows where it is without reading the log.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from ..decide.worklist import Worklist
+if TYPE_CHECKING:
+    from ebpy.decide.worklist import Worklist
 
 
 @dataclass(frozen=True)
 class WorklistItem:
+    """One line of the worklist: whether it is done, its label, detail, and any child lines."""
+
     done: bool
     label: str
     detail: str = ""
@@ -25,6 +29,7 @@ def _backlog_children(smallest_backlogs: tuple[tuple[str, int], ...]) -> tuple[s
 
 
 def build_worklist_items(worklist: Worklist) -> list[WorklistItem]:
+    """Build the ordered P0-P5 worklist items, each marked done and annotated for the current state."""
     return [
         WorklistItem(
             done=worklist.diagnosed,
@@ -65,6 +70,7 @@ def build_worklist_items(worklist: Worklist) -> list[WorklistItem]:
 
 
 def render_worklist(items: list[WorklistItem]) -> list[str]:
+    """Render worklist items as the Markdown checklist lines shown in reports."""
     lines: list[str] = []
     for item in items:
         box = "[x]" if item.done else "[ ]"

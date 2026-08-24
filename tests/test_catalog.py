@@ -1,3 +1,5 @@
+"""The catalogue of shared helpers: the module-level callables that form the reusable surface."""
+
 from __future__ import annotations
 
 from ebpy.catalog import catalog_sources, extract_exports, render_catalog
@@ -64,4 +66,5 @@ def test_the_catalog_groups_by_directory() -> None:
     rendered = render_catalog(entries)
     assert "## src" in rendered
     assert "## src/sub" in rendered
-    assert "`a`" in rendered and "`b`" in rendered
+    assert "`a`" in rendered
+    assert "`b`" in rendered

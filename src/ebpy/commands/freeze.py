@@ -9,20 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..errors import CommandError
-from ..measurement import (
-    AnalyzerStatus,
-    Failed,
-    Measured,
-    Measurement,
-    Unavailable,
-    classify,
-)
-from ..models import AnalysisMeasurement, CellCounts, CellCountsView, State
-from ..quality_file import write_quality_file
-from ..store.baseline import (
+from ebpy.errors import CommandError
+from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
+from ebpy.quality_file import write_quality_file
+from ebpy.store.baseline import (
     cells_excluding,
     cells_for,
     finding_total,
@@ -30,36 +22,41 @@ from ..store.baseline import (
     rule_totals,
     write_cells,
 )
-from ..store.ceiling_artifacts import (
+from ebpy.store.ceiling_artifacts import (
     CeilingArtifacts,
     align_all_analyzer_rules_to_cells,
     align_analyzer_rules_to_cells,
     invalid_artifacts_message,
     read_ceiling_artifacts,
 )
-from ..store.config import read_config
-from ..store.state import (
-    copy_state,
-    empty_state,
-    with_phase,
-    write_state,
-)
-from ..tools import ANALYZER_NAMES, measure_repository
+from ebpy.store.config import read_config
+from ebpy.store.state import copy_state, empty_state, with_phase, write_state
+from ebpy.tools import ANALYZER_NAMES, measure_repository
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from ebpy.models import AnalysisMeasurement, CellCounts, CellCountsView, State
 
 _UNATTRIBUTED_SHOWN = 5
 
 
 @dataclass(frozen=True)
 class FreezeDecision:
+    """The outcome of a freeze: the cells to pin, the state to persist, and the message to report."""
+
     cells: CellCountsView
     state: State
     message: str
 
 
 def _unattributed_report(analyzer: str, result: AnalysisMeasurement) -> list[str]:
-    """Syntax errors are not rule violations the baseline can grandfather: a file that
-    does not parse is invisible to every rule, so recording a count for it would be a
-    lie. Naming the files turns a mystery into a task."""
+    """Report the syntax-error files an analyzer could not lint, so they become a task.
+
+    Syntax errors are not rule violations the baseline can grandfather: a file that does
+    not parse is invisible to every rule, so recording a count for it would be a lie.
+    Naming the files turns a mystery into a task.
+    """
     if not result.unattributed:
         return []
     files = sorted({item.file for item in result.unattributed})
@@ -81,7 +78,8 @@ def _unattributed_report(analyzer: str, result: AnalysisMeasurement) -> list[str
 
 def _already_frozen(artifacts: CeilingArtifacts) -> str:
     state = artifacts.ledger.state
-    assert state is not None and state.frozen_at is not None
+    assert state is not None
+    assert state.frozen_at is not None
     return "\n".join(
         [
             f"Already frozen at {state.frozen_at}.",
@@ -305,6 +303,7 @@ def build_scoped_freeze(
 
 
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
+    """Run ``ebpy freeze``: pin today's counts as the ceiling for one analyzer or the whole roster."""
     config = read_config(cwd)
     artifacts = read_ceiling_artifacts(cwd)
 

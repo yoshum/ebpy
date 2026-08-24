@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from ..decide.drain_order import DrainPlan
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ebpy.decide.drain_order import DrainPlan
 
 _FILES_SHOWN = 10
 _RULES_SHOWN = 8
@@ -23,7 +26,7 @@ def _widest(values: list[str]) -> int:
 
 
 def _overflow(total: int, shown: int) -> list[str]:
-    """A section that silently showed its first ten rows would read as "that is all"."""
+    """Mark the rows a truncated section hid, so it does not read as "that is all"."""
     return [f"      + {total - shown} more"] if total > shown else []
 
 
@@ -32,9 +35,11 @@ def _section(title: str, rows: list[str], total: int, shown: int) -> list[str]:
 
 
 def _reach(plan: DrainPlan, file: str) -> str:
-    """Only when --fan-in gathered it, and only above zero: printing "imported by 0" on
-    every row of a repository never asked for the graph reads as a measurement rather
-    than as an absence."""
+    """Render a file's fan-in suffix, only when --fan-in gathered it and only above zero.
+
+    Printing "imported by 0" on every row of a repository that never asked for the graph
+    reads as a measurement rather than as an absence.
+    """
     importers = plan.importers.get(file)
     return "" if not importers else f"  (imported by {importers})"
 
@@ -74,6 +79,7 @@ def _heavy_rows(plan: DrainPlan) -> list[str]:
 
 
 def render_next(plan: DrainPlan) -> str:
+    """Render the ``ebpy next`` drain guidance for a drain plan."""
     if plan.totals.violations == 0:
         return "\n".join(["ebpy next", "", _EMPTY, ""])
     headline = (

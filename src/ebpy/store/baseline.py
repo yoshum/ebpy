@@ -9,26 +9,32 @@ files, so reading it whole is safe in a way reading a log never is.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
-from ..cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
-from ..models import CellCounts, CellCountsView, RuleId
+from ebpy.cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from ebpy.models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"
 BASELINE_VERSION = 2
 
 
 def baseline_path(cwd: Path) -> Path:
+    """Locate ``.ebpy/baseline.json`` under a repository root."""
     return cwd / BASELINE_FILE
 
 
 def _valid_count(entry: object) -> int | None:
-    """A cell's stored count: a plain positive int, nothing else. `bool` is a subtype of
-    `int` in Python, so `type(count) is not int` is required — `isinstance` would let
-    `true` silently through as `1`."""
+    """Return a cell's stored count when it is a plain positive int, else None.
+
+    `bool` is a subtype of `int` in Python, so `type(count) is not int` is required —
+    `isinstance` would let `true` silently through as `1`.
+    """
     if not isinstance(entry, dict) or set(entry) != {"count"}:
         return None
     count = entry["count"]
@@ -69,7 +75,7 @@ def _parse_files(raw_cells: object, cwd: Path) -> CellCounts | None:
     return cells
 
 
-def parse_cells(raw: Any, cwd: Path) -> CellCounts | None:
+def parse_cells(raw: object, cwd: Path) -> CellCounts | None:
     """Parse the complete baseline, rejecting rather than skipping any bad cell.
 
     Only ``{"version": 2, "cells": {...}}`` is accepted, and any other top-level key makes
@@ -95,6 +101,11 @@ class Ceiling:
 
 
 def read_ceiling(cwd: Path) -> Ceiling:
+    """Read the ratchet file as a Ceiling that separates a missing file from unreadable bytes.
+
+    A symlink at the path or its parent is treated as present-but-unreadable rather than
+    followed, so a tampered ``.ebpy`` cannot redirect the read.
+    """
     path = baseline_path(cwd)
     if path.parent.is_symlink() or path.is_symlink():
         return Ceiling(exists=True, cells=None)
@@ -108,6 +119,10 @@ def read_ceiling(cwd: Path) -> Ceiling:
 
 
 def write_cells(cwd: Path, cells: CellCountsView) -> None:
+    """Write cells to baseline.json, dropping zero counts and sorting files and rules for stable diffs.
+
+    A symlink at the path or its parent is replaced rather than followed.
+    """
     path = baseline_path(cwd)
     if path.parent.is_symlink():
         path.parent.unlink()
@@ -124,8 +139,11 @@ def write_cells(cwd: Path, cells: CellCountsView) -> None:
 
 
 def prune_cells(baseline: CellCountsView, current: CellCountsView) -> CellCounts:
-    """Lower every cell to what still exists, and never raise one — the only sanctioned
-    way for the ceiling to fall. Cells whose violations are all gone disappear."""
+    """Lower every cell to what still exists, and never raise one.
+
+    This is the only sanctioned way for the ceiling to fall. Cells whose violations are
+    all gone disappear.
+    """
     pruned: CellCounts = {}
     for file, rules in baseline.items():
         kept = {rule: min(count, current.get(file, {}).get(rule, 0)) for rule, count in rules.items()}
@@ -162,6 +180,7 @@ def split_against_baseline(
 
 
 def rule_totals(cells: CellCountsView) -> dict[RuleId, int]:
+    """Sum each rule's counts across all files — the per-rule totals the ledger stores."""
     totals: dict[RuleId, int] = {}
     for rules in cells.values():
         for rule, count in rules.items():
@@ -170,6 +189,7 @@ def rule_totals(cells: CellCountsView) -> dict[RuleId, int]:
 
 
 def analyzers_in(cells: CellCountsView) -> set[str]:
+    """Return the set of analyzer namespaces present among the cells' rules."""
     return {analyzer_of(rule) for rules in cells.values() for rule in rules}
 
 
@@ -217,4 +237,5 @@ def merge_cells(parts: Iterable[CellCountsView]) -> CellCounts:
 
 
 def finding_total(cells: CellCountsView) -> int:
+    """Return the total violation count across every cell."""
     return sum(count for rules in cells.values() for count in rules.values())

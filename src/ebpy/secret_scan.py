@@ -16,6 +16,8 @@ SECRET_FINDING_EXIT_CODE = 2
 
 @dataclass(frozen=True)
 class SecretVerdict:
+    """A secret scan's verdict: whether it is clean, its gitleaks-style exit code, and the message."""
+
     ok: bool
     # Mirrors gitleaks: 0 clean, 2 findings, 1 the scan itself failed. Collapsing them
     # loses the distinction the whole exit-code choice exists for.
@@ -63,6 +65,7 @@ def _joined(headline: str, output: str) -> str:
 
 
 def interpret_gitleaks(code: int, output: str, found: str = FOUND_IN_HISTORY) -> SecretVerdict:
+    """Map a gitleaks exit code and output to a SecretVerdict, treating a failed scan as not clean."""
     if code == CLEAN_EXIT_CODE:
         return SecretVerdict(ok=True, code=CLEAN_EXIT_CODE, message="No secrets found.")
     if code == SECRET_FINDING_EXIT_CODE:
@@ -79,12 +82,13 @@ def interpret_gitleaks(code: int, output: str, found: str = FOUND_IN_HISTORY) ->
 
 
 def combine_scans(verdicts: list[SecretVerdict]) -> SecretVerdict:
-    """The worst verdict wins, and a scan that failed outranks a clean one: two scans
-    run, and "one of them could not look" must not be reported as "nothing found".
+    """Combine two secret-scan verdicts so the worst one wins.
 
-    Every message survives, whichever code wins: a run that both found something and
-    could not finish has two things worth acting on, and dropping the finding to
-    report the failure loses the one that names a file."""
+    A scan that failed outranks a clean one: two scans run, and "one of them could not
+    look" must not be reported as "nothing found". Every message survives, whichever code
+    wins: a run that both found something and could not finish has two things worth acting
+    on, and dropping the finding to report the failure loses the one that names a file.
+    """
     bad = [verdict for verdict in verdicts if not verdict.ok]
     if not bad:
         return SecretVerdict(

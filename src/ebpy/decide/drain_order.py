@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..models import Suppression
+if TYPE_CHECKING:
+    from ebpy.models import Suppression
 
 # A file within this many violations of clean for one rule is one edit, not a project.
 CHEAP_VIOLATION_LIMIT = 2
@@ -25,6 +26,8 @@ HEAVY_FILES_SHOWN = 5
 
 @dataclass(frozen=True)
 class Totals:
+    """The backlog counted three ways: total violations, distinct files, and distinct rules."""
+
     violations: int
     files: int
     rules: int
@@ -32,6 +35,8 @@ class Totals:
 
 @dataclass(frozen=True)
 class RuleSpread:
+    """One rule's spread: how many violations it has and across how many files."""
+
     rule: str
     violations: int
     files: int
@@ -39,6 +44,8 @@ class RuleSpread:
 
 @dataclass(frozen=True)
 class DirectoryTail:
+    """The last files carrying a rule in a directory, with the rule and its remaining violations."""
+
     directory: str
     rule: str
     files: tuple[str, ...]
@@ -47,6 +54,8 @@ class DirectoryTail:
 
 @dataclass(frozen=True)
 class HeavyFile:
+    """A file heavy enough to leave for last: how many rules it carries and how many violations."""
+
     file: str
     rules: int
     violations: int
@@ -54,6 +63,8 @@ class HeavyFile:
 
 @dataclass(frozen=True)
 class DrainPlan:
+    """The computed drain order: totals, take-first cells, rule spreads, directory tails and heavy files."""
+
     totals: Totals
     take_first: tuple[Suppression, ...]
     rules: tuple[RuleSpread, ...]
@@ -63,6 +74,7 @@ class DrainPlan:
     importers: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the drain plan to a JSON-ready dict with camelCase keys."""
         return {
             "totals": {
                 "violations": self.totals.violations,
@@ -83,6 +95,7 @@ class DrainPlan:
 
 
 def totals_of(entries: list[Suppression]) -> Totals:
+    """Sum a set of suppressions into their violation, file and rule totals."""
     return Totals(
         violations=sum(entry.count for entry in entries),
         files=len({entry.file for entry in entries}),
@@ -91,16 +104,21 @@ def totals_of(entries: list[Suppression]) -> Totals:
 
 
 def cheapest_first(entries: list[Suppression], limit: int = CHEAP_VIOLATION_LIMIT) -> list[Suppression]:
-    """The cheapest cells are not merely small — each one converts a file from
-    grandfathered to enforced, permanently, for the cost of one or two edits."""
+    """Rank the cheapest cells first — the ones one or two edits from clearing a file.
+
+    The cheapest cells are not merely small: each one converts a file from grandfathered
+    to enforced, permanently, for the cost of one or two edits.
+    """
     cheap = [entry for entry in entries if entry.count <= limit]
     return sorted(cheap, key=lambda entry: (entry.count, entry.file, entry.rule))
 
 
 def rule_spread(entries: list[Suppression]) -> list[RuleSpread]:
-    """Ranked by files to touch rather than by violations. Forty violations in three
-    files and forty across thirty are the same number in `status` and ten times apart
-    in work."""
+    """Rank rules by the number of files to touch rather than by violation count.
+
+    Forty violations in three files and forty across thirty are the same number in
+    `status` and ten times apart in work.
+    """
     groups: dict[str, list[Suppression]] = {}
     for entry in entries:
         groups.setdefault(entry.rule, []).append(entry)
@@ -117,10 +135,12 @@ def _directory_of(file: str) -> str:
 
 
 def directory_tails(entries: list[Suppression], limit: int = DIRECTORY_TAIL_LIMIT) -> list[DirectoryTail]:
-    """Directories where a rule survives in a handful of files. This says what it
-    measures — the last files *carrying* the rule — and not that the rest of the
-    directory is clean: a file Ruff never looks at has no cell either, and no
-    arithmetic over this file can tell the two apart."""
+    """Find directories where a rule survives in only a handful of files.
+
+    This says what it measures — the last files *carrying* the rule — and not that the
+    rest of the directory is clean: a file Ruff never looks at has no cell either, and no
+    arithmetic over this file can tell the two apart.
+    """
     groups: dict[tuple[str, str], list[Suppression]] = {}
     for entry in entries:
         groups.setdefault((_directory_of(entry.file), entry.rule), []).append(entry)
@@ -138,11 +158,14 @@ def directory_tails(entries: list[Suppression], limit: int = DIRECTORY_TAIL_LIMI
 
 
 def heaviest_files(entries: list[Suppression], limit: int = HEAVY_FILES_SHOWN) -> list[HeavyFile]:
-    """Heavy means ONE rule the file cannot clear in a couple of edits, not a large
-    total: a file holding two rules at one violation each sums past any cheap threshold
-    while every cell in it is a quick win. A file with one cheap rule and one enormous
-    one belongs in both lists, and that is the useful answer — take the quick win,
-    leave the rest."""
+    """Rank files heavy with a rule too large to clear in a couple of edits.
+
+    Heavy means ONE rule the file cannot clear in a couple of edits, not a large total:
+    a file holding two rules at one violation each sums past any cheap threshold while
+    every cell in it is a quick win. A file with one cheap rule and one enormous one
+    belongs in both lists, and that is the useful answer — take the quick win, leave the
+    rest.
+    """
     groups: dict[str, list[Suppression]] = {}
     for entry in entries:
         groups.setdefault(entry.file, []).append(entry)
@@ -155,6 +178,7 @@ def heaviest_files(entries: list[Suppression], limit: int = HEAVY_FILES_SHOWN) -
 
 
 def build_drain_plan(entries: list[Suppression], importers: dict[str, int] | None = None) -> DrainPlan:
+    """Rank the backlog into a drain plan: cheapest targets, rule spread, directory tails, heaviest files."""
     return DrainPlan(
         totals=totals_of(entries),
         take_first=tuple(cheapest_first(entries)),

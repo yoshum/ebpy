@@ -8,18 +8,23 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from importlib import resources
-from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from .. import __version__
+from ebpy import __version__
+
 from .install import InstallResult, _current_source
+
+if TYPE_CHECKING:
+    from importlib.resources.abc import Traversable
 
 MANIFEST_NAME = ".ebpy-manifest.json"
 
 
 @dataclass(frozen=True)
 class Bundle:
+    """The skills to install: their file contents, the directories ebpy manages, and the skill count."""
+
     files: dict[Path, bytes]
     managed_roots: tuple[str, ...]
     skill_count: int
@@ -56,6 +61,7 @@ def _read_files(root: Traversable, relative: Path = Path()) -> dict[Path, bytes]
 
 
 def load_bundle() -> Bundle:
+    """Load the skills bundled inside the ebpy package, raising when none are present."""
     files = _read_files(_skills_root())
     if not files:
         raise FileNotFoundError("ebpy's bundled skills are empty")
@@ -80,12 +86,12 @@ def _manifest_hashes(destination: Path) -> dict[Path, str]:
         return {}
     if not isinstance(loaded, dict):
         return {}
-    files = cast(dict[str, object], loaded).get("files")
+    files = cast("dict[str, object]", loaded).get("files")
     if not isinstance(files, dict):
         return {}
     return {
         Path(relative): digest
-        for relative, digest in cast(dict[str, object], files).items()
+        for relative, digest in cast("dict[str, object]", files).items()
         if isinstance(relative, str) and isinstance(digest, str)
     }
 
@@ -207,6 +213,32 @@ def _rollback_bundle(
     return errors
 
 
+def _move_existing_aside(
+    destination: Path, backup: Path, managed_entries: tuple[Path, ...], moved_old: list[Path]
+) -> None:
+    """Move each currently installed managed entry into ``backup``, recording progress.
+
+    ``moved_old`` is appended in place so a caller catching a mid-loop failure still
+    knows which entries were moved and can roll them back.
+    """
+    for relative in managed_entries:
+        target = destination / relative
+        if _path_exists(target):
+            _replace_path(target, backup / relative)
+            moved_old.append(relative)
+
+
+def _move_staged_into_place(destination: Path, stage: Path, bundle: Bundle, installed: list[Path]) -> None:
+    """Move each staged bundle entry onto ``destination``, recording progress.
+
+    ``installed`` is appended in place so a mid-loop failure leaves the caller the
+    list of entries to undo during rollback.
+    """
+    for relative in _bundle_entries(bundle):
+        _replace_path(stage / relative, destination / relative)
+        installed.append(relative)
+
+
 def _swap_staged_bundle(
     destination: Path, stage: Path, backup: Path, bundle: Bundle, manifest_hashes: dict[Path, str]
 ) -> None:
@@ -218,14 +250,8 @@ def _swap_staged_bundle(
     moved_old: list[Path] = []
     installed: list[Path] = []
     try:
-        for relative in managed_entries:
-            target = destination / relative
-            if _path_exists(target):
-                _replace_path(target, backup / relative)
-                moved_old.append(relative)
-        for relative in _bundle_entries(bundle):
-            _replace_path(stage / relative, destination / relative)
-            installed.append(relative)
+        _move_existing_aside(destination, backup, managed_entries, moved_old)
+        _move_staged_into_place(destination, stage, bundle, installed)
     except OSError as error:
         rollback_errors = _rollback_bundle(destination, backup, installed, moved_old)
         if rollback_errors:
@@ -262,6 +288,7 @@ def _write_bundle(cwd: Path, destination: Path, bundle: Bundle, manifest_hashes:
 
 
 def run_skills_install(cwd: Path, force: bool, bundle: Bundle | None = None) -> InstallResult:
+    """Run ``ebpy skills install``: copy the bundled skills into the project's .claude/skills."""
     if not (cwd / "pyproject.toml").is_file():
         return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
 

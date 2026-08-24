@@ -16,6 +16,8 @@ from pathlib import PurePosixPath
 
 @dataclass(frozen=True)
 class CatalogEntry:
+    """One catalogued callable: its name, where it is defined, and the first sentence of its docstring."""
+
     name: str
     file: str
     line: int
@@ -27,8 +29,10 @@ _SENTENCE = re.compile(r"^(.*?[.!?])(\s|$)", re.DOTALL)
 
 
 def _first_sentence(doc: str | None) -> str | None:
-    """The first sentence, not the first line: docstrings are written to wrap, so a
-    first line alone usually stops mid-clause."""
+    """Return the docstring's first sentence, not merely its first line.
+
+    Docstrings are written to wrap, so a first line alone usually stops mid-clause.
+    """
     if not doc:
         return None
     text = " ".join(doc.strip().split())
@@ -42,23 +46,22 @@ def extract_exports(source: str, file: str) -> list[CatalogEntry]:
     """Pure: given a file's text, the public module-level callables in it.
 
     A file that does not parse contributes nothing — the catalogue's job is what
-    exists to reuse, and a broken file is not that."""
+    exists to reuse, and a broken file is not that.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-    entries: list[CatalogEntry] = []
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.name.startswith("_"):
-            entries.append(
-                CatalogEntry(
-                    name=node.name,
-                    file=file,
-                    line=node.lineno,
-                    summary=_first_sentence(ast.get_docstring(node)),
-                )
-            )
-    return entries
+    return [
+        CatalogEntry(
+            name=node.name,
+            file=file,
+            line=node.lineno,
+            summary=_first_sentence(ast.get_docstring(node)),
+        )
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.name.startswith("_")
+    ]
 
 
 def _directory_of(file: str) -> str:
@@ -79,6 +82,7 @@ _HEADER = [
 
 
 def render_catalog(entries: list[CatalogEntry]) -> str:
+    """Render the shared-helpers catalog as Markdown, grouped by directory."""
     if not entries:
         return "\n".join([*_HEADER, "No public functions found.", ""])
     directories = sorted({_directory_of(entry.file) for entry in entries})
@@ -105,6 +109,7 @@ def render_catalog(entries: list[CatalogEntry]) -> str:
 
 
 def catalog_sources(paths: list[str]) -> list[str]:
+    """Return the Python source paths worth cataloguing, excluding test files and test directories."""
     return [
         path
         for path in paths

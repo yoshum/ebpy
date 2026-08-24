@@ -7,11 +7,10 @@ this repository's lint debt actually look like".
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..measurement import AnalyzerStatus, Measured, Measurement, classify
-from ..models import CellCounts, CellCountsView, UnattributedFinding
-from ..store.baseline import (
+from ebpy.measurement import AnalyzerStatus, Measured, Measurement, classify
+from ebpy.store.baseline import (
     cells_for,
     finding_total,
     merge_cells,
@@ -19,6 +18,9 @@ from ..store.baseline import (
     rule_totals,
     split_against_baseline,
 )
+
+if TYPE_CHECKING:
+    from ebpy.models import CellCounts, CellCountsView, UnattributedFinding
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"
@@ -31,12 +33,15 @@ _WORST_SAMPLE = 5
 
 
 def area_of(file: str) -> str:
+    """Return the top-level area a file belongs to — its first path segment, or the root marker."""
     first, _, rest = file.partition("/")
     return ROOT_AREA if not rest or not first else first
 
 
 @dataclass(frozen=True)
 class ReportRow:
+    """One rule's row in a section: the rule, its total, and its per-area counts in the section's order."""
+
     rule: str
     total: int
     # Counts in the same order as the section's areas, so the renderer does no lookups.
@@ -45,6 +50,8 @@ class ReportRow:
 
 @dataclass(frozen=True)
 class ReportSection:
+    """A group of rules under a shared title, the areas they span, and the rows that fill the matrix."""
+
     title: str
     total: int
     areas: tuple[str, ...]
@@ -53,6 +60,8 @@ class ReportSection:
 
 @dataclass(frozen=True)
 class AnalyzerSummary:
+    """One analyzer's state in the report: its findings, files, and any failure or unattributed detail."""
+
     in_contract: bool
     status: AnalyzerStatus
     # Attributed cell total for a Measured observation; None when unavailable or failed.
@@ -66,6 +75,8 @@ class AnalyzerSummary:
 
 @dataclass(frozen=True)
 class AnalysisReport:
+    """The backlog as a rule-by-area matrix: new totals, sections, and each analyzer's summary."""
+
     new_total: int
     backlog_total: int
     # Rule totals only: the report answers "what does this debt look like",
@@ -76,6 +87,7 @@ class AnalysisReport:
     analyzers: tuple[tuple[str, AnalyzerSummary], ...]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the report to a JSON-ready dict with camelCase keys."""
         return {
             "newTotal": self.new_total,
             "backlogTotal": self.backlog_total,
@@ -110,6 +122,7 @@ class AnalysisReport:
 
 
 def matrix_from_cells(cells: CellCountsView) -> Matrix:
+    """Fold cells into a rule-by-area matrix, summing each rule's counts within an area."""
     matrix: Matrix = {}
     for file, rules in cells.items():
         area = matrix.setdefault(area_of(file), {})

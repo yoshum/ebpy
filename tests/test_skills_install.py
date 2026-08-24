@@ -1,3 +1,5 @@
+"""Installing the bundled skills: idempotent updates, honoring local edits, and rolling back a failed swap."""
+
 from __future__ import annotations
 
 import json
@@ -36,6 +38,7 @@ class SkillBundleSource:
     root: Path
 
     def load(self) -> Bundle:
+        """Read the current on-disk tree into a Bundle."""
         files = {
             path.relative_to(self.root): path.read_bytes()
             for path in sorted(self.root.rglob("*"))
@@ -255,6 +258,40 @@ def test_a_partial_swap_restores_the_previous_bundle(
         original_replace(source, target)
 
     monkeypatch.setattr(skills_install, "_replace_path", fail_during_swap)
+    result = run_skills_install(project, force=False, bundle=skill_bundle.load())
+
+    after = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    assert not result.ok
+    assert "previous managed skills were restored" in result.message
+    assert after == before
+    assert not list(project.glob(".ebpy-skills-*"))
+
+
+def test_a_backup_move_failure_restores_the_previous_bundle(
+    project: Path,
+    skill_bundle: SkillBundleSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failure while moving existing skills aside leaves the project untouched."""
+    assert run_skills_install(project, force=False, bundle=skill_bundle.load()).ok
+    destination = project / ".claude" / "skills"
+    before = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    (skill_bundle.root / "ebpy-guide" / "SKILL.md").write_text("updated\n", encoding="utf-8")
+
+    failed = False
+
+    def fail_moving_aside(source: Path, target: Path) -> None:
+        nonlocal failed
+        if not failed and source.parent.name == "skills" and source.name == "ebpy-guide":
+            failed = True
+            raise OSError("disk full while moving aside")
+        source.replace(target)
+
+    monkeypatch.setattr(skills_install, "_replace_path", fail_moving_aside)
     result = run_skills_install(project, force=False, bundle=skill_bundle.load())
 
     after = {

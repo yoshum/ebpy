@@ -6,12 +6,17 @@ is exactly the numbers that moved.
 
 from __future__ import annotations
 
-from ..decide.freshness import Freshness
-from ..decide.worklist import build_worklist
-from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
-from ..store.state import improvements, log_of_kind, total_violations
-from ..tools import ANALYZERS_BY_NAME
+from typing import TYPE_CHECKING
+
+from ebpy.decide.worklist import build_worklist
+from ebpy.models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
+from ebpy.store.state import improvements, log_of_kind, total_violations
+from ebpy.tools import ANALYZERS_BY_NAME
+
 from .worklist import build_worklist_items, render_worklist
+
+if TYPE_CHECKING:
+    from ebpy.decide.freshness import Freshness
 
 QUALITY_FILE = "QUALITY.md"
 
@@ -79,8 +84,11 @@ def _provenance(entry: LogEntry) -> str:
 
 
 def _carried_over(state: State) -> list[str]:
-    """Deferred work is the section that decays. Each entry carries the commit it was
-    written at, so a reader can see whether the observation predates half the repo."""
+    """Render the "Carried over" section: deferred work, the section that decays.
+
+    Each entry carries the commit it was written at, so a reader can see whether the
+    observation predates half the repo.
+    """
     deferred = log_of_kind(state, "deferred")
     if not deferred:
         return []
@@ -166,6 +174,7 @@ def _headline(state: State) -> list[str]:
 
 
 def extract_notes(existing: str | None) -> str:
+    """Extract the owner's notes block from an existing QUALITY.md so a re-render can preserve it."""
     if not existing:
         return ""
     start = existing.find(NOTES_START)
@@ -176,6 +185,7 @@ def extract_notes(existing: str | None) -> str:
 
 
 def render_quality(state: State, notes: str, freshness: Freshness) -> str:
+    """Render the full QUALITY.md body from state, the owner's notes and the freshness verdict."""
     lines = [
         "# Quality",
         "",
@@ -203,7 +213,7 @@ def render_quality(state: State, notes: str, freshness: Freshness) -> str:
         "## Notes",
         "",
         NOTES_START,
-        notes if notes else "_Anything written between these markers survives a re-render._",
+        notes or "_Anything written between these markers survives a re-render._",
         NOTES_END,
         "",
     ]

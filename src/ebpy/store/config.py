@@ -11,8 +11,8 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..errors import CommandError
-from ..tools import ANALYZER_NAMES
+from ebpy.errors import CommandError
+from ebpy.tools import ANALYZER_NAMES
 
 if TYPE_CHECKING:
     from pathlib import Path

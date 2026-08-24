@@ -1,3 +1,5 @@
+"""Resolving imports onto the repository layout and counting each file's importers."""
+
 from __future__ import annotations
 
 from ebpy.repo.fan_in import build_graph, count_importers, importers_of

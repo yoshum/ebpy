@@ -9,15 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..generate.configs import (
-    DEPENDABOT_CONTENT,
-    GITATTRIBUTES_CONTENT,
-    python_version_from_requires,
-)
-from ..generate.workflows import gate_workflow, run_prefix_for
-from ..models import Diagnosis, ToolSetup
-from ..package_manager import DEV_INSTALL_PREFIXES
-from ..tools import PROVISIONERS
+from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT, python_version_from_requires
+from ebpy.generate.workflows import gate_workflow, run_prefix_for
+from ebpy.models import Diagnosis, ToolSetup
+from ebpy.package_manager import DEV_INSTALL_PREFIXES
+from ebpy.tools import PROVISIONERS
+
 from .provisioner import AddWorkflowStep, AppendText, CreateFile, ProvisionContext
 
 
@@ -31,6 +28,8 @@ class InstallAction:
 
 @dataclass(frozen=True)
 class BootstrapPlan:
+    """What bootstrap would do, as data: the install action, the files to write, and what it skips."""
+
     install: InstallAction | None
     # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
     files: tuple[CreateFile | AppendText, ...]
@@ -53,6 +52,7 @@ def build_plan(
     all_files: tuple[str, ...],
     python_version: str,
 ) -> BootstrapPlan:
+    """Decide the bootstrap plan — packages to install and files to create — from a diagnosis."""
     has_pyproject = "pyproject.toml" in root_entries
     packages = _missing_dev_packages(diagnosis)
     install = (
@@ -105,6 +105,7 @@ def build_plan(
 
 
 def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
+    """Render a bootstrap plan as the text shown for a real run or a dry run."""
     lines = ["ebpy bootstrap" + (" --dry-run" if dry_run else ""), ""]
     if plan.install:
         lines.append(("would run:  " if dry_run else "installing: ") + " ".join(plan.install.argv))

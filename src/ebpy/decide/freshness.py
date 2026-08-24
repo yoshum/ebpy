@@ -20,6 +20,8 @@ STALE_DAY_COUNT = 30
 
 @dataclass(frozen=True)
 class FreshnessInput:
+    """What deciding freshness needs: when and where the diagnosis was taken, and how far HEAD has moved."""
+
     diagnosed_at: str | None
     diagnosed_commit: str | None
     head_commit: str | None
@@ -30,19 +32,22 @@ class FreshnessInput:
 
 @dataclass(frozen=True)
 class Freshness:
+    """Whether the diagnosis is stale, and the reason to show if it is."""
+
     stale: bool
     reason: str
 
 
 def _days_between(from_iso: str, to: datetime) -> int | None:
     try:
-        start = datetime.fromisoformat(from_iso.replace("Z", "+00:00"))
+        start = datetime.fromisoformat(from_iso)
     except ValueError:
         return None
     return (to - start).days
 
 
 def assess_freshness(inp: FreshnessInput) -> Freshness:
+    """Decide whether a recorded diagnosis can still be trusted given its age and the commits since."""
     if not inp.diagnosed_at or not inp.diagnosed_commit:
         return Freshness(stale=True, reason="never diagnosed — run `ebpy diagnose --write` first")
     age = _days_between(inp.diagnosed_at, inp.now)

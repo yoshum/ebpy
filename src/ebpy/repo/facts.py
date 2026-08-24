@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..models import SourceFile, WorkflowFile
+from ebpy.models import SourceFile, WorkflowFile
+
 from .git import tracked_files
 
 _SKIPPED_DIRS = {
@@ -31,6 +32,8 @@ _SKIPPED_DIRS = {
 
 @dataclass(frozen=True)
 class RepoFacts:
+    """Everything read from disk once, so decisions stay pure: the tree, pyproject, sources and workflows."""
+
     cwd: Path
     # Repo-relative names of files in the repository root (not recursive).
     root_entries: tuple[str, ...]
@@ -62,6 +65,7 @@ def _walk_files(cwd: Path) -> list[str]:
 
 
 def list_all_files(cwd: Path) -> list[str]:
+    """Return every tracked, non-ignored file, falling back to a filesystem walk outside a git repo."""
     tracked = tracked_files(cwd)
     if tracked is not None:
         return [f.replace("\\", "/") for f in tracked]
@@ -76,10 +80,12 @@ def _count_lines(path: Path) -> int:
 
 
 def list_source_paths(cwd: Path) -> list[str]:
+    """Return the repo-relative paths of every Python source file."""
     return [file for file in list_all_files(cwd) if file.endswith(".py")]
 
 
 def read_sources(cwd: Path, paths: list[str]) -> dict[str, str]:
+    """Read the given paths' text, skipping any that cannot be read."""
     sources: dict[str, str] = {}
     for path in paths:
         try:
@@ -109,6 +115,7 @@ _EXTRA_CONFIGS = (
 
 
 def gather_facts(cwd: Path) -> RepoFacts:
+    """Read everything a diagnosis needs from disk once, so the decision functions stay pure."""
     all_files = list_all_files(cwd)
     root_entries = tuple(sorted({file for file in all_files if "/" not in file}))
 

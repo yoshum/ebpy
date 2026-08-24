@@ -7,14 +7,17 @@ import re
 import tomllib
 from dataclasses import dataclass
 from importlib import metadata
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from .. import __version__
-from ..models import PackageManager
-from ..package_manager import DEV_INSTALL_PREFIXES, RUN_PREFIXES
-from ..repo.detect.package_manager import detect_package_manager
-from ..util import run
+from ebpy import __version__
+from ebpy.package_manager import DEV_INSTALL_PREFIXES, RUN_PREFIXES
+from ebpy.repo.detect.package_manager import detect_package_manager
+from ebpy.util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from ebpy.models import PackageManager
 
 REPOSITORY_URL = "https://github.com/yoshum/ebpy"
 MINIMUM_INSTALL_VERSION = "0.3.0"
@@ -24,12 +27,16 @@ REF_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._/-]*")
 
 @dataclass(frozen=True)
 class InstallResult:
+    """The outcome of an install: whether it succeeded, and the message explaining it."""
+
     ok: bool
     message: str
 
 
 @dataclass(frozen=True)
 class InstallTarget:
+    """The ebpy revision an install will pin, with a description of where it came from."""
+
     revision: str
     description: str
 
@@ -45,7 +52,7 @@ def _direct_url_data() -> dict[str, object] | None:
         loaded: object = json.loads(direct_url)
     except json.JSONDecodeError:
         return None
-    return cast(dict[str, object], loaded) if isinstance(loaded, dict) else None
+    return cast("dict[str, object]", loaded) if isinstance(loaded, dict) else None
 
 
 def _current_source() -> str:
@@ -54,7 +61,7 @@ def _current_source() -> str:
         url = data.get("url")
         vcs = data.get("vcs_info")
         if isinstance(url, str) and isinstance(vcs, dict):
-            commit = cast(dict[str, object], vcs).get("commit_id")
+            commit = cast("dict[str, object]", vcs).get("commit_id")
             if isinstance(commit, str) and commit:
                 git_url = url if url.startswith("git+") else f"git+{url}"
                 return f"{git_url}@{commit}"
@@ -68,7 +75,7 @@ def _bootstrap_ref() -> str | None:
     vcs = data.get("vcs_info") if data is not None else None
     if not isinstance(vcs, dict):
         return None
-    requested = cast(dict[str, object], vcs).get("requested_revision")
+    requested = cast("dict[str, object]", vcs).get("requested_revision")
     return requested if isinstance(requested, str) and requested else None
 
 
@@ -154,6 +161,7 @@ def _requirement(manager: PackageManager, target: InstallTarget) -> str:
 
 
 def run_install(cwd: Path, version: str | None, ref: str | None, force: bool) -> InstallResult:
+    """Run ``ebpy install``: pin ebpy into the project's dev dependencies at a matching Git ref."""
     if not (cwd / "pyproject.toml").is_file():
         return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
     target = _resolve_target(version, ref, _bootstrap_ref())

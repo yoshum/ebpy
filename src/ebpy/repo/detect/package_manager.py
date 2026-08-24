@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ...models import PackageManager
+if TYPE_CHECKING:
+    from ebpy.models import PackageManager
 
 # Most specific first: a repo can carry requirements.txt exports next to the lockfile
 # that is actually the source of truth.
@@ -18,6 +19,7 @@ _LOCKFILES: tuple[tuple[str, PackageManager], ...] = (
 
 
 def detect_package_manager(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> PackageManager:
+    """Identify the package manager in use, trusting a lockfile over a pyproject tool table."""
     for lockfile, manager in _LOCKFILES:
         if lockfile in root_entries:
             return manager

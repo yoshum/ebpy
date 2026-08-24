@@ -77,17 +77,19 @@ select = [
   "RUF",  # ruff-specific
   "PIE",  # misc
 ]
-# W191/E111/E114/E117 are the indentation checks the formatter owns; D203/D206/D300/D213
-# are the docstring rules that contradict D211, the formatter, D301, and D212.
+# tab-indentation, indentation-with-invalid-multiple(-comment), and over-indented are the
+# indentation checks the formatter owns; incorrect-blank-line-before-class,
+# docstring-tab-indentation, triple-single-quotes, and multi-line-summary-second-line are the
+# docstring rules that contradict D211, the formatter, D301, and D212.
 ignore = [
-  "W191",
-  "E111",
-  "E114",
-  "E117",
-  "D203",
-  "D206",
-  "D300",
-  "D213",
+  "tab-indentation",
+  "indentation-with-invalid-multiple",
+  "indentation-with-invalid-multiple-comment",
+  "over-indented",
+  "incorrect-blank-line-before-class",
+  "docstring-tab-indentation",
+  "triple-single-quotes",
+  "multi-line-summary-second-line",
 ]
 
 [tool.ruff.lint.mccabe]
@@ -95,7 +97,32 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 # Tests carry literal expectations and wide fixtures; the ratchet still counts everything else.
-"tests/*" = ["PLR0913", "PLR2004"]
+# A test's sentence-style name is its specification, so a docstring would only restate it —
+# undocumented-public-function (D103) is exempt here for that reason. Test fakes implement
+# tool/analyzer protocols, so their methods stay instance methods even without self (no-self-use).
+# Tests deliberately reach into internals: importing private modules (import-private-name) and
+# accessing private members (private-member-access) is how they pin behaviour, and comparing a
+# value to "" explicitly (compare-to-empty-string) is often the exact contract under test.
+"tests/*" = [
+  "too-many-arguments",
+  "magic-value-comparison",
+  "undocumented-public-function",
+  "no-self-use",
+  "import-private-name",
+  "private-member-access",
+  "compare-to-empty-string",
+]
+# Every tool here implements a fixed provisioner/analyzer protocol, so its methods must remain
+# instance methods even when a given one does not touch self (no-self-use is a false positive here).
+# The same protocol conformance forces each method to accept the full argument set (setup, ctx) even
+# when it uses none of them, so unused-method-argument is a false positive here too.
+"src/ebpy/tools/**" = ["no-self-use", "unused-method-argument"]
+# The install step is a GitHub Actions YAML template carrying shell ${VAR} expansions; making it an
+# f-string would try to interpolate them as Python names and break the workflow (missing-f-string-syntax).
+"src/ebpy/tools/gitleaks.py" = ["no-self-use", "missing-f-string-syntax"]
+# summary is derived once inside __post_init__ of a frozen dataclass, where object.__setattr__ is the
+# only way to assign — the direct mutation the rule suggests is impossible on a frozen instance.
+"src/ebpy/measurement/observation.py" = ["unnecessary-dunder-call"]
 
 [tool.mypy]
 strict = true

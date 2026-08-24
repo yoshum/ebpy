@@ -6,13 +6,13 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..decide.provisioner import CreateFile
-from ..generate.workflows import CHECKOUT_ACTION
-from ..models import Gap, ToolSetup
+from ebpy.decide.provisioner import CreateFile
+from ebpy.generate.workflows import CHECKOUT_ACTION
+from ebpy.models import Gap, ToolSetup
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction, ProvisionContext
-    from ..repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.repo.facts import RepoFacts
 
 # The MIT CLI rather than gitleaks-action, which needs a licence key under a GitHub
 # Organization. Verified against a digest below, because a release asset can be replaced
@@ -128,11 +128,11 @@ class GitleaksProvisioner:
         """Unique short identifier for secret scanning."""
         return "secret-scan"
 
-    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return empty tuple: gitleaks is not a Python package dependency."""
         return ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Create secret-scan.yml unconditionally; the applier skips it if the file already exists."""
         return [
             CreateFile(

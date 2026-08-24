@@ -1,8 +1,10 @@
+"""Detecting the package manager, tools and CI, and sizing the backlog into each phase's gaps."""
+
 from __future__ import annotations
 
 import tomllib
 from dataclasses import replace
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.decide.diagnose import diagnose
 from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
@@ -17,6 +19,9 @@ from ebpy.tools.pytest import pytest_configured
 from ebpy.tools.ruff import has_ruff_config
 from ebpy.tools.ruff_format import formatter_configured
 from ebpy.tools.vulture import vulture_configured
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def toml(text: str) -> dict[str, object]:
@@ -100,9 +105,12 @@ def test_ci_steps_are_recognised() -> None:
 
 
 def test_the_gate_counts_as_running_lint_and_typecheck() -> None:
-    """`ebpy check` measures ruff and mypy through the seam, so a workflow that runs it
+    """A workflow that runs the gate counts as running lint and typecheck.
+
+    `ebpy check` measures ruff and mypy through the seam, so a workflow that runs it
     covers lint and typecheck without a separate `ruff check` or `mypy` step — which the
-    ratchet model omits deliberately, since a raw step demands zero violations."""
+    ratchet model omits deliberately, since a raw step demands zero violations.
+    """
     coverage = detect_ci((WorkflowFile(path="ci.yml", content="- run: pytest\n- run: ebpy check\n"),))
     assert coverage.runs_lint
     assert coverage.runs_typecheck
@@ -187,9 +195,12 @@ def test_mypy_present_but_loose_is_a_tighten_gap_not_a_bootstrap_one(tmp_path: P
 
 
 def test_the_mypy_gap_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path) -> None:
-    """mypy is now ratcheted per file per rule, the same as Ruff — not as one global error
+    """The mypy gap describes per-cell ratcheting, not a global counter.
+
+    Mypy is now ratcheted per file per rule, the same as Ruff — not as one global error
     counter. The gap the user reads must describe today's model, so the retired "counter"
-    wording is refused here where it would otherwise slip past CI unpinned."""
+    wording is refused here where it would otherwise slip past CI unpinned.
+    """
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     diagnosis = diagnose(gather_facts(tmp_path), ())
     gap = next(gap for gap in diagnosis.gaps if gap.id == "mypy")

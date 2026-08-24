@@ -5,13 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ..decide.provisioner import AddWorkflowStep
-from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import _dependency_names, _ini_has_section, _tool_table
+from ebpy.decide.provisioner import AddWorkflowStep
+from ebpy.models import Gap, ToolSetup
+from ebpy.repo.detect.tooling import _dependency_names, _ini_has_section, _tool_table
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction, ProvisionContext
-    from ..repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.repo.facts import RepoFacts
 
 
 def pytest_configured(
@@ -76,6 +76,6 @@ class PytestProvisioner:
         """Return ("pytest",) when pytest is absent, empty tuple when already configured."""
         return ("pytest",) if not setup.configured else ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Return the Test gate step (pytest needs no generated config file)."""
         return [AddWorkflowStep(lines=("      - name: Test", f"        run: {ctx.run_prefix}pytest"))]

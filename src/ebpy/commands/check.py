@@ -3,36 +3,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ..measurement import (
-    AnalyzerStatus,
-    Failed,
-    Measured,
-    Measurement,
-    Observation,
-    Unavailable,
-    classify,
-)
-from ..models import AnalysisMeasurement, CellCounts, State
-from ..quality_file import write_quality_file
-from ..store.baseline import cells_for, finding_total, split_against_baseline
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
-from ..store.config import read_config
-from ..store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
-from ..tools import ANALYZERS_BY_NAME, measure_repository
+from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
+from ebpy.quality_file import write_quality_file
+from ebpy.store.baseline import cells_for, finding_total, split_against_baseline
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
+from ebpy.store.config import read_config
+from ebpy.store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
+from ebpy.tools import ANALYZERS_BY_NAME, measure_repository
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from ebpy.models import AnalysisMeasurement, CellCounts, State
 
 _WORST_SAMPLE = 5
 
 
 @dataclass(frozen=True)
 class CheckResult:
+    """The gate's verdict: whether nothing rose, and the message explaining it."""
+
     ok: bool
     message: str
 
 
 @dataclass(frozen=True)
 class CheckDecision:
+    """The outcome of a check: the verdict to report and the state to persist."""
+
     result: CheckResult
     state: State
 
@@ -172,6 +172,7 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
 
 
 def run_check(cwd: Path, write: bool) -> CheckResult:
+    """Run ``ebpy check``: gate the repository, failing if any count rose above its ceiling."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         return CheckResult(ok=False, message=invalid_artifacts_message(artifacts))

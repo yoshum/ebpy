@@ -1,3 +1,5 @@
+"""The secret-scan verdict: clean, a finding, or a scan that failed, and how two scans combine."""
+
 from __future__ import annotations
 
 from ebpy.secret_scan import (

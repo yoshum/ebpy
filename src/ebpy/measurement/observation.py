@@ -11,13 +11,13 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Generic, Literal, TypeAlias, TypeVar
 
-from ..cell_key import analyzer_of, is_analyzer_name
-from ..errors import ToolError
+from ebpy.cell_key import analyzer_of, is_analyzer_name
+from ebpy.errors import ToolError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from ..models import AnalysisMeasurement
+    from ebpy.models import AnalysisMeasurement
 
 T = TypeVar("T")
 FailureKind = Literal["execution-failed", "invalid-output"]

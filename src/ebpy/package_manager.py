@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from .models import PackageManager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .models import PackageManager
 
 DEV_INSTALL_PREFIXES: dict[PackageManager, tuple[str, ...]] = {
     "uv": ("uv", "add", "--dev"),

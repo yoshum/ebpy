@@ -49,8 +49,11 @@ def _package_of(file: str) -> list[str]:
 
 
 def _resolve(dotted: str, index: dict[str, str]) -> str | None:
-    """A module or any of its parents: importing `a.b.c` reaches a/b/c.py when it
-    exists, and a/b/__init__.py when `c` is a name defined inside the package."""
+    """Resolve a dotted import to a file, matching the module or any of its parents.
+
+    Importing `a.b.c` reaches a/b/c.py when it exists, and a/b/__init__.py when `c` is a
+    name defined inside the package.
+    """
     candidate = dotted
     while candidate:
         if candidate in index:
@@ -67,8 +70,11 @@ def _relative_base(file: str, level: int) -> list[str]:
 
 
 def _imports_of(source: str) -> list[tuple[str, int]]:
-    """(dotted, level) pairs. Parse failures yield nothing — a file that does not parse
-    imports nothing we can see, and the fan-in count should say low, not crash."""
+    """Extract the (dotted, level) import pairs from a module's source.
+
+    Parse failures yield nothing — a file that does not parse imports nothing we can see,
+    and the fan-in count should say low, not crash.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -112,6 +118,7 @@ def build_graph(sources: Sources) -> ImportGraph:
 
 
 def count_importers(graph: ImportGraph) -> dict[str, int]:
+    """Count how many distinct files import each file — the fan-in that ranks drain targets."""
     importers = dict.fromkeys(graph, 0)
     for dependencies in graph.values():
         for dependency in set(dependencies):
@@ -120,6 +127,8 @@ def count_importers(graph: ImportGraph) -> dict[str, int]:
 
 
 def importers_of(importers: dict[str, int], files: list[str]) -> dict[str, int]:
-    """Only the files in the backlog, so --json carries what the ranking is about and
-    not the whole repository."""
+    """Restrict the importer counts to the files in the backlog.
+
+    --json then carries what the ranking is about and not the whole repository.
+    """
     return {file: importers.get(file, 0) for file in sorted(set(files))}
