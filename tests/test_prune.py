@@ -134,6 +134,30 @@ def test_prune_reports_reclaimed_totals_per_analyzer() -> None:
     assert "Commit .ebpy/baseline.json together with the fix" in decision.message
 
 
+def test_prune_reports_a_reclaim_then_appends_the_unmeasured_note() -> None:
+    """Report a reclaim and then append the unmeasured analyzer's carry-through note.
+
+    When one analyzer drained and another could not be measured, the message leads with what
+    was reclaimed and then appends why the unmeasured ceiling was left unchanged — both facts
+    a reader needs from the same run.
+    """
+    previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(4), "mypy:arg-type": _frozen(3)})
+    baseline: CellCounts = {"src/a.py": {"ruff:F401": 4}, "src/b.py": {"mypy:arg-type": 3}}
+    measurement = Measurement(
+        analyzers={
+            "ruff": _measured("ruff", {"src/a.py": {"ruff:F401": 1}}),
+            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+        }
+    )
+
+    decision = prune_measurement(previous, baseline, measurement)
+
+    assert "Reclaimed 3 violations" in decision.message
+    assert "Some analyzers could not be measured" in decision.message
+    assert "mypy is not installed" in decision.message
+    assert "mypy: 3 (not measured)" in decision.message
+
+
 def test_prune_with_no_complete_analyzer_changes_nothing_and_says_why() -> None:
     """With not a single analyzer measured, prune is a no-op: both artifacts are left as
     they were and the message explains why, rather than raising."""

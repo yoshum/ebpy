@@ -67,6 +67,56 @@ def _carry_reason(
     return f"{analyzer} left a file unparsed, so its ceiling could not be verified"
 
 
+@dataclass(frozen=True)
+class _AnalyzerPrune:
+    """One analyzer's contribution to a prune: its cells, ceiling totals, and report lines.
+
+    `carry_reason` is set only when the analyzer could not be measured, so its ceiling was
+    carried through rather than lowered.
+    """
+
+    analyzer: str
+    complete: bool
+    cells: CellCounts
+    note: str
+    baseline_total: int
+    final_total: int
+    carry_reason: str | None
+
+
+def _prune_one_analyzer(
+    analyzer: str, observation: Observation[AnalysisMeasurement] | None, baseline: CellCounts
+) -> _AnalyzerPrune:
+    """Lower one analyzer's ceiling from its measurement, or carry it through untouched.
+
+    A complete measurement prunes the analyzer's cells to what still exists; any other
+    status leaves the baseline cells in place, since a ceiling nobody re-measured cannot
+    be lowered.
+    """
+    status = classify(observation)
+    baseline_cells = cells_for(baseline, analyzer)
+    baseline_total = finding_total(baseline_cells)
+
+    if status == "complete":
+        assert isinstance(observation, Measured)
+        current_cells = cells_for(observation.value.cells, analyzer)
+        pruned = prune_cells(baseline_cells, current_cells)
+        pruned_total = finding_total(pruned)
+        reclaimed = baseline_total - pruned_total
+        note = _analyzer_note(analyzer, reclaimed, baseline_total, pruned_total)
+        return _AnalyzerPrune(analyzer, True, pruned, note, baseline_total, pruned_total, None)
+
+    return _AnalyzerPrune(
+        analyzer,
+        False,
+        baseline_cells,
+        f"  {analyzer}: {baseline_total} (not measured)",
+        baseline_total,
+        baseline_total,
+        f"  {analyzer}: not measured — {_carry_reason(analyzer, status, observation)}",
+    )
+
+
 def prune_measurement(
     previous: State,
     baseline: CellCounts,
@@ -78,43 +128,22 @@ def prune_measurement(
     through unchanged — their ceilings are not lowered and not lost.
     """
     state = copy_state(previous)
-    output_parts: list[CellCounts] = []
-    analyzer_notes: list[str] = []
-    incomplete_reasons: list[str] = []
-    total_before = 0
-    total_after = 0
-
-    for analyzer in sorted(previous.frozen_analyzers):
-        observation = measurement.analyzers.get(analyzer)
-        status = classify(observation)
-        baseline_cells = cells_for(baseline, analyzer)
-        baseline_total = finding_total(baseline_cells)
-
-        if status == "complete":
-            assert isinstance(observation, Measured)
-            current_cells = cells_for(observation.value.cells, analyzer)
-            pruned = prune_cells(baseline_cells, current_cells)
-            pruned_total = finding_total(pruned)
-            reclaimed = baseline_total - pruned_total
-            total_before += baseline_total
-            total_after += pruned_total
-            output_parts.append(pruned)
+    prunes = [
+        _prune_one_analyzer(analyzer, measurement.analyzers.get(analyzer), baseline)
+        for analyzer in sorted(previous.frozen_analyzers)
+    ]
+    for prune in prunes:
+        if prune.complete:
             # A rule whose findings are all gone must leave the namespace so the ledger stops
             # naming a ceiling the baseline file no longer carries; the helper's use of
             # `replace_analyzer_rules` (not a rule-by-rule lowering) is what drops it.
-            state = align_analyzer_rules_to_cells(state, pruned, analyzer)
-            analyzer_notes.append(_analyzer_note(analyzer, reclaimed, baseline_total, pruned_total))
-        else:
-            # A ceiling nobody re-measured cannot be lowered.
-            output_parts.append(baseline_cells)
-            total_before += baseline_total
-            total_after += baseline_total
-            incomplete_reasons.append(
-                f"  {analyzer}: not measured — {_carry_reason(analyzer, status, observation)}"
-            )
-            analyzer_notes.append(f"  {analyzer}: {baseline_total} (not measured)")
+            state = align_analyzer_rules_to_cells(state, prune.cells, prune.analyzer)
 
-    cells = merge_cells(output_parts)
+    cells = merge_cells([prune.cells for prune in prunes])
+    analyzer_notes = [prune.note for prune in prunes]
+    incomplete_reasons = [prune.carry_reason for prune in prunes if prune.carry_reason is not None]
+    total_before = sum(prune.baseline_total for prune in prunes)
+    total_after = sum(prune.final_total for prune in prunes)
     reclaimed = total_before - total_after
 
     if incomplete_reasons and reclaimed == 0:
