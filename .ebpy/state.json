@@ -355,6 +355,13 @@
       "kind": "drained",
       "rule": "ruff:PT018",
       "text": "3 compound asserts (freeze.py, test_freeze.py, test_runners.py) split into single-condition asserts. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:16:09Z",
+      "commit": "7d093cd5fc4f759956198e98808bfe79d77e09a1",
+      "kind": "drained",
+      "rule": "ruff:D403",
+      "text": "5 docstring first-word capitalizations in test_freeze.py and test_runners.py. Mechanical, no bug."
     }
   ]
 }
