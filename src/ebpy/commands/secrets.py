@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..repo.git import is_git_repository
 from ..secret_scan import (
@@ -16,6 +16,9 @@ from ..secret_scan import (
     interpret_gitleaks,
 )
 from ..util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _FLAGS = ["--redact", "--verbose", "--exit-code", str(SECRET_FINDING_EXIT_CODE)]
 

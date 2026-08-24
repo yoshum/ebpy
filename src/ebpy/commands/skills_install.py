@@ -8,12 +8,14 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from importlib import resources
-from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from .. import __version__
 from .install import InstallResult, _current_source
+
+if TYPE_CHECKING:
+    from importlib.resources.abc import Traversable
 
 MANIFEST_NAME = ".ebpy-manifest.json"
 

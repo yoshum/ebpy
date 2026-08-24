@@ -9,14 +9,15 @@ files, so reading it whole is safe in a way reading a log never is.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
     from ..models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"

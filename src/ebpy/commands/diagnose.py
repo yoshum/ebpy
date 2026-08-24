@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..decide.diagnose import diagnose
 from ..errors import CommandError
@@ -13,6 +13,9 @@ from ..repo.facts import gather_facts
 from ..repo.git import head_commit
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import empty_state, with_diagnosis, write_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def run_diagnose(cwd: Path, as_json: bool, write: bool) -> str:

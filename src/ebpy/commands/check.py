@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..measurement import (
@@ -23,6 +22,8 @@ from ..store.state import apply_analyzer_rule_counts, copy_state, total_violatio
 from ..tools import ANALYZERS_BY_NAME, measure_repository
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ..models import AnalysisMeasurement, CellCounts, State
 
 _WORST_SAMPLE = 5

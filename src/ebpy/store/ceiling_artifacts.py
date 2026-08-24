@@ -7,15 +7,16 @@ read.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 from .baseline import Ceiling, analyzers_in, cells_for, read_ceiling, rule_totals
 from .state import Ledger, read_ledger, replace_analyzer_rules
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
     from ..models import CellCounts, CellCountsView, RuleId, State
     from .config import EbpyConfig
 

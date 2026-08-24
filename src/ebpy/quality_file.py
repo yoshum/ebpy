@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .decide.freshness import Freshness, FreshnessInput, assess_freshness
@@ -11,6 +10,8 @@ from .render.quality import QUALITY_FILE, extract_notes, render_quality
 from .repo.git import commits_since, head_commit
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from .models import State
 
 

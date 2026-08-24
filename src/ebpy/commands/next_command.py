@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..decide.drain_order import build_drain_plan
 from ..errors import CommandError
@@ -12,6 +12,9 @@ from ..render.next import render_next
 from ..repo.facts import list_source_paths, read_sources
 from ..repo.fan_in import build_graph, count_importers, importers_of
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _gather_importers(cwd: Path, entries: list[Suppression]) -> dict[str, int]:

@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..decide.analysis_report import report_from_measurement
 from ..errors import CommandError
 from ..render.analysis_report import render_analysis_report
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..tools import measure_repository
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Actions sets this to a file every job may append markdown to. Writing there is what
 # makes this a CI report without anyone editing a workflow, and outside Actions it is

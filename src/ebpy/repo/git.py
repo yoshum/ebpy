@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _SHA = re.compile(r"^[0-9a-f]{7,40}$")
 

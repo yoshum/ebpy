@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from .commands.bootstrap import run_bootstrap
 from .commands.catalog import run_catalog
@@ -25,6 +24,9 @@ from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
 from .tools import ANALYZER_NAMES
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 USAGE_EPILOG = f"""\
 commands:

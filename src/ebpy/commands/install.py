@@ -7,7 +7,6 @@ import re
 import tomllib
 from dataclasses import dataclass
 from importlib import metadata
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from .. import __version__
@@ -16,6 +15,8 @@ from ..repo.detect.package_manager import detect_package_manager
 from ..util import run
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ..models import PackageManager
 
 REPOSITORY_URL = "https://github.com/yoshum/ebpy"

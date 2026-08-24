@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ..decide.diagnose import diagnose
 from ..decide.provisioner import AppendText
 from ..repo.facts import gather_facts
 from ..util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:

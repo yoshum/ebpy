@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 from operator import itemgetter
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..errors import CommandError
 from ..quality_file import freshness_of
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ..store.state import improvements, state_to_dict, total_violations
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _NEXT_RULE_SAMPLE = 5
 
