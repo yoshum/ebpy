@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import vulture_configured
+from ..repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
     from ..repo.facts import RepoFacts
+
+
+def vulture_configured(pyproject: dict[str, Any] | None) -> bool:
+    """Return True when vulture is configured or declared as a dependency."""
+    deps = _dependency_names(pyproject)
+    return _tool_table(pyproject, "vulture") is not None or "vulture" in deps
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,10 @@
-"""What quality tooling is configured — read from configs, not from installs.
+"""Generic config-parsing primitives and the repository-level signals no tool owns.
 
-A tool that is installed but never configured enforces nothing, and a config
-with no install behind it fails the first run loudly enough to notice. Configs
-are the half worth detecting.
+Per-tool detection lives with each tool under ``tools/``; what stays here is the
+shared machinery those detectors build on — reading dependency names and config
+tables out of pyproject and ini files — plus the signals that belong to the
+repository rather than to any single tool: the package framework, the required
+Python, pre-commit, and the agent instruction files.
 """
 
 from __future__ import annotations
@@ -66,80 +68,6 @@ def _dependency_names(pyproject: dict[str, Any] | None) -> set[str]:
 
 def _ini_has_section(text: str | None, section: str) -> bool:
     return bool(text) and bool(re.search(rf"^\[{re.escape(section)}\]", text or "", re.MULTILINE))
-
-
-def has_ruff_config(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
-    return (
-        "ruff.toml" in root_entries
-        or ".ruff.toml" in root_entries
-        or _tool_table(pyproject, "ruff") is not None
-    )
-
-
-def mypy_strict_configured(pyproject: dict[str, Any] | None, configs: dict[str, str]) -> bool:
-    table = _tool_table(pyproject, "mypy")
-    if table is not None and table.get("strict") is True:
-        return True
-    for name in ("mypy.ini", ".mypy.ini", "setup.cfg"):
-        text = configs.get(name)
-        if text and re.search(r"^\s*strict\s*=\s*[Tt]rue", text, re.MULTILINE):
-            return True
-    return False
-
-
-def mypy_configured(
-    root_entries: tuple[str, ...],
-    pyproject: dict[str, Any] | None,
-    configs: dict[str, str],
-) -> bool:
-    """Return True if any mypy configuration is present in standard locations."""
-    return (
-        _tool_table(pyproject, "mypy") is not None
-        or "mypy.ini" in root_entries
-        or ".mypy.ini" in root_entries
-        or _ini_has_section(configs.get("setup.cfg"), "mypy")
-    )
-
-
-def formatter_configured(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
-    """Return True when a formatter (ruff or black) is configured."""
-    # Ruff formats as well as lints, so its config settles formatting too.
-    deps = _dependency_names(pyproject)
-    return (
-        has_ruff_config(root_entries, pyproject)
-        or _tool_table(pyproject, "black") is not None
-        or "black" in deps
-    )
-
-
-def pytest_configured(
-    root_entries: tuple[str, ...],
-    pyproject: dict[str, Any] | None,
-    configs: dict[str, str],
-) -> bool:
-    """Return True when pytest is configured via any standard mechanism."""
-    deps = _dependency_names(pyproject)
-    return (
-        _tool_table(pyproject, "pytest") is not None
-        or "pytest.ini" in root_entries
-        or _ini_has_section(configs.get("tox.ini"), "pytest")
-        or _ini_has_section(configs.get("setup.cfg"), "tool:pytest")
-        or "pytest" in deps
-    )
-
-
-def vulture_configured(pyproject: dict[str, Any] | None) -> bool:
-    """Return True when vulture is configured or declared as a dependency."""
-    deps = _dependency_names(pyproject)
-    return _tool_table(pyproject, "vulture") is not None or "vulture" in deps
-
-
-def secret_scan_configured(root_entries: tuple[str, ...], workflow_text: str, pre_commit_text: str) -> bool:
-    """Return True when a known secret-scanning tool is referenced in workflows or pre-commit config."""
-    return (
-        bool(re.search(r"gitleaks|detect-secrets|trufflehog", workflow_text + pre_commit_text, re.IGNORECASE))
-        or ".gitleaks.toml" in root_entries
-    )
 
 
 def pre_commit_configured(root_entries: tuple[str, ...]) -> bool:

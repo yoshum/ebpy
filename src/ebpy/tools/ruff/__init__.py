@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
-from ...repo.detect.tooling import has_ruff_config
+from ...repo.detect.tooling import _tool_table
 from ._runner import (
     RuffFailedError,
     RuffInvalidOutputError,
@@ -20,6 +20,15 @@ if TYPE_CHECKING:
 
     from ...models import AnalysisMeasurement
     from ...repo.facts import RepoFacts
+
+
+def has_ruff_config(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
+    """Return True when a ruff config sits at the root or in a [tool.ruff] table."""
+    return (
+        "ruff.toml" in root_entries
+        or ".ruff.toml" in root_entries
+        or _tool_table(pyproject, "ruff") is not None
+    )
 
 
 @dataclass(frozen=True)

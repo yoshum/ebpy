@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
-from ...repo.detect.tooling import mypy_configured, mypy_strict_configured
+from ...repo.detect.tooling import _ini_has_section, _tool_table
 from ._runner import (
     MypyFailedError,
     MypyInvalidOutputError,
@@ -20,6 +21,32 @@ if TYPE_CHECKING:
 
     from ...models import AnalysisMeasurement
     from ...repo.facts import RepoFacts
+
+
+def mypy_configured(
+    root_entries: tuple[str, ...],
+    pyproject: dict[str, Any] | None,
+    configs: dict[str, str],
+) -> bool:
+    """Return True if any mypy configuration is present in standard locations."""
+    return (
+        _tool_table(pyproject, "mypy") is not None
+        or "mypy.ini" in root_entries
+        or ".mypy.ini" in root_entries
+        or _ini_has_section(configs.get("setup.cfg"), "mypy")
+    )
+
+
+def mypy_strict_configured(pyproject: dict[str, Any] | None, configs: dict[str, str]) -> bool:
+    """Return True when mypy's strict mode is enabled in pyproject or an ini config."""
+    table = _tool_table(pyproject, "mypy")
+    if table is not None and table.get("strict") is True:
+        return True
+    for name in ("mypy.ini", ".mypy.ini", "setup.cfg"):
+        text = configs.get(name)
+        if text and re.search(r"^\s*strict\s*=\s*[Tt]rue", text, re.MULTILINE):
+            return True
+    return False
 
 
 @dataclass(frozen=True)

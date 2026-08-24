@@ -3,13 +3,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import formatter_configured
+from ..repo.detect.tooling import _dependency_names, _tool_table
+from .ruff import has_ruff_config
 
 if TYPE_CHECKING:
     from ..repo.facts import RepoFacts
+
+
+def formatter_configured(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
+    """Return True when a formatter (ruff or black) is configured."""
+    # Ruff formats as well as lints, so its config settles formatting too.
+    deps = _dependency_names(pyproject)
+    return (
+        has_ruff_config(root_entries, pyproject)
+        or _tool_table(pyproject, "black") is not None
+        or "black" in deps
+    )
 
 
 @dataclass(frozen=True)

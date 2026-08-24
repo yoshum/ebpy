@@ -9,17 +9,14 @@ from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.repo.detect.package_manager import detect_package_manager
 from ebpy.repo.detect.sizes import summarize_sizes
-from ebpy.repo.detect.tooling import (
-    detect_agent_instructions,
-    detect_framework,
-    formatter_configured,
-    has_ruff_config,
-    mypy_strict_configured,
-    pytest_configured,
-    secret_scan_configured,
-    vulture_configured,
-)
+from ebpy.repo.detect.tooling import detect_agent_instructions, detect_framework
 from ebpy.repo.facts import gather_facts
+from ebpy.tools.gitleaks import secret_scan_configured
+from ebpy.tools.mypy import mypy_strict_configured
+from ebpy.tools.pytest import pytest_configured
+from ebpy.tools.ruff import has_ruff_config
+from ebpy.tools.ruff_format import formatter_configured
+from ebpy.tools.vulture import vulture_configured
 
 
 def toml(text: str) -> dict[str, object]:

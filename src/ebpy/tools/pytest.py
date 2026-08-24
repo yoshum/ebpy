@@ -3,13 +3,29 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import pytest_configured
+from ..repo.detect.tooling import _dependency_names, _ini_has_section, _tool_table
 
 if TYPE_CHECKING:
     from ..repo.facts import RepoFacts
+
+
+def pytest_configured(
+    root_entries: tuple[str, ...],
+    pyproject: dict[str, Any] | None,
+    configs: dict[str, str],
+) -> bool:
+    """Return True when pytest is configured via any standard mechanism."""
+    deps = _dependency_names(pyproject)
+    return (
+        _tool_table(pyproject, "pytest") is not None
+        or "pytest.ini" in root_entries
+        or _ini_has_section(configs.get("tox.ini"), "pytest")
+        or _ini_has_section(configs.get("setup.cfg"), "tool:pytest")
+        or "pytest" in deps
+    )
 
 
 @dataclass(frozen=True)

@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import secret_scan_configured
 
 if TYPE_CHECKING:
     from ..repo.facts import RepoFacts
+
+
+def secret_scan_configured(root_entries: tuple[str, ...], workflow_text: str, pre_commit_text: str) -> bool:
+    """Return True when a known secret-scanning tool is referenced in workflows or pre-commit config."""
+    return (
+        bool(re.search(r"gitleaks|detect-secrets|trufflehog", workflow_text + pre_commit_text, re.IGNORECASE))
+        or ".gitleaks.toml" in root_entries
+    )
 
 
 @dataclass(frozen=True)
