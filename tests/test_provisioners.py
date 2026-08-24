@@ -1,4 +1,4 @@
-"""Tests for the Provisioner protocol, shared action types, and the three built-in provisioners."""
+"""Tests for the Provisioner protocol, its file-action union, and the built-in provisioners."""
 
 from __future__ import annotations
 
@@ -6,15 +6,25 @@ import dataclasses
 
 import pytest
 
-from ebpy.decide.provisioner import FileAction, InstallAction, Provisioner
+from ebpy.decide.bootstrap_plan import InstallAction
+from ebpy.decide.provisioner import (
+    AddWorkflowStep,
+    AppendText,
+    CreateFile,
+    ProvisionContext,
+    Provisioner,
+)
+from ebpy.generate import workflows
 from ebpy.generate.configs import (
     MYPY_INI_CONTENT,
     MYPY_PYPROJECT_SECTION,
     ruff_pyproject_section,
     ruff_toml_content,
 )
+from ebpy.generate.workflows import CHECKOUT_ACTION
 from ebpy.models import ToolSetup
-from ebpy.tools.gitleaks import GitleaksProvisioner
+from ebpy.tools import gitleaks
+from ebpy.tools.gitleaks import GitleaksProvisioner, secret_scan_workflow
 from ebpy.tools.mypy import MypyProvisioner
 from ebpy.tools.pytest import PytestProvisioner
 from ebpy.tools.ruff import RuffProvisioner
@@ -22,30 +32,46 @@ from ebpy.tools.ruff_format import RuffFormatProvisioner
 from ebpy.tools.vulture import VultureProvisioner
 
 
+def _ctx(
+    *, has_pyproject: bool = True, target_version: str = "py312", run_prefix: str = "uv run "
+) -> ProvisionContext:
+    return ProvisionContext(has_pyproject=has_pyproject, target_version=target_version, run_prefix=run_prefix)
+
+
 def test_provisioner_protocol_shape() -> None:
-    """Provisioner exposes the four methods/attributes that every concrete tool provisioner must implement."""
+    """Provisioner exposes exactly the name property plus the two verb-phrase planning methods."""
     assert {m for m in dir(Provisioner) if not m.startswith("_")} == {
         "name",
-        "packages",
-        "config_actions",
-        "workflow_steps",
+        "plan_packages",
+        "plan_file_actions",
     }
 
 
-def test_file_action_is_a_frozen_dataclass() -> None:
-    """FileAction carries all four fields and can be round-tripped."""
-    action = FileAction(path="ruff.toml", content="[lint]\n", mode="create", reason="initial config")
-    assert action.path == "ruff.toml"
-    assert action.content == "[lint]\n"
-    assert action.mode == "create"
-    assert action.reason == "initial config"
+# ---- File-action union -----------------------------------------------------
 
 
-def test_file_action_is_immutable() -> None:
-    """FileAction must be frozen — mutation raises FrozenInstanceError."""
-    action = FileAction(path="x", content="y", mode="append", reason="r")
+def test_create_file_is_a_frozen_dataclass() -> None:
+    """CreateFile carries path/content/reason and is immutable."""
+    action = CreateFile(path="ruff.toml", content="[lint]\n", reason="initial config")
+    assert (action.path, action.content, action.reason) == ("ruff.toml", "[lint]\n", "initial config")
     with pytest.raises(dataclasses.FrozenInstanceError):
         action.path = "z"  # type: ignore[misc]
+
+
+def test_append_text_is_a_frozen_dataclass() -> None:
+    """AppendText carries path/content/reason and is immutable."""
+    action = AppendText(path="pyproject.toml", content="\n[tool.x]\n", reason="section")
+    assert (action.path, action.content, action.reason) == ("pyproject.toml", "\n[tool.x]\n", "section")
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        action.content = "z"  # type: ignore[misc]
+
+
+def test_add_workflow_step_is_a_frozen_dataclass() -> None:
+    """AddWorkflowStep carries its step lines and is immutable."""
+    action = AddWorkflowStep(lines=("      - name: Test", "        run: pytest"))
+    assert action.lines == ("      - name: Test", "        run: pytest")
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        action.lines = ()  # type: ignore[misc]
 
 
 def test_install_action_is_a_frozen_dataclass_with_tuple_fields() -> None:
@@ -70,73 +96,56 @@ def test_ruff_provisioner_name_is_ruff() -> None:
     assert RuffProvisioner().name == "ruff"
 
 
-def test_ruff_provisioner_packages_when_unconfigured() -> None:
+def test_ruff_provisioner_plan_packages_when_unconfigured() -> None:
     """Unconfigured ruff -> install the ruff package."""
-    assert RuffProvisioner().packages(ToolSetup(configured=False)) == ("ruff",)
+    assert RuffProvisioner().plan_packages(ToolSetup(configured=False)) == ("ruff",)
 
 
-def test_ruff_provisioner_packages_when_configured() -> None:
+def test_ruff_provisioner_plan_packages_when_configured() -> None:
     """Configured ruff -> no package install needed."""
-    assert RuffProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert RuffProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
-def test_ruff_provisioner_appends_to_pyproject_when_present() -> None:
-    """Unconfigured ruff with pyproject.toml -> append a section to pyproject.toml."""
-    actions = RuffProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=True, target_version="py312"
-    )
-    assert len(actions) == 1
-    assert actions[0].path == "pyproject.toml"
-    assert actions[0].mode == "append"
-
-
-def test_ruff_provisioner_append_content_and_reason_match_bootstrap_plan() -> None:
-    """Appended content and reason reproduce bootstrap_plan._config_actions verbatim."""
-    actions = RuffProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=True, target_version="py312"
-    )
-    assert actions[0].content == "\n" + ruff_pyproject_section("py312")
-    assert actions[0].reason == "lint + format config; the rule tiers the ratchet will freeze"
-
-
-def test_ruff_provisioner_writes_ruff_toml_without_pyproject() -> None:
-    """Unconfigured ruff without pyproject.toml -> create ruff.toml."""
-    actions = RuffProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=False, target_version="py312"
-    )
-    assert len(actions) == 1
-    assert actions[0].path == "ruff.toml"
-    assert actions[0].mode == "create"
-
-
-def test_ruff_provisioner_create_content_and_reason_match_bootstrap_plan() -> None:
-    """Created ruff.toml content and reason reproduce bootstrap_plan._config_actions verbatim."""
-    actions = RuffProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=False, target_version="py312"
-    )
-    assert actions[0].content == ruff_toml_content("py312")
-    assert actions[0].reason == "lint + format config (no pyproject.toml to append to)"
-
-
-def test_configured_ruff_needs_no_packages_or_config() -> None:
-    """Configured ruff -> no packages, no config actions."""
-    assert RuffProvisioner().packages(ToolSetup(configured=True)) == ()
-    assert RuffProvisioner().config_actions(ToolSetup(configured=True), True, "py312") == []
-
-
-def test_ruff_provisioner_workflow_steps_match_gate_workflow() -> None:
-    """workflow_steps emits the Format check step lines matching gate_workflow output exactly."""
-    steps = RuffProvisioner().workflow_steps("uv run ")
-    assert steps == [
-        "      - name: Format check",
-        "        run: uv run ruff format --check .",
+def test_ruff_provisioner_appends_config_then_adds_format_step_with_pyproject() -> None:
+    """Unconfigured ruff with pyproject.toml -> append config, then always the Format check step."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(has_pyproject=True))
+    assert actions == [
+        AppendText(
+            path="pyproject.toml",
+            content="\n" + ruff_pyproject_section("py312"),
+            reason="lint + format config; the rule tiers the ratchet will freeze",
+        ),
+        AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
     ]
 
 
-def test_ruff_provisioner_workflow_steps_with_empty_prefix() -> None:
-    """workflow_steps works with an empty run_prefix (plain pip install layout)."""
-    steps = RuffProvisioner().workflow_steps("")
-    assert steps[1] == "        run: ruff format --check ."
+def test_ruff_provisioner_creates_ruff_toml_then_adds_format_step_without_pyproject() -> None:
+    """Unconfigured ruff without pyproject.toml -> create ruff.toml, then always the Format check step."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(has_pyproject=False))
+    assert actions == [
+        CreateFile(
+            path="ruff.toml",
+            content=ruff_toml_content("py312"),
+            reason="lint + format config (no pyproject.toml to append to)",
+        ),
+        AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
+    ]
+
+
+def test_ruff_provisioner_configured_still_adds_the_format_step() -> None:
+    """Configured ruff writes no config but the gate step is emitted regardless of setup."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx())
+    assert actions == [
+        AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
+    ]
+
+
+def test_ruff_provisioner_format_step_follows_the_run_prefix() -> None:
+    """An empty run_prefix (plain pip layout) drops the prefix from the Format check command."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(run_prefix=""))
+    assert actions == [
+        AddWorkflowStep(lines=("      - name: Format check", "        run: ruff format --check ."))
+    ]
 
 
 # ---- RuffFormatProvisioner -------------------------------------------------
@@ -147,21 +156,18 @@ def test_ruff_format_provisioner_name_is_formatter() -> None:
     assert RuffFormatProvisioner().name == "formatter"
 
 
-def test_ruff_format_provisioner_packages_always_empty() -> None:
+def test_ruff_format_provisioner_plan_packages_always_empty() -> None:
     """RuffFormatProvisioner never requests package installs: ruff covers formatting."""
-    assert RuffFormatProvisioner().packages(ToolSetup(configured=False)) == ()
-    assert RuffFormatProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert RuffFormatProvisioner().plan_packages(ToolSetup(configured=False)) == ()
+    assert RuffFormatProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
-def test_ruff_format_provisioner_config_actions_always_empty() -> None:
-    """RuffFormatProvisioner never writes config files: ruff.toml already includes format settings."""
-    assert RuffFormatProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
-    assert RuffFormatProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
-
-
-def test_ruff_format_provisioner_workflow_steps_always_empty() -> None:
-    """RuffFormatProvisioner has no CI steps: the Format check step belongs to RuffProvisioner."""
-    assert RuffFormatProvisioner().workflow_steps("uv run ") == []
+def test_ruff_format_provisioner_plan_file_actions_always_empty() -> None:
+    """RuffFormatProvisioner contributes nothing: config and Format step belong to RuffProvisioner."""
+    assert RuffFormatProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx()) == []
+    assert (
+        RuffFormatProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(has_pyproject=False)) == []
+    )
 
 
 # ---- MypyProvisioner -------------------------------------------------------
@@ -172,64 +178,44 @@ def test_mypy_provisioner_name_is_mypy() -> None:
     assert MypyProvisioner().name == "mypy"
 
 
-def test_mypy_provisioner_packages_when_unconfigured() -> None:
+def test_mypy_provisioner_plan_packages_when_unconfigured() -> None:
     """Unconfigured mypy -> install the mypy package."""
-    assert MypyProvisioner().packages(ToolSetup(configured=False)) == ("mypy",)
+    assert MypyProvisioner().plan_packages(ToolSetup(configured=False)) == ("mypy",)
 
 
-def test_mypy_provisioner_packages_when_configured() -> None:
+def test_mypy_provisioner_plan_packages_when_configured() -> None:
     """Configured mypy -> no package install needed."""
-    assert MypyProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert MypyProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
 def test_mypy_provisioner_appends_to_pyproject_when_present() -> None:
-    """Unconfigured mypy with pyproject.toml -> append a section to pyproject.toml."""
-    actions = MypyProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=True, target_version="py312"
-    )
-    assert len(actions) == 1
-    assert actions[0].path == "pyproject.toml"
-    assert actions[0].mode == "append"
+    """Unconfigured mypy with pyproject.toml -> append a section, no gate step."""
+    actions = MypyProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(has_pyproject=True))
+    assert actions == [
+        AppendText(
+            path="pyproject.toml",
+            content="\n" + MYPY_PYPROJECT_SECTION,
+            reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
+        )
+    ]
 
 
-def test_mypy_provisioner_append_content_and_reason_match_bootstrap_plan() -> None:
-    """Appended content and reason reproduce bootstrap_plan._config_actions verbatim."""
-    actions = MypyProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=True, target_version="py312"
-    )
-    assert actions[0].content == "\n" + MYPY_PYPROJECT_SECTION
-    assert actions[0].reason == "type checking, strict — errors are ratcheted per file per rule, like Ruff's"
+def test_mypy_provisioner_creates_mypy_ini_without_pyproject() -> None:
+    """Unconfigured mypy without pyproject.toml -> create mypy.ini, no gate step."""
+    actions = MypyProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(has_pyproject=False))
+    assert actions == [
+        CreateFile(
+            path="mypy.ini",
+            content=MYPY_INI_CONTENT,
+            reason="type checking, strict (no pyproject.toml to append to)",
+        )
+    ]
 
 
-def test_mypy_provisioner_writes_mypy_ini_without_pyproject() -> None:
-    """Unconfigured mypy without pyproject.toml -> create mypy.ini."""
-    actions = MypyProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=False, target_version="py312"
-    )
-    assert len(actions) == 1
-    assert actions[0].path == "mypy.ini"
-    assert actions[0].mode == "create"
-
-
-def test_mypy_provisioner_create_content_and_reason_match_bootstrap_plan() -> None:
-    """Created mypy.ini content and reason reproduce bootstrap_plan._config_actions verbatim."""
-    actions = MypyProvisioner().config_actions(
-        ToolSetup(configured=False), has_pyproject=False, target_version="py312"
-    )
-    assert actions[0].content == MYPY_INI_CONTENT
-    assert actions[0].reason == "type checking, strict (no pyproject.toml to append to)"
-
-
-def test_configured_mypy_needs_no_packages_or_config() -> None:
-    """Configured mypy -> no packages, no config actions."""
-    assert MypyProvisioner().packages(ToolSetup(configured=True)) == ()
-    assert MypyProvisioner().config_actions(ToolSetup(configured=True), True, "py312") == []
-
-
-def test_mypy_provisioner_workflow_steps_always_empty() -> None:
-    """Type checking runs through ebpy check, not a raw mypy CI step."""
-    assert MypyProvisioner().workflow_steps("uv run ") == []
-    assert MypyProvisioner().workflow_steps("") == []
+def test_configured_mypy_needs_no_file_actions() -> None:
+    """Configured mypy -> no packages, no file actions (mypy runs through ebpy check)."""
+    assert MypyProvisioner().plan_packages(ToolSetup(configured=True)) == ()
+    assert MypyProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx()) == []
 
 
 # ---- PytestProvisioner -----------------------------------------------------
@@ -240,38 +226,27 @@ def test_pytest_provisioner_name_is_pytest() -> None:
     assert PytestProvisioner().name == "pytest"
 
 
-def test_pytest_provisioner_packages_when_unconfigured() -> None:
+def test_pytest_provisioner_plan_packages_when_unconfigured() -> None:
     """Unconfigured pytest -> install the pytest package."""
-    assert PytestProvisioner().packages(ToolSetup(configured=False)) == ("pytest",)
+    assert PytestProvisioner().plan_packages(ToolSetup(configured=False)) == ("pytest",)
 
 
-def test_pytest_provisioner_packages_when_configured() -> None:
+def test_pytest_provisioner_plan_packages_when_configured() -> None:
     """Configured pytest -> no package install needed."""
-    assert PytestProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert PytestProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
-def test_pytest_provisioner_config_actions_always_empty() -> None:
-    """Pytest requires no generated configuration — never any file actions."""
-    assert PytestProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
-    assert PytestProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
+def test_pytest_provisioner_always_adds_the_test_step() -> None:
+    """Pytest emits exactly the Test gate step regardless of setup, following the run prefix."""
+    for configured in (False, True):
+        actions = PytestProvisioner().plan_file_actions(ToolSetup(configured=configured), _ctx())
+        assert actions == [AddWorkflowStep(lines=("      - name: Test", "        run: uv run pytest"))]
 
 
-def test_pytest_provisioner_workflow_steps_match_gate_workflow() -> None:
-    """workflow_steps emits the Test step lines matching gate_workflow output exactly."""
-    steps = PytestProvisioner().workflow_steps("uv run ")
-    assert steps == [
-        "      - name: Test",
-        "        run: uv run pytest",
-    ]
-
-
-def test_pytest_provisioner_workflow_steps_with_empty_prefix() -> None:
-    """workflow_steps works with an empty run_prefix (plain pip install layout)."""
-    steps = PytestProvisioner().workflow_steps("")
-    assert steps == [
-        "      - name: Test",
-        "        run: pytest",
-    ]
+def test_pytest_provisioner_test_step_with_empty_prefix() -> None:
+    """An empty run_prefix (plain pip layout) drops the prefix from the Test command."""
+    actions = PytestProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(run_prefix=""))
+    assert actions == [AddWorkflowStep(lines=("      - name: Test", "        run: pytest"))]
 
 
 # ---- VultureProvisioner ----------------------------------------------------
@@ -282,26 +257,20 @@ def test_vulture_provisioner_name_is_vulture() -> None:
     assert VultureProvisioner().name == "vulture"
 
 
-def test_vulture_provisioner_packages_when_unconfigured() -> None:
+def test_vulture_provisioner_plan_packages_when_unconfigured() -> None:
     """Unconfigured vulture -> install the vulture package."""
-    assert VultureProvisioner().packages(ToolSetup(configured=False)) == ("vulture",)
+    assert VultureProvisioner().plan_packages(ToolSetup(configured=False)) == ("vulture",)
 
 
-def test_vulture_provisioner_packages_when_configured() -> None:
+def test_vulture_provisioner_plan_packages_when_configured() -> None:
     """Configured vulture -> no package install needed."""
-    assert VultureProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert VultureProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
-def test_vulture_provisioner_config_actions_always_empty() -> None:
-    """Vulture has no generated configuration today."""
-    assert VultureProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
-    assert VultureProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
-
-
-def test_vulture_provisioner_workflow_steps_always_empty() -> None:
-    """Vulture has no gate CI step today."""
-    assert VultureProvisioner().workflow_steps("uv run ") == []
-    assert VultureProvisioner().workflow_steps("") == []
+def test_vulture_provisioner_plan_file_actions_always_empty() -> None:
+    """Vulture has no generated config and no gate step today."""
+    assert VultureProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx()) == []
+    assert VultureProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(has_pyproject=False)) == []
 
 
 # ---- GitleaksProvisioner ---------------------------------------------------
@@ -312,19 +281,30 @@ def test_gitleaks_provisioner_name_is_secret_scan() -> None:
     assert GitleaksProvisioner().name == "secret-scan"
 
 
-def test_gitleaks_provisioner_packages_always_empty() -> None:
+def test_gitleaks_provisioner_plan_packages_always_empty() -> None:
     """Gitleaks is not a Python package dependency — never any packages to install."""
-    assert GitleaksProvisioner().packages(ToolSetup(configured=False)) == ()
-    assert GitleaksProvisioner().packages(ToolSetup(configured=True)) == ()
+    assert GitleaksProvisioner().plan_packages(ToolSetup(configured=False)) == ()
+    assert GitleaksProvisioner().plan_packages(ToolSetup(configured=True)) == ()
 
 
-def test_gitleaks_provisioner_config_actions_always_empty() -> None:
-    """secret-scan.yml is created at the bootstrap level, not via config_actions."""
-    assert GitleaksProvisioner().config_actions(ToolSetup(configured=False), True, "py312") == []
-    assert GitleaksProvisioner().config_actions(ToolSetup(configured=True), False, "py312") == []
+def test_gitleaks_provisioner_creates_the_secret_scan_workflow_unconditionally() -> None:
+    """Gitleaks owns secret-scan.yml outright and proposes it regardless of setup."""
+    expected = CreateFile(
+        path=".github/workflows/secret-scan.yml",
+        content=secret_scan_workflow(),
+        reason="gitleaks over history and working tree — the one check with no baseline",
+    )
+    for configured in (False, True):
+        assert GitleaksProvisioner().plan_file_actions(ToolSetup(configured=configured), _ctx()) == [expected]
 
 
-def test_gitleaks_provisioner_workflow_steps_always_empty() -> None:
-    """Gitleaks runs as a standalone workflow, not as a gate step."""
-    assert GitleaksProvisioner().workflow_steps("uv run ") == []
-    assert GitleaksProvisioner().workflow_steps("") == []
+def test_gitleaks_knowledge_lives_only_under_tools() -> None:
+    """Concrete gitleaks knowledge sits under tools/, never in the generic workflows module."""
+    for attr in ("secret_scan_workflow", "GITLEAKS_VERSION", "GITLEAKS_SHA256"):
+        assert not hasattr(workflows, attr), f"{attr} must not live in generate.workflows"
+        assert hasattr(gitleaks, attr), f"{attr} must live in tools.gitleaks"
+
+
+def test_the_gitleaks_workflow_uses_the_generic_checkout_pin() -> None:
+    """The gitleaks workflow reuses the generic CHECKOUT_ACTION pin kept in generate.workflows."""
+    assert CHECKOUT_ACTION.uses in secret_scan_workflow()

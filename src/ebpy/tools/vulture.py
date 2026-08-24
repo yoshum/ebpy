@@ -9,7 +9,7 @@ from ..models import Gap, ToolSetup
 from ..repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction
+    from ..decide.provisioner import FileAction, ProvisionContext
     from ..repo.facts import RepoFacts
 
 
@@ -60,14 +60,10 @@ class VultureProvisioner:
         """Unique short identifier for vulture."""
         return "vulture"
 
-    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return ("vulture",) when vulture is absent, empty tuple when already configured."""
         return ("vulture",) if not setup.configured else ()
 
-    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
-        """Return empty list: vulture has no generated configuration today."""
-        return []
-
-    def workflow_steps(self, run_prefix: str) -> list[str]:  # noqa: ARG002
-        """Return empty list: vulture has no gate CI step today."""
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+        """Return empty list: vulture has no generated config and no gate step today."""
         return []

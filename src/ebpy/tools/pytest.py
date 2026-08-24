@@ -5,11 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ..decide.provisioner import AddWorkflowStep
 from ..models import Gap, ToolSetup
 from ..repo.detect.tooling import _dependency_names, _ini_has_section, _tool_table
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction
+    from ..decide.provisioner import FileAction, ProvisionContext
     from ..repo.facts import RepoFacts
 
 
@@ -71,17 +72,10 @@ class PytestProvisioner:
         """Unique short identifier for pytest."""
         return "pytest"
 
-    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return ("pytest",) when pytest is absent, empty tuple when already configured."""
         return ("pytest",) if not setup.configured else ()
 
-    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
-        """Return empty list: pytest requires no generated configuration."""
-        return []
-
-    def workflow_steps(self, run_prefix: str) -> list[str]:
-        """Return the Test CI step lines, matching the gate_workflow output exactly."""
-        return [
-            "      - name: Test",
-            f"        run: {run_prefix}pytest",
-        ]
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+        """Return the Test gate step (pytest needs no generated config file)."""
+        return [AddWorkflowStep(lines=("      - name: Test", f"        run: {ctx.run_prefix}pytest"))]

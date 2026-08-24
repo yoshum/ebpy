@@ -10,7 +10,7 @@ from ..repo.detect.tooling import _dependency_names, _tool_table
 from .ruff import has_ruff_config
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction
+    from ..decide.provisioner import FileAction, ProvisionContext
     from ..repo.facts import RepoFacts
 
 
@@ -70,19 +70,10 @@ class RuffFormatProvisioner:
         """Unique short identifier for the formatter tool."""
         return "formatter"
 
-    def packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
         """Return empty tuple: ruff covers formatting, no additional package needed."""
         return ()
 
-    def config_actions(
-        self,
-        setup: ToolSetup,  # noqa: ARG002
-        has_pyproject: bool,  # noqa: ARG002
-        target_version: str,  # noqa: ARG002
-    ) -> list[FileAction]:
-        """Return empty list: ruff.toml already includes format settings."""
-        return []
-
-    def workflow_steps(self, run_prefix: str) -> list[str]:  # noqa: ARG002
-        """Return empty list: the Format check CI step is owned by RuffProvisioner."""
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+        """Return empty list: config and the Format check step are owned by RuffProvisioner."""
         return []

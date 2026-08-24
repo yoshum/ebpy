@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
+from ebpy.decide.provisioner import AppendText
 from ebpy.generate.configs import (
     DEPENDABOT_CONTENT,
     python_version_from_requires,
@@ -12,14 +13,25 @@ from ebpy.generate.configs import (
     ruff_toml_content,
 )
 from ebpy.generate.workflows import (
-    GITLEAKS_SHA256,
     PinnedAction,
     gate_workflow,
-    secret_scan_workflow,
+    run_prefix_for,
 )
-from ebpy.models import WorkflowFile
+from ebpy.models import PackageManager, WorkflowFile
 from ebpy.repo.detect.ci import unpinned_actions
 from ebpy.repo.facts import gather_facts
+from ebpy.tools.gitleaks import GITLEAKS_SHA256, secret_scan_workflow
+
+
+def _tool_steps(manager: PackageManager) -> list[str]:
+    """Return the run-prefixed Format check + Test lines bootstrap splices into the gate workflow."""
+    run = run_prefix_for(manager)
+    return [
+        "      - name: Format check",
+        f"        run: {run}ruff format --check .",
+        "      - name: Test",
+        f"        run: {run}pytest",
+    ]
 
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:
@@ -84,11 +96,11 @@ def test_gate_workflow_uv_full_text() -> None:
         "        if: always()\n"
         "        run: uv run ebpy report\n"
     )
-    assert gate_workflow("uv") == expected
+    assert gate_workflow("uv", _tool_steps("uv")) == expected
 
 
 def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
-    workflow = gate_workflow("uv")
+    workflow = gate_workflow("uv", [])
     assert "ubuntu-latest, macos-latest, windows-latest" in workflow
     assert "uv run ebpy check" in workflow
     # The run where the gate has just failed is the run where the backlog is worth most.
@@ -96,8 +108,8 @@ def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
 
 
 def test_the_workflow_follows_the_repositorys_own_package_manager() -> None:
-    assert "poetry run ebpy check" in gate_workflow("poetry")
-    assert "pdm run pytest" in gate_workflow("pdm")
+    assert "poetry run ebpy check" in gate_workflow("poetry", [])
+    assert "pdm run pytest" in gate_workflow("pdm", _tool_steps("pdm"))
 
 
 def test_the_secret_workflow_scans_history_and_working_tree() -> None:
@@ -112,9 +124,10 @@ def test_the_secret_workflow_scans_history_and_working_tree() -> None:
 
 def test_every_generated_action_is_pinned_to_a_commit() -> None:
     """What bootstrap writes must not trip the gap diagnose reports."""
-    for manager in ("uv", "poetry", "pdm", "pipenv", "pip"):
+    managers: tuple[PackageManager, ...] = ("uv", "poetry", "pdm", "pipenv", "pip")
+    for manager in managers:
         workflows = (
-            WorkflowFile(path="quality.yml", content=gate_workflow(manager)),
+            WorkflowFile(path="quality.yml", content=gate_workflow(manager, _tool_steps(manager))),
             WorkflowFile(path="secret-scan.yml", content=secret_scan_workflow()),
         )
         assert unpinned_actions(workflows) == ()
@@ -159,7 +172,7 @@ def test_a_bare_repository_gets_configs_and_a_dev_install(tmp_path: Path) -> Non
 def test_configs_are_appended_to_an_existing_pyproject_rather_than_a_new_file(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[project]\nname = "app"\n', encoding="utf-8")
     plan = plan_for(tmp_path)
-    appends = [action for action in plan.files if action.mode == "append"]
+    appends = [action for action in plan.files if isinstance(action, AppendText)]
     assert {action.path for action in appends} == {"pyproject.toml"}
     assert "ruff.toml" not in {action.path for action in plan.files}
 

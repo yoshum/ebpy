@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...decide.provisioner import FileAction
+from ...decide.provisioner import AddWorkflowStep, AppendText, CreateFile
 from ...generate.configs import ruff_pyproject_section, ruff_toml_content
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
@@ -20,6 +20,7 @@ from ._runner import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from ...decide.provisioner import FileAction, ProvisionContext
     from ...models import AnalysisMeasurement
     from ...repo.facts import RepoFacts
 
@@ -74,38 +75,36 @@ class RuffProvisioner:
         """Unique short identifier for ruff."""
         return "ruff"
 
-    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return ("ruff",) when ruff is absent, empty tuple when already configured."""
         return ("ruff",) if not setup.configured else ()
 
-    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:
-        """Append a [tool.ruff] section to pyproject.toml, or create ruff.toml when there is no pyproject."""
-        if setup.configured:
-            return []
-        if has_pyproject:
-            return [
-                FileAction(
-                    path="pyproject.toml",
-                    content="\n" + ruff_pyproject_section(target_version),
-                    mode="append",
-                    reason="lint + format config; the rule tiers the ratchet will freeze",
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
+        """Write the config when unconfigured, then always the Format check gate step."""
+        actions: list[FileAction] = []
+        if not setup.configured:
+            if ctx.has_pyproject:
+                actions.append(
+                    AppendText(
+                        path="pyproject.toml",
+                        content="\n" + ruff_pyproject_section(ctx.target_version),
+                        reason="lint + format config; the rule tiers the ratchet will freeze",
+                    )
                 )
-            ]
-        return [
-            FileAction(
-                path="ruff.toml",
-                content=ruff_toml_content(target_version),
-                mode="create",
-                reason="lint + format config (no pyproject.toml to append to)",
+            else:
+                actions.append(
+                    CreateFile(
+                        path="ruff.toml",
+                        content=ruff_toml_content(ctx.target_version),
+                        reason="lint + format config (no pyproject.toml to append to)",
+                    )
+                )
+        actions.append(
+            AddWorkflowStep(
+                lines=("      - name: Format check", f"        run: {ctx.run_prefix}ruff format --check .")
             )
-        ]
-
-    def workflow_steps(self, run_prefix: str) -> list[str]:
-        """Return the Format check CI step lines, matching the gate_workflow output."""
-        return [
-            "      - name: Format check",
-            f"        run: {run_prefix}ruff format --check .",
-        ]
+        )
+        return actions
 
 
 @dataclass(frozen=True)

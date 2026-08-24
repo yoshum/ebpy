@@ -14,17 +14,26 @@ from ..generate.configs import (
     GITATTRIBUTES_CONTENT,
     python_version_from_requires,
 )
-from ..generate.workflows import gate_workflow, secret_scan_workflow
+from ..generate.workflows import gate_workflow, run_prefix_for
 from ..models import Diagnosis, ToolSetup
 from ..package_manager import DEV_INSTALL_PREFIXES
 from ..tools import PROVISIONERS
-from .provisioner import FileAction, InstallAction
+from .provisioner import AddWorkflowStep, AppendText, CreateFile, ProvisionContext
+
+
+@dataclass(frozen=True)
+class InstallAction:
+    """The dev-install command bootstrap composes from the packages provisioners request."""
+
+    packages: tuple[str, ...]
+    argv: tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class BootstrapPlan:
     install: InstallAction | None
-    files: tuple[FileAction, ...]
+    # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
+    files: tuple[CreateFile | AppendText, ...]
     skipped: tuple[str, ...]
 
 
@@ -33,22 +42,9 @@ def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
         dict.fromkeys(
             pkg
             for p in PROVISIONERS
-            for pkg in p.packages(diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)))
+            for pkg in p.plan_packages(diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)))
         )
     )
-
-
-def _config_actions(diagnosis: Diagnosis, has_pyproject: bool) -> list[FileAction]:
-    target = python_version_from_requires(diagnosis.requires_python)
-    return [
-        action
-        for p in PROVISIONERS
-        for action in p.config_actions(
-            diagnosis.tool_setups.get(p.name, ToolSetup(configured=False)),
-            has_pyproject,
-            target,
-        )
-    ]
 
 
 def build_plan(
@@ -65,27 +61,45 @@ def build_plan(
         else None
     )
 
-    files = _config_actions(diagnosis, has_pyproject)
+    ctx = ProvisionContext(
+        has_pyproject=has_pyproject,
+        target_version=python_version_from_requires(diagnosis.requires_python),
+        run_prefix=run_prefix_for(diagnosis.package_manager),
+    )
+    gate_steps: list[str] = []
+    tool_files: list[CreateFile | AppendText] = []
+    for p in PROVISIONERS:
+        setup = diagnosis.tool_setups.get(p.name, ToolSetup(configured=False))
+        for action in p.plan_file_actions(setup, ctx):
+            if isinstance(action, AddWorkflowStep):
+                gate_steps.extend(action.lines)
+            else:
+                tool_files.append(action)
+
+    files: list[CreateFile | AppendText] = []
     skipped: list[str] = []
 
-    def create(path: str, content: str, reason: str) -> None:
-        if path in all_files:
-            skipped.append(f"{path} — already exists, not touched")
+    def add(action: CreateFile | AppendText) -> None:
+        # AppendText is additive (unconfigured detection already gates it); only a CreateFile
+        # onto a path that already exists is skipped, so a hand-written config is never touched.
+        if isinstance(action, CreateFile) and action.path in all_files:
+            skipped.append(f"{action.path} — already exists, not touched")
         else:
-            files.append(FileAction(path=path, content=content, mode="create", reason=reason))
+            files.append(action)
 
-    create(
-        ".github/workflows/quality.yml",
-        gate_workflow(diagnosis.package_manager, python_version),
-        "the gate: lint, typecheck, test and `ebpy check` on three platforms",
+    for action in tool_files:
+        add(action)
+
+    # ebpy-owned scaffolding, tool-agnostic: the gate wraps the steps provisioners contributed.
+    add(
+        CreateFile(
+            ".github/workflows/quality.yml",
+            gate_workflow(diagnosis.package_manager, gate_steps, python_version),
+            "the gate: lint, typecheck, test and `ebpy check` on three platforms",
+        )
     )
-    create(
-        ".github/workflows/secret-scan.yml",
-        secret_scan_workflow(),
-        "gitleaks over history and working tree — the one check with no baseline",
-    )
-    create(".github/dependabot.yml", DEPENDABOT_CONTENT, "keeps the pinned versions current later")
-    create(".gitattributes", GITATTRIBUTES_CONTENT, "line endings settled once, per repository")
+    add(CreateFile(".github/dependabot.yml", DEPENDABOT_CONTENT, "keeps the pinned versions current later"))
+    add(CreateFile(".gitattributes", GITATTRIBUTES_CONTENT, "line endings settled once, per repository"))
 
     return BootstrapPlan(install=install, files=tuple(files), skipped=tuple(skipped))
 
@@ -97,7 +111,7 @@ def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
     else:
         lines.append("nothing to install — every tool is already declared")
     for action in plan.files:
-        verb = "append to" if action.mode == "append" else "write"
+        verb = "append to" if isinstance(action, AppendText) else "write"
         prefix = f"would {verb}" if dry_run else verb
         lines.append(f"{prefix:>12} {action.path}  ({action.reason})")
     lines.extend(f"     skipped {note}" for note in plan.skipped)

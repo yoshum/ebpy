@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...decide.provisioner import FileAction
+from ...decide.provisioner import AppendText, CreateFile
 from ...generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 from ...measurement import Failed, Measured, Observation, Unavailable
 from ...models import Gap, ToolSetup
@@ -21,6 +21,7 @@ from ._runner import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from ...decide.provisioner import FileAction, ProvisionContext
     from ...models import AnalysisMeasurement
     from ...repo.facts import RepoFacts
 
@@ -123,35 +124,29 @@ class MypyProvisioner:
         """Unique short identifier for mypy."""
         return "mypy"
 
-    def packages(self, setup: ToolSetup) -> tuple[str, ...]:
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return ("mypy",) when mypy is absent, empty tuple when already configured."""
         return ("mypy",) if not setup.configured else ()
 
-    def config_actions(self, setup: ToolSetup, has_pyproject: bool, target_version: str) -> list[FileAction]:  # noqa: ARG002
-        """Append a [tool.mypy] section to pyproject.toml, or create mypy.ini when there is no pyproject."""
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
+        """Write strict type-checking config when unconfigured; no gate step (mypy runs via ebpy check)."""
         if setup.configured:
             return []
-        if has_pyproject:
+        if ctx.has_pyproject:
             return [
-                FileAction(
+                AppendText(
                     path="pyproject.toml",
                     content="\n" + MYPY_PYPROJECT_SECTION,
-                    mode="append",
                     reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
                 )
             ]
         return [
-            FileAction(
+            CreateFile(
                 path="mypy.ini",
                 content=MYPY_INI_CONTENT,
-                mode="create",
                 reason="type checking, strict (no pyproject.toml to append to)",
             )
         ]
-
-    def workflow_steps(self, run_prefix: str) -> list[str]:  # noqa: ARG002
-        """Return empty list: type checking runs through ebpy check, not a raw mypy CI step."""
-        return []
 
 
 @dataclass(frozen=True)

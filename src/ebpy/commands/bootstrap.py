@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ..decide.diagnose import diagnose
+from ..decide.provisioner import AppendText
 from ..repo.facts import gather_facts
 from ..util import run
 
@@ -21,7 +22,7 @@ def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:
     for action in plan.files:
         target = cwd / action.path
         target.parent.mkdir(parents=True, exist_ok=True)
-        if action.mode == "append":
+        if isinstance(action, AppendText):
             existing = target.read_text(encoding="utf-8") if target.is_file() else ""
             target.write_text(existing + action.content, encoding="utf-8")
         else:
