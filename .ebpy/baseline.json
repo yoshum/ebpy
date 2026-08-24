@@ -35,44 +35,6 @@
       "ruff:RUF105": {
         "count": 1
       }
-    },
-    "tests/test_baseline.py": {
-      "ruff:PLC2701": {
-        "count": 1
-      }
-    },
-    "tests/test_freeze.py": {
-      "ruff:SLF001": {
-        "count": 4
-      }
-    },
-    "tests/test_install.py": {
-      "ruff:SLF001": {
-        "count": 1
-      }
-    },
-    "tests/test_measurement.py": {
-      "ruff:PLC2701": {
-        "count": 6
-      },
-      "ruff:SLF001": {
-        "count": 1
-      }
-    },
-    "tests/test_render.py": {
-      "ruff:PLC1901": {
-        "count": 2
-      }
-    },
-    "tests/test_runners.py": {
-      "ruff:PLC2701": {
-        "count": 7
-      }
-    },
-    "tests/test_skills_install.py": {
-      "ruff:SLF001": {
-        "count": 2
-      }
     }
   }
 }

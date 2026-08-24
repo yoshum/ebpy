@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T13:25:17Z",
+  "updatedAt": "2026-08-24T13:26:40Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -45,16 +45,6 @@
     "ruff"
   ],
   "rules": {
-    "ruff:PLC1901": {
-      "baseline": 2,
-      "current": 2,
-      "status": "draining"
-    },
-    "ruff:PLC2701": {
-      "baseline": 14,
-      "current": 14,
-      "status": "draining"
-    },
     "ruff:RUF067": {
       "baseline": 21,
       "current": 21,
@@ -63,11 +53,6 @@
     "ruff:RUF105": {
       "baseline": 6,
       "current": 6,
-      "status": "draining"
-    },
-    "ruff:SLF001": {
-      "baseline": 8,
-      "current": 8,
       "status": "draining"
     }
   },
