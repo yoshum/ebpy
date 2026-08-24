@@ -6,6 +6,7 @@ that must not be frozen cannot have its ceiling raised by the run that discovers
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,15 @@ from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import AnalysisMeasurement, UnattributedFinding
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import CeilingArtifacts, read_ceiling_artifacts
-from ebpy.store.state import Ledger, apply_analyzer_rule_counts, empty_state, state_path, with_phase
+from ebpy.store.state import (
+    Ledger,
+    apply_analyzer_rule_counts,
+    empty_state,
+    state_path,
+    with_phase,
+    write_state,
+)
+from ebpy.tools import ANALYZER_NAMES
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -186,6 +195,7 @@ def test_a_first_freeze_records_every_analyzer_including_a_clean_one() -> None:
         ),
         force=False,
         frozen_at=_FROZEN_AT,
+        scope=["mypy", "ruff"],
     )
 
     assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
@@ -213,7 +223,9 @@ def test_an_incomplete_analyzer_refuses_a_normal_freeze_and_writes_nothing() -> 
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -234,7 +246,9 @@ def test_the_incomplete_refusal_names_fixing_the_file_and_the_analyzers_exclude(
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     msg = str(exc_info.value)
     assert "exclude" in msg
@@ -260,7 +274,9 @@ def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> Non
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     msg = str(exc_info.value)
     assert "Ruff" not in msg and "ruff's" not in msg.lower()
@@ -276,7 +292,9 @@ def test_an_unavailable_analyzer_refuses_a_normal_freeze_and_names_bootstrap() -
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "bootstrap" in str(exc_info.value)
     assert "Nothing was written" in str(exc_info.value)
@@ -291,7 +309,9 @@ def test_a_failed_analyzer_refuses_a_normal_freeze_and_quotes_its_detail() -> No
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "mypy crashed: exit 2" in str(exc_info.value)
     assert "Nothing was written" in str(exc_info.value)
@@ -307,7 +327,9 @@ def test_force_refuses_an_unavailable_analyzer_because_force_never_shrinks_the_c
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=True, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=True, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -321,7 +343,13 @@ def test_a_global_freeze_refuses_to_drop_a_rostered_analyzer_this_build_cannot_m
     previous.frozen_at = _FROZEN_AT
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(previous, _both_analyzers_measurement(), force=True, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            previous,
+            _both_analyzers_measurement(),
+            force=True,
+            frozen_at=_FROZEN_AT,
+            scope=["mypy", "pylint", "ruff"],
+        )
 
     message = str(exc_info.value)
     assert "pylint" in message
@@ -335,7 +363,9 @@ def test_a_global_freeze_re_pins_every_rostered_analyzer_it_can_measure() -> Non
     previous.frozen_analyzers = ("mypy", "ruff")
     previous.frozen_at = _FROZEN_AT
 
-    decision = build_global_freeze(previous, _both_analyzers_measurement(), force=True, frozen_at=_FROZEN_AT)
+    decision = build_global_freeze(
+        previous, _both_analyzers_measurement(), force=True, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+    )
 
     assert set(decision.state.frozen_analyzers) == {"ruff", "mypy"}
 
@@ -356,7 +386,9 @@ def test_force_refuses_an_incomplete_analyzer_too() -> None:
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=True, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=True, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "Nothing was written" in str(exc_info.value)
 
@@ -370,7 +402,9 @@ def test_the_unavailable_refusal_points_at_bootstrap() -> None:
     )
 
     with pytest.raises(CommandError) as exc_info:
-        build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+        build_global_freeze(
+            empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+        )
 
     assert "bootstrap" in str(exc_info.value)
 
@@ -709,7 +743,9 @@ def test_the_freeze_message_counts_distinct_rules_not_cells() -> None:
         }
     )
 
-    decision = build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+    decision = build_global_freeze(
+        empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+    )
 
     assert "across 2 rules" in decision.message
 
@@ -730,7 +766,9 @@ def test_the_freeze_message_reports_the_analyzer_count_the_skills_tell_agents_to
         }
     )
 
-    decision = build_global_freeze(empty_state(), measurement, force=False, frozen_at=_FROZEN_AT)
+    decision = build_global_freeze(
+        empty_state(), measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"]
+    )
 
     assert "and 2 analyzers are now grandfathered." in decision.message
 
@@ -744,8 +782,102 @@ def test_a_global_freeze_does_not_mutate_its_input_state() -> None:
         }
     )
 
-    build_global_freeze(original, measurement, force=False, frozen_at=_FROZEN_AT)
+    build_global_freeze(original, measurement, force=False, frozen_at=_FROZEN_AT, scope=["mypy", "ruff"])
 
     assert original.frozen_at is None
     assert original.rules == {}
     assert original.frozen_analyzers == ()
+
+
+# ---------------------------------------------------------------------------
+# Config-driven freeze scope
+# ---------------------------------------------------------------------------
+
+
+def test_global_freeze_scope_follows_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Config ["ruff"] limits a global freeze to ruff alone, even when mypy is measurable."""
+    ebpy_dir = tmp_path / ".ebpy"
+    ebpy_dir.mkdir()
+    (ebpy_dir / "config.json").write_text(json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8")
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    run_freeze(tmp_path, force=False, analyzer=None)
+
+    artifacts = read_ceiling_artifacts(tmp_path)
+    assert artifacts.kind == "frozen"
+    assert artifacts.ledger.state is not None
+    assert set(artifacts.ledger.state.frozen_analyzers) == {"ruff"}
+
+
+def test_scoped_freeze_rejects_undeclared_analyzer(tmp_path: Path) -> None:
+    """Config ["ruff"] causes freeze --analyzer mypy to raise CommandError naming config.json."""
+    ebpy_dir = tmp_path / ".ebpy"
+    ebpy_dir.mkdir()
+    (ebpy_dir / "config.json").write_text(json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8")
+
+    with pytest.raises(CommandError) as exc_info:
+        run_freeze(tmp_path, force=False, analyzer="mypy")
+
+    msg = str(exc_info.value)
+    assert "mypy" in msg
+    assert "config.json" in msg
+
+
+def test_global_freeze_with_no_config_uses_union_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No config: global freeze covers all registered analyzers, identical to pre-config behavior."""
+    measurement = _both_analyzers_measurement()
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    run_freeze(tmp_path, force=False, analyzer=None)
+
+    artifacts = read_ceiling_artifacts(tmp_path)
+    assert artifacts.kind == "frozen"
+    assert artifacts.ledger.state is not None
+    assert set(artifacts.ledger.state.frozen_analyzers) == set(ANALYZER_NAMES)
+
+
+def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A config narrowed to [ruff] combined with --force drops mypy from a ruff+mypy contract."""
+    # Build an existing frozen pair covering both ruff and mypy.
+    ebpy_dir = tmp_path / ".ebpy"
+    ebpy_dir.mkdir()
+    initial_state = apply_analyzer_rule_counts(empty_state(), "ruff", {"ruff:F401": 1}, "freeze")
+    initial_state = apply_analyzer_rule_counts(initial_state, "mypy", {"mypy:arg-type": 2}, "freeze")
+    initial_state.frozen_at = _FROZEN_AT
+    initial_state.frozen_analyzers = ("mypy", "ruff")
+    initial_state = with_phase(initial_state, "drain")
+    write_cells(tmp_path, {"src/a.py": {"ruff:F401": 1}, "src/b.py": {"mypy:arg-type": 2}})
+    write_state(tmp_path, initial_state)
+
+    # Config now declares only ruff — a narrower set than the frozen roster.
+    (ebpy_dir / "config.json").write_text(json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8")
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={"src/a.py": {"ruff:F401": 1}})),
+            "mypy": Measured(
+                tool="mypy", value=AnalysisMeasurement(cells={"src/b.py": {"mypy:arg-type": 2}})
+            ),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
+
+    run_freeze(tmp_path, force=True, analyzer=None)
+
+    result = read_ceiling_artifacts(tmp_path)
+    assert result.kind == "frozen"
+    assert result.ledger.state is not None
+    assert result.ledger.state.frozen_analyzers == ("ruff",)
+    assert not any(k.startswith("mypy:") for k in result.ledger.state.rules)
