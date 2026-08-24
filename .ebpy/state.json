@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T10:52:37Z",
+  "updatedAt": "2026-08-24T11:04:33Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -48,11 +48,6 @@
     "ruff:ANN401": {
       "baseline": 8,
       "current": 8,
-      "status": "draining"
-    },
-    "ruff:D103": {
-      "baseline": 72,
-      "current": 72,
       "status": "draining"
     },
     "ruff:D205": {
@@ -350,6 +345,13 @@
       "kind": "drained",
       "rule": "ruff:TID252",
       "text": "340 across 47 files; migrated relative imports to absolute per #54. Mechanical, no behaviour change; rule graduated."
+    },
+    {
+      "at": "2026-08-24T11:04:33Z",
+      "commit": "e2a9e19e7093bd6227f1a414e00320be6c5701fd",
+      "kind": "drained",
+      "rule": "ruff:D103",
+      "text": "72 src-side functions documented; tests exempted separately. No behaviour change; rule graduated."
     }
   ]
 }

@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 275 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 277 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **318**
+- Open violations: **246**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 318 findings across 19 rules
+- [ ] **P3 drain** — 246 findings across 18 rules
   - [ ] `ruff:FURB118` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
@@ -42,7 +42,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | Rule | Ceiling | Now | Change | Status |
 | --- | ---: | ---: | ---: | --- |
 | `ruff:D205` | 96 | 96 | 0 | draining |
-| `ruff:D103` | 72 | 72 | 0 | draining |
 | `ruff:PLR6301` | 33 | 33 | 0 | draining |
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
 | `ruff:TC003` | 20 | 20 | 0 | draining |
@@ -71,6 +70,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | e2a9e19e | drained | ruff:D103 | 72 src-side functions documented; tests exempted separately. No behaviour change; rule graduated. |
 | 2026-08-24 | a86da30e | drained | ruff:TID252 | 340 across 47 files; migrated relative imports to absolute per #54. Mechanical, no behaviour change; rule graduated. |
 | 2026-08-24 | 37613734 | deferred | ruff:D103 | 377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md — owner decision on exempting tests/, see #55 |
 | 2026-08-24 | 37613734 | deferred | ruff:TID252 | 340 across 47 files; whole-repo relative->absolute import migration reverses an established convention — owner decision, see #54 |
@@ -90,7 +90,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 8db9fb39 | drained | ruff:D107 | 1 violation; documented ToolError.__init__ in errors.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 | 2026-08-24 | 47eeae33 | drained | ruff:D105 | 1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 | 2026-08-24 | b0d17551 | drained | ruff:D301 | 1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates |
-| 2026-08-24 | 45e3fcd2 | drained | ruff:TC006 | 12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates |
 
 ## Notes
 
