@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 243 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 245 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1206**
+- Open violations: **1196**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1206 findings across 26 rules
+- [ ] **P3 drain** — 1196 findings across 25 rules
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
   - [ ] `ruff:PLR2004` — 2 left
@@ -49,7 +49,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:D403` | 11 | 11 | 0 | draining |
 | `ruff:ANN401` | 10 | 10 | 0 | draining |
 | `ruff:PT018` | 10 | 10 | 0 | draining |
-| `ruff:RUF201` | 10 | 10 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
 | `ruff:D102` | 5 | 5 | 0 | draining |
@@ -71,6 +70,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | ebe95816 | drained | ruff:RUF201 | 10 violations in pyproject.toml; replaced rule codes with names in ruff ignore lists; not a bug — config readability, behaviour unchanged |
 | 2026-08-24 | 8db9fb39 | drained | ruff:D107 | 1 violation; documented ToolError.__init__ in errors.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 | 2026-08-24 | 47eeae33 | drained | ruff:D105 | 1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 | 2026-08-24 | b0d17551 | drained | ruff:D301 | 1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates |

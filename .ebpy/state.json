@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:33:04Z",
+  "updatedAt": "2026-08-24T07:37:39Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -145,11 +145,6 @@
       "current": 6,
       "status": "draining"
     },
-    "ruff:RUF201": {
-      "baseline": 10,
-      "current": 10,
-      "status": "draining"
-    },
     "ruff:SLF001": {
       "baseline": 8,
       "current": 8,
@@ -273,6 +268,13 @@
       "kind": "drained",
       "rule": "ruff:D107",
       "text": "1 violation; documented ToolError.__init__ in errors.py; not a bug, docstring-only, rule fully graduates for src/ebpy"
+    },
+    {
+      "at": "2026-08-24T07:37:39Z",
+      "commit": "ebe95816538345e9e263cfef8835524575abd07c",
+      "kind": "drained",
+      "rule": "ruff:RUF201",
+      "text": "10 violations in pyproject.toml; replaced rule codes with names in ruff ignore lists; not a bug \u2014 config readability, behaviour unchanged"
     }
   ]
 }
