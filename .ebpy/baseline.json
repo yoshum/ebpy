@@ -390,9 +390,6 @@
       },
       "ruff:D103": {
         "count": 1
-      },
-      "ruff:D105": {
-        "count": 1
       }
     },
     "src/ebpy/package_manager.py": {

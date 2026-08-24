@@ -76,6 +76,7 @@ class AnalysisMeasurement:
     unattributed: tuple[UnattributedFinding, ...] = ()
 
     def __post_init__(self) -> None:
+        """Freeze ``cells`` into nested read-only proxies so the frozen value is deeply immutable."""
         frozen_cells = {file: MappingProxyType(dict(rules)) for file, rules in self.cells.items()}
         object.__setattr__(self, "cells", MappingProxyType(frozen_cells))
 
