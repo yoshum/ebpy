@@ -351,6 +351,13 @@
       "kind": "drained",
       "rule": "ruff:TC001",
       "text": "4 violations in freeze.py; first-party type-only imports guarded by TYPE_CHECKING. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:29Z",
+      "commit": "ce13d00869ff125266ef479e6a24e2492f09e5eb",
+      "kind": "drained",
+      "rule": "ruff:TC002",
+      "text": "1 violation in test_check.py; type-only third-party (pytest) import guarded by TYPE_CHECKING. Mechanical, no bug."
     }
   ]
 }
