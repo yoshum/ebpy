@@ -77,17 +77,19 @@ select = [
   "RUF",  # ruff-specific
   "PIE",  # misc
 ]
-# W191/E111/E114/E117 are the indentation checks the formatter owns; D203/D206/D300/D213
-# are the docstring rules that contradict D211, the formatter, D301, and D212.
+# tab-indentation, indentation-with-invalid-multiple(-comment), and over-indented are the
+# indentation checks the formatter owns; incorrect-blank-line-before-class,
+# docstring-tab-indentation, triple-single-quotes, and multi-line-summary-second-line are the
+# docstring rules that contradict D211, the formatter, D301, and D212.
 ignore = [
-  "W191",
-  "E111",
-  "E114",
-  "E117",
-  "D203",
-  "D206",
-  "D300",
-  "D213",
+  "tab-indentation",
+  "indentation-with-invalid-multiple",
+  "indentation-with-invalid-multiple-comment",
+  "over-indented",
+  "incorrect-blank-line-before-class",
+  "docstring-tab-indentation",
+  "triple-single-quotes",
+  "multi-line-summary-second-line",
 ]
 
 [tool.ruff.lint.mccabe]
@@ -95,7 +97,7 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 # Tests carry literal expectations and wide fixtures; the ratchet still counts everything else.
-"tests/*" = ["PLR0913", "PLR2004"]
+"tests/*" = ["too-many-arguments", "magic-value-comparison"]
 
 [tool.mypy]
 strict = true

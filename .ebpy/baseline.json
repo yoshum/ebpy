@@ -1,11 +1,6 @@
 {
   "version": 2,
   "cells": {
-    "pyproject.toml": {
-      "ruff:RUF201": {
-        "count": 10
-      }
-    },
     "src/ebpy/catalog.py": {
       "ruff:D101": {
         "count": 1
