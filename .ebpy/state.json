@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T13:26:40Z",
+  "updatedAt": "2026-08-24T13:37:16Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -48,11 +48,6 @@
     "ruff:RUF067": {
       "baseline": 21,
       "current": 21,
-      "status": "draining"
-    },
-    "ruff:RUF105": {
-      "baseline": 6,
-      "current": 6,
       "status": "draining"
     }
   },
@@ -363,6 +358,13 @@
       "kind": "drained",
       "rule": "ruff:PLC1901",
       "text": "1 in store/state.py; frozen_at (already str-narrowed) != '' -> truthiness. tests' PLC1901 handled via config. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T13:37:16Z",
+      "commit": "07f774993d16c7db903ca2c76f4025c43db99e5a",
+      "kind": "drained",
+      "rule": "ruff:RUF105",
+      "text": "6 noqa:ARG002 removed; ARG002 moved to a src/ebpy/tools/** per-file-ignore (protocol methods). No behaviour change; rule graduated."
     }
   ]
 }
