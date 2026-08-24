@@ -357,6 +357,13 @@
       "kind": "drained",
       "rule": "ruff:D403",
       "text": "5 docstring first-word capitalizations in test_freeze.py and test_runners.py. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:16:28Z",
+      "commit": "61ad5b5efcea447a47e35d6f21892d047dac70c1",
+      "kind": "drained",
+      "rule": "ruff:FURB118",
+      "text": "1 lambda in store/state.py state_to_dict replaced with operator.itemgetter(0); same trivial item[0] pattern. Mechanical, no bug."
     }
   ]
 }
