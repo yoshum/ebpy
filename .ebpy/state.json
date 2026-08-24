@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:39:19Z",
+  "updatedAt": "2026-08-24T07:40:05Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -68,11 +68,6 @@
     "ruff:D103": {
       "baseline": 377,
       "current": 377,
-      "status": "draining"
-    },
-    "ruff:D104": {
-      "baseline": 4,
-      "current": 4,
       "status": "draining"
     },
     "ruff:D205": {
@@ -282,6 +277,13 @@
       "kind": "drained",
       "rule": "ruff:FURB118",
       "text": "2 of 3 violations (status.py, worklist.py); replaced (count,name) lambda sort key with operator.itemgetter(1,0); not a bug \u2014 clarity; 1 left in store/state.py (leave-until-last)"
+    },
+    {
+      "at": "2026-08-24T07:40:05Z",
+      "commit": "1a630f96289d98856fa8219d55bae6e0031e10bf",
+      "kind": "drained",
+      "rule": "ruff:D104",
+      "text": "4 violations across 4 subpackage __init__ files; added package docstrings naming each responsibility; not a bug \u2014 fully graduates"
     }
   ]
 }
