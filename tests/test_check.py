@@ -1,3 +1,5 @@
+"""`ebpy check`: what fails the ratchet gate, what it persists, and how it reports each analyzer."""
+
 from __future__ import annotations
 
 import json

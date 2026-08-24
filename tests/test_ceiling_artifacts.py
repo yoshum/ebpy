@@ -1,3 +1,5 @@
+"""Classifying the baseline/state pair, and reconciling the configured analyzers against the roster."""
+
 from __future__ import annotations
 
 import json

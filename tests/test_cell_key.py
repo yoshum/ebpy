@@ -1,3 +1,5 @@
+"""Qualifying and splitting namespaced rule ids, and normalizing paths to repository-relative POSIX."""
+
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest

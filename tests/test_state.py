@@ -1,3 +1,5 @@
+"""The state ledger: the ratchet invariants, and every way a v2 state reads or is rejected."""
+
 from __future__ import annotations
 
 import json

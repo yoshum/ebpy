@@ -1,3 +1,5 @@
+"""Detecting the package manager, tools and CI, and sizing the backlog into each phase's gaps."""
+
 from __future__ import annotations
 
 import tomllib

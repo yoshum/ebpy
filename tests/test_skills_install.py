@@ -1,3 +1,5 @@
+"""Installing the bundled skills: idempotent updates, honoring local edits, and rolling back a failed swap."""
+
 from __future__ import annotations
 
 import json

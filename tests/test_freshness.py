@@ -1,3 +1,5 @@
+"""When a diagnosis is current and when it goes stale — on age, on commits, or on a rewritten history."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

@@ -1,3 +1,5 @@
+"""The worklist: when each phase counts as done, and how the smallest backlogs are ranked."""
+
 from __future__ import annotations
 
 from ebpy.decide.worklist import NEXT_RULES_SHOWN, build_worklist

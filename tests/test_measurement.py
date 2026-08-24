@@ -1,3 +1,5 @@
+"""The measurement seam: one observation per analyzer, and how each is classified from tool output."""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,3 +1,5 @@
+"""How `next` ranks the backlog: cheapest cells, rules by files to touch, directory tails, heavy files."""
+
 from __future__ import annotations
 
 from ebpy.decide.drain_order import (

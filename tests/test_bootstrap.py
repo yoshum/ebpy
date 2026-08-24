@@ -1,3 +1,5 @@
+"""What `bootstrap` generates: the ruff and mypy configs and the pinned gate and secret-scan workflows."""
+
 from __future__ import annotations
 
 import tomllib

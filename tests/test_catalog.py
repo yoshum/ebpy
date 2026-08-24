@@ -1,3 +1,5 @@
+"""The catalogue of shared helpers: the module-level callables that form the reusable surface."""
+
 from __future__ import annotations
 
 from ebpy.catalog import catalog_sources, extract_exports, render_catalog

@@ -1,3 +1,5 @@
+"""The ruff and mypy runners: turning tool output into namespaced, repository-relative cells."""
+
 from __future__ import annotations
 
 import json

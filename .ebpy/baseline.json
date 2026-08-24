@@ -230,11 +230,6 @@
         "count": 2
       }
     },
-    "src/ebpy/errors.py": {
-      "ruff:D100": {
-        "count": 1
-      }
-    },
     "src/ebpy/generate/configs.py": {
       "ruff:D205": {
         "count": 1
@@ -577,9 +572,6 @@
       }
     },
     "tests/test_analysis_report.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 5
       },
@@ -588,9 +580,6 @@
       }
     },
     "tests/test_baseline.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 19
       },
@@ -605,9 +594,6 @@
       }
     },
     "tests/test_bootstrap.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 14
       },
@@ -619,17 +605,11 @@
       }
     },
     "tests/test_catalog.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 9
       }
     },
     "tests/test_ceiling_artifacts.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 11
       },
@@ -641,17 +621,11 @@
       }
     },
     "tests/test_cell_key.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 11
       }
     },
     "tests/test_check.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 14
       },
@@ -666,9 +640,6 @@
       }
     },
     "tests/test_diagnose.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 26
       },
@@ -680,17 +651,11 @@
       }
     },
     "tests/test_drain_order.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 11
       }
     },
     "tests/test_fan_in.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 9
       }
@@ -719,17 +684,11 @@
       }
     },
     "tests/test_freshness.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 8
       }
     },
     "tests/test_install.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 17
       },
@@ -774,9 +733,6 @@
       "ruff:ANN401": {
         "count": 1
       },
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 15
       },
@@ -819,9 +775,6 @@
       }
     },
     "tests/test_render.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 20
       },
@@ -830,9 +783,6 @@
       }
     },
     "tests/test_report.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 1
       },
@@ -841,9 +791,6 @@
       }
     },
     "tests/test_runners.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 18
       },
@@ -864,17 +811,11 @@
       }
     },
     "tests/test_secret_scan.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 8
       }
     },
     "tests/test_skills_install.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 18
       },
@@ -883,9 +824,6 @@
       }
     },
     "tests/test_state.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 24
       },
@@ -916,9 +854,6 @@
       }
     },
     "tests/test_worklist.py": {
-      "ruff:D100": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 8
       }

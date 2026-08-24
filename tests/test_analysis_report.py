@@ -1,3 +1,5 @@
+"""How the analysis report renders analyzer states, the backlog matrix by area, and its JSON form."""
+
 from __future__ import annotations
 
 from ebpy.decide.analysis_report import (

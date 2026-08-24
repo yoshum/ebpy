@@ -1,3 +1,5 @@
+"""`ebpy install`: resolving the ref to pin, following the package manager, rejecting unsafe requests."""
+
 from __future__ import annotations
 
 import json

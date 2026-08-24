@@ -1,3 +1,6 @@
+"""Exceptions raised when a command cannot safely proceed or a repository tool cannot be measured."""
+
+
 class CommandError(RuntimeError):
     """The command could not safely perform the requested operation."""
 

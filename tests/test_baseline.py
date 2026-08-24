@@ -1,3 +1,5 @@
+"""Reading, writing and clamping the v2 baseline, and every way a baseline reads as unreadable."""
+
 from __future__ import annotations
 
 import json

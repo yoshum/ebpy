@@ -1,3 +1,5 @@
+"""Rendering the notes block, the quality table, `next`, and the tooling and gap rows."""
+
 from __future__ import annotations
 
 from dataclasses import replace
