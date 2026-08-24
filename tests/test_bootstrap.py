@@ -198,8 +198,11 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
 
 
 def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:
-    """build_plan must iterate PROVISIONERS in registry order and splice each AddWorkflowStep
-    into quality.yml; a broken loop or dropped partition would produce wrong/empty CI steps."""
+    """build_plan iterates PROVISIONERS in registry order and splices each step into quality.yml.
+
+    A broken loop or dropped partition would produce wrong or empty CI steps; this
+    verifies that the Format check step appears before the Test step.
+    """
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     plan = plan_for(tmp_path)
     # A bare repo with no lockfile resolves to pip; run_prefix_for("pip") is empty.
