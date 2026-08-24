@@ -138,7 +138,8 @@ def test_disagreeing_rule_ceilings_are_invalid(tmp_path: Path) -> None:
     artifacts = read_ceiling_artifacts(tmp_path)
 
     assert artifacts.kind == "invalid"
-    assert artifacts.detail is not None and "disagree" in artifacts.detail
+    assert artifacts.detail is not None
+    assert "disagree" in artifacts.detail
 
 
 def test_a_baseline_namespace_missing_from_the_roster_is_invalid(tmp_path: Path) -> None:
@@ -148,7 +149,8 @@ def test_a_baseline_namespace_missing_from_the_roster_is_invalid(tmp_path: Path)
     artifacts = read_ceiling_artifacts(tmp_path)
 
     assert artifacts.kind == "invalid"
-    assert artifacts.detail is not None and "analyzer" in artifacts.detail
+    assert artifacts.detail is not None
+    assert "analyzer" in artifacts.detail
 
 
 def test_a_frozen_ledger_with_an_empty_roster_is_invalid(tmp_path: Path) -> None:
@@ -158,7 +160,8 @@ def test_a_frozen_ledger_with_an_empty_roster_is_invalid(tmp_path: Path) -> None
     artifacts = read_ceiling_artifacts(tmp_path)
 
     assert artifacts.kind == "invalid"
-    assert artifacts.detail is not None and "no analyzers" in artifacts.detail
+    assert artifacts.detail is not None
+    assert "no analyzers" in artifacts.detail
 
 
 def test_aligning_a_written_pair_reads_back_as_frozen(tmp_path: Path) -> None:
@@ -227,4 +230,5 @@ def test_a_ledger_with_rules_but_no_frozen_at_is_invalid_not_fresh(tmp_path: Pat
     artifacts = read_ceiling_artifacts(tmp_path)
 
     assert artifacts.kind == "invalid"
-    assert artifacts.detail is not None and "contains ceiling data" in artifacts.detail
+    assert artifacts.detail is not None
+    assert "contains ceiling data" in artifacts.detail

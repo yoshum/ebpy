@@ -353,9 +353,6 @@
       "ruff:D401": {
         "count": 3
       },
-      "ruff:PT018": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 3
       }
@@ -741,9 +738,6 @@
       },
       "ruff:D103": {
         "count": 9
-      },
-      "ruff:PT018": {
-        "count": 1
       }
     },
     "tests/test_ceiling_artifacts.py": {
@@ -759,9 +753,6 @@
       "ruff:D209": {
         "count": 5
       },
-      "ruff:PT018": {
-        "count": 4
-      },
       "ruff:TC003": {
         "count": 1
       }
@@ -772,9 +763,6 @@
       },
       "ruff:D103": {
         "count": 11
-      },
-      "ruff:PT018": {
-        "count": 1
       }
     },
     "tests/test_check.py": {

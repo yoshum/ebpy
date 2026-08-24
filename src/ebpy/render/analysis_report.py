@@ -142,7 +142,8 @@ def _unratcheted_section(report: AnalysisReport) -> list[str]:
     for name, summary in unratcheted:
         # A complete analyzer is always Measured, so its counts are real numbers, never the
         # None that stands for "not measured" — rendering them as 0 would erase that distinction.
-        assert summary.findings is not None and summary.files_with_findings is not None
+        assert summary.findings is not None
+        assert summary.files_with_findings is not None
         line = f"- `{name}`: {summary.findings} finding(s) across "
         lines.append(f"{line}{summary.files_with_findings} file(s), not under contract")
     lines.append("")

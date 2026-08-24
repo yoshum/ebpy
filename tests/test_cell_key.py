@@ -41,7 +41,8 @@ def test_is_rule_id_is_total_and_rejects_anything_unnamespaced(value: object) ->
 
 
 def test_is_analyzer_name_accepts_the_two_shipped_analyzers() -> None:
-    assert is_analyzer_name("ruff") and is_analyzer_name("mypy")
+    assert is_analyzer_name("ruff")
+    assert is_analyzer_name("mypy")
 
 
 def test_normalize_keeps_a_relative_path_relative(tmp_path: Path) -> None:

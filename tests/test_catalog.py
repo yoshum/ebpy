@@ -64,4 +64,5 @@ def test_the_catalog_groups_by_directory() -> None:
     rendered = render_catalog(entries)
     assert "## src" in rendered
     assert "## src/sub" in rendered
-    assert "`a`" in rendered and "`b`" in rendered
+    assert "`a`" in rendered
+    assert "`b`" in rendered
