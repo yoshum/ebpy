@@ -222,9 +222,6 @@
     "tests/test_check.py": {
       "ruff:D205": {
         "count": 10
-      },
-      "ruff:TC002": {
-        "count": 1
       }
     },
     "tests/test_diagnose.py": {

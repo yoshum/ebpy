@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-import pytest
-
 from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
@@ -26,6 +24,8 @@ from ebpy.tools.mypy import MypySetup
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 def _state(
