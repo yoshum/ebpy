@@ -497,4 +497,5 @@ def test_mypy_parser_treats_a_syntax_error_as_unattributed_not_a_cell(tmp_path: 
 
 def test_mypy_parser_returns_nothing_for_clean_output(tmp_path: Path) -> None:
     measurement = parse_mypy_output("", tmp_path)
-    assert measurement.cells == {} and measurement.files_with_findings == 0
+    assert measurement.cells == {}
+    assert measurement.files_with_findings == 0

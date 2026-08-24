@@ -17,9 +17,6 @@
     "src/ebpy/commands/freeze.py": {
       "ruff:D205": {
         "count": 1
-      },
-      "ruff:PT018": {
-        "count": 1
       }
     },
     "src/ebpy/commands/log.py": {
@@ -239,9 +236,6 @@
       "ruff:D403": {
         "count": 3
       },
-      "ruff:PT018": {
-        "count": 1
-      },
       "ruff:SLF001": {
         "count": 4
       }
@@ -310,9 +304,6 @@
       },
       "ruff:PLC2701": {
         "count": 7
-      },
-      "ruff:PT018": {
-        "count": 1
       }
     },
     "tests/test_skills_install.py": {

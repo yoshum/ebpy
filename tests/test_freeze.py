@@ -285,7 +285,8 @@ def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> Non
         )
 
     msg = str(exc_info.value)
-    assert "Ruff" not in msg and "ruff's" not in msg.lower()
+    assert "Ruff" not in msg
+    assert "ruff's" not in msg.lower()
     assert "mypy" in msg
 
 

@@ -76,7 +76,8 @@ def _unattributed_report(analyzer: str, result: AnalysisMeasurement) -> list[str
 
 def _already_frozen(artifacts: CeilingArtifacts) -> str:
     state = artifacts.ledger.state
-    assert state is not None and state.frozen_at is not None
+    assert state is not None
+    assert state.frozen_at is not None
     return "\n".join(
         [
             f"Already frozen at {state.frozen_at}.",
