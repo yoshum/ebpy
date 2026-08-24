@@ -2,6 +2,83 @@
 
 <!-- version list -->
 
+## v0.7.0 (2026-08-24)
+
+### Bug Fixes
+
+- Break the tools<->measurement import cycle so ebpy.tools imports standalone
+  ([`3fba09b`](https://github.com/yoshum/ebpy/commit/3fba09b85e51b382fafd87be64c5ba6a04803000))
+
+- Make the tooling-report render independent of DETECTORS order
+  ([`6be3c12`](https://github.com/yoshum/ebpy/commit/6be3c12dac8684361e56b5834db9a74497614e1b))
+
+### Code Style
+
+- Apply ruff format to three files left unformatted by prior tasks
+  ([`4be15b1`](https://github.com/yoshum/ebpy/commit/4be15b1b00a6bb9c277885abac7c169e548c99a2))
+
+### Features
+
+- Add detectors for formatter, pytest, vulture, and secret scanning
+  ([`ca208c7`](https://github.com/yoshum/ebpy/commit/ca208c78260d6292dee54c1026b08e7858f80d77))
+
+- Add ruff/mypy detectors carrying their own gaps and render rows
+  ([`9441c18`](https://github.com/yoshum/ebpy/commit/9441c18e886e9f0dcfc246c98ec9474e771fed8f))
+
+- Add self-contained ruff/mypy analyzer modules under tools/
+  ([`31e3616`](https://github.com/yoshum/ebpy/commit/31e3616f0f8f506fe20927038620266d757a7618))
+
+- Add the Analyzer capability protocol (no configured)
+  ([`d2209e2`](https://github.com/yoshum/ebpy/commit/d2209e29d65a1fd21cb2f8ef0db69949086dc79a))
+
+- Add the ToolDetector protocol and ToolSetup/MypySetup
+  ([`10457bd`](https://github.com/yoshum/ebpy/commit/10457bd3be1b5b14a1722e0cf9b27447f1f3325f))
+
+- Assemble the DETECTORS registry
+  ([`187963c`](https://github.com/yoshum/ebpy/commit/187963c51911ac3b8c5b1ad1bdf5ec9a07d23813))
+
+- Assemble the static ANALYZERS registry in tools/
+  ([`1ba01e9`](https://github.com/yoshum/ebpy/commit/1ba01e98674f286dec4c3e93cf3deb0ce0dcccd0))
+
+### Refactoring
+
+- Drive measure_repository from the ANALYZERS registry
+  ([`9a4bdbc`](https://github.com/yoshum/ebpy/commit/9a4bdbcfcbff38b2d4a6ef152dce2bb9524da518))
+
+- Drop the special-cased secret_scanning field from Diagnosis
+  ([`5be51e6`](https://github.com/yoshum/ebpy/commit/5be51e600cd280e3d5b03d02fe1959be640a71cf))
+
+- Extract measurement value types into a leaf module
+  ([`a899c96`](https://github.com/yoshum/ebpy/commit/a899c966fdce9d962e9451dca26ab3acaddd5353))
+
+- Isolate analyzer-configured lookup into a diagnosis helper, drop configured from the abstraction
+  ([`be1a025`](https://github.com/yoshum/ebpy/commit/be1a02588e4f14cfc6eace07b680b300622743c3))
+
+- Let each ToolSetup serialize itself; move MypySetup into tools/mypy
+  ([`110fc12`](https://github.com/yoshum/ebpy/commit/110fc126c2427fba81e2a4f09a675c6faebf3573))
+
+- Move per-tool detection into each tool module
+  ([`ba2aa16`](https://github.com/yoshum/ebpy/commit/ba2aa161243695fa152523c333ecbdf30732bd98))
+
+- Move the unratcheted-analyzer advice to a diagnose gap
+  ([`3405e52`](https://github.com/yoshum/ebpy/commit/3405e52942ad796f1a0ab8bde1cbe0c186c52286))
+
+- Remove the configured_analyzers bridge
+  ([`6dd0538`](https://github.com/yoshum/ebpy/commit/6dd0538b93fb351cd2f0436c6b8070085d0b48bc))
+
+- Render tooling rows from the DETECTORS registry
+  ([`ed793f3`](https://github.com/yoshum/ebpy/commit/ed793f312bec0bbb90a73c310db935420609426a))
+
+- Replace Diagnosis.tooling with per-detector tool_setups
+  ([`f6a9d51`](https://github.com/yoshum/ebpy/commit/f6a9d51c40eba93f2e490ad28ee9fdca6cd6c9dc))
+
+- Source --analyzer choices from the tools registry
+  ([`0294337`](https://github.com/yoshum/ebpy/commit/02943375dccfd3e27de3df251f287187ef719a3e))
+
+- Split measurement into an abstract seam and concrete tools/ runners
+  ([`1b92720`](https://github.com/yoshum/ebpy/commit/1b9272011154e33db459d1f38ee848f8b1405935))
+
+
 ## v0.6.0 (2026-08-21)
 
 ### Features
