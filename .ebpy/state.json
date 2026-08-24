@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T10:11:28Z",
+  "updatedAt": "2026-08-24T10:22:44Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -138,11 +138,6 @@
     "ruff:TC003": {
       "baseline": 20,
       "current": 20,
-      "status": "draining"
-    },
-    "ruff:TID252": {
-      "baseline": 340,
-      "current": 340,
       "status": "draining"
     }
   },
@@ -348,6 +343,13 @@
       "kind": "deferred",
       "rule": "ruff:D103",
       "text": "377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md \u2014 owner decision on exempting tests/, see #55"
+    },
+    {
+      "at": "2026-08-24T10:22:44Z",
+      "commit": "a86da30ebd58208b88fa855b4bda151028ea72ac",
+      "kind": "drained",
+      "rule": "ruff:TID252",
+      "text": "340 across 47 files; migrated relative imports to absolute per #54. Mechanical, no behaviour change; rule graduated."
     }
   ]
 }
