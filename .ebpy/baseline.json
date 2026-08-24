@@ -330,9 +330,6 @@
     "src/ebpy/errors.py": {
       "ruff:D100": {
         "count": 1
-      },
-      "ruff:D107": {
-        "count": 1
       }
     },
     "src/ebpy/generate/__init__.py": {

@@ -13,6 +13,7 @@ class ToolError(RuntimeError):
     """
 
     def __init__(self, summary: str, detail: str | None = None) -> None:
+        """Store the one-line ``summary`` and the full ``detail``, defaulting detail to summary."""
         super().__init__(detail or summary)
         self.summary = summary
         self.detail = detail or summary
