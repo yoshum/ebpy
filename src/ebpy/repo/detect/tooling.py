@@ -27,7 +27,7 @@ def _normalise(name: str) -> str:
     return name.lower().replace("_", "-")
 
 
-def _names_in_requirements(items: Any) -> set[str]:
+def _names_in_requirements(items: object) -> set[str]:
     """`ruff>=0.5` and `Ruff [extra] ; python_version < "3.12"` are the same package."""
     if not isinstance(items, list):
         return set()

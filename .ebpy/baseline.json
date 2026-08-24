@@ -440,9 +440,6 @@
       }
     },
     "src/ebpy/repo/detect/tooling.py": {
-      "ruff:ANN401": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -516,9 +513,6 @@
       }
     },
     "src/ebpy/store/baseline.py": {
-      "ruff:ANN401": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 6
       },

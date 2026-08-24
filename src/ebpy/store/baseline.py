@@ -12,7 +12,7 @@ import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from ..cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
 
@@ -71,7 +71,7 @@ def _parse_files(raw_cells: object, cwd: Path) -> CellCounts | None:
     return cells
 
 
-def parse_cells(raw: Any, cwd: Path) -> CellCounts | None:
+def parse_cells(raw: object, cwd: Path) -> CellCounts | None:
     """Parse the complete baseline, rejecting rather than skipping any bad cell.
 
     Only ``{"version": 2, "cells": {...}}`` is accepted, and any other top-level key makes
