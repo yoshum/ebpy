@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:48:56Z",
+  "updatedAt": "2026-08-24T07:50:16Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -116,8 +116,8 @@
       "status": "draining"
     },
     "ruff:PT018": {
-      "baseline": 10,
-      "current": 10,
+      "baseline": 3,
+      "current": 3,
       "status": "draining"
     },
     "ruff:RUF027": {
@@ -300,6 +300,13 @@
       "kind": "drained",
       "rule": "ruff:TC002",
       "text": "1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix"
+    },
+    {
+      "at": "2026-08-24T07:50:16Z",
+      "commit": "844b88d63408a731aefb0219c29459e430036686",
+      "kind": "drained",
+      "rule": "ruff:PT018",
+      "text": "7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages"
     }
   ]
 }
