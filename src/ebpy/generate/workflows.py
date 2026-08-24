@@ -9,8 +9,10 @@ it without a diff.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from ..models import PackageManager
+if TYPE_CHECKING:
+    from ..models import PackageManager
 
 DEFAULT_PYTHON_VERSION = "3.12"
 

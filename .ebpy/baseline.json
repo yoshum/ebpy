@@ -66,9 +66,6 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 3
-      },
       "ruff:TC003": {
         "count": 1
       },
@@ -120,9 +117,6 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       },
@@ -167,9 +161,6 @@
       },
       "ruff:D209": {
         "count": 1
-      },
-      "ruff:TC001": {
-        "count": 3
       },
       "ruff:TC003": {
         "count": 1
@@ -232,9 +223,6 @@
       "ruff:D103": {
         "count": 2
       },
-      "ruff:TC001": {
-        "count": 3
-      },
       "ruff:TID252": {
         "count": 13
       }
@@ -251,9 +239,6 @@
       }
     },
     "src/ebpy/decide/diagnose.py": {
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 17
       }
@@ -272,9 +257,6 @@
         "count": 4
       },
       "ruff:D401": {
-        "count": 1
-      },
-      "ruff:TC001": {
         "count": 1
       },
       "ruff:TID252": {
@@ -296,9 +278,6 @@
     },
     "src/ebpy/decide/worklist.py": {
       "ruff:D103": {
-        "count": 1
-      },
-      "ruff:TC001": {
         "count": 1
       },
       "ruff:TID252": {
@@ -328,9 +307,6 @@
       "ruff:D209": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 1
       }
@@ -356,17 +332,9 @@
         "count": 1
       }
     },
-    "src/ebpy/package_manager.py": {
-      "ruff:TC001": {
-        "count": 1
-      }
-    },
     "src/ebpy/quality_file.py": {
       "ruff:D103": {
         "count": 2
-      },
-      "ruff:TC001": {
-        "count": 1
       },
       "ruff:TC003": {
         "count": 1
@@ -388,9 +356,6 @@
       "ruff:PT018": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 3
-      },
       "ruff:TID252": {
         "count": 3
       }
@@ -408,9 +373,6 @@
       "ruff:D401": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 1
       }
@@ -425,9 +387,6 @@
       "ruff:D209": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 11
       }
@@ -435,9 +394,6 @@
     "src/ebpy/render/report.py": {
       "ruff:D103": {
         "count": 1
-      },
-      "ruff:TC001": {
-        "count": 2
       },
       "ruff:TID252": {
         "count": 4
@@ -449,9 +405,6 @@
       },
       "ruff:D103": {
         "count": 2
-      },
-      "ruff:TC001": {
-        "count": 1
       },
       "ruff:TID252": {
         "count": 1
@@ -475,9 +428,6 @@
     },
     "src/ebpy/repo/detect/package_manager.py": {
       "ruff:D103": {
-        "count": 1
-      },
-      "ruff:TC001": {
         "count": 1
       },
       "ruff:TID252": {
@@ -584,9 +534,6 @@
       "ruff:D401": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 3
-      },
       "ruff:TC003": {
         "count": 2
       },
@@ -600,9 +547,6 @@
       },
       "ruff:D401": {
         "count": 2
-      },
-      "ruff:TC001": {
-        "count": 4
       },
       "ruff:TC003": {
         "count": 2
@@ -770,9 +714,6 @@
       "ruff:PLC2701": {
         "count": 1
       },
-      "ruff:TC001": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       }
@@ -937,9 +878,6 @@
         "count": 1
       },
       "ruff:SLF001": {
-        "count": 1
-      },
-      "ruff:TC001": {
         "count": 1
       },
       "ruff:TC003": {

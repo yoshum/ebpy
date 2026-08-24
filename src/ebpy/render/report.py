@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from ..models import Diagnosis, Gap
+from typing import TYPE_CHECKING
+
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
 from ..tools import DETECTORS
+
+if TYPE_CHECKING:
+    from ..models import Diagnosis, Gap
 
 
 def _check(value: bool) -> str:

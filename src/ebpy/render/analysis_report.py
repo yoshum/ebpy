@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from ..decide.analysis_report import AnalysisReport, AnalyzerSummary, ReportSection
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..decide.analysis_report import AnalysisReport, AnalyzerSummary, ReportSection
 
 
 def _analyzer_table(report: AnalysisReport) -> list[str]:

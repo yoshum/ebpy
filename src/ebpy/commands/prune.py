@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..errors import CommandError
 from ..measurement import (
@@ -15,7 +16,6 @@ from ..measurement import (
     Unavailable,
     classify,
 )
-from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
 from ..store.baseline import cells_for, finding_total, merge_cells, prune_cells, write_cells
 from ..store.ceiling_artifacts import (
@@ -29,6 +29,9 @@ from ..store.state import (
     write_state,
 )
 from ..tools import measure_repository
+
+if TYPE_CHECKING:
+    from ..models import AnalysisMeasurement, CellCounts, State
 
 NO_FROZEN_CEILING = "\n".join(
     [

@@ -8,8 +8,10 @@ cold knows where it is without reading the log.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from ..decide.worklist import Worklist
+if TYPE_CHECKING:
+    from ..decide.worklist import Worklist
 
 
 @dataclass(frozen=True)

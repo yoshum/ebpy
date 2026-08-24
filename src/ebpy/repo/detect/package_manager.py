@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ...models import PackageManager
+if TYPE_CHECKING:
+    from ...models import PackageManager
 
 # Most specific first: a repo can carry requirements.txt exports next to the lockfile
 # that is actually the source of truth.

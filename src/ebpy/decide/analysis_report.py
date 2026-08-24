@@ -7,10 +7,9 @@ this repository's lint debt actually look like".
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..measurement import AnalyzerStatus, Measured, Measurement, classify
-from ..models import CellCounts, CellCountsView, UnattributedFinding
 from ..store.baseline import (
     cells_for,
     finding_total,
@@ -19,6 +18,9 @@ from ..store.baseline import (
     rule_totals,
     split_against_baseline,
 )
+
+if TYPE_CHECKING:
+    from ..models import CellCounts, CellCountsView, UnattributedFinding
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"

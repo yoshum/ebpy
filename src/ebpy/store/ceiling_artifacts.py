@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from ..models import CellCounts, CellCountsView, RuleId, State
 from .baseline import Ceiling, analyzers_in, cells_for, read_ceiling, rule_totals
 from .state import Ledger, read_ledger, replace_analyzer_rules
 
 if TYPE_CHECKING:
+    from ..models import CellCounts, CellCountsView, RuleId, State
     from .config import EbpyConfig
 
 ArtifactKind = Literal["fresh", "frozen", "invalid"]

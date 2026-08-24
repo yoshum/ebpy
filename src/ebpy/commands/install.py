@@ -8,13 +8,15 @@ import tomllib
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from .. import __version__
-from ..models import PackageManager
 from ..package_manager import DEV_INSTALL_PREFIXES, RUN_PREFIXES
 from ..repo.detect.package_manager import detect_package_manager
 from ..util import run
+
+if TYPE_CHECKING:
+    from ..models import PackageManager
 
 REPOSITORY_URL = "https://github.com/yoshum/ebpy"
 MINIMUM_INSTALL_VERSION = "0.3.0"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..measurement import (
     AnalyzerStatus,
@@ -14,13 +15,15 @@ from ..measurement import (
     Unavailable,
     classify,
 )
-from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
 from ..store.baseline import cells_for, finding_total, split_against_baseline
 from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
 from ..store.config import read_config
 from ..store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
 from ..tools import ANALYZERS_BY_NAME, measure_repository
+
+if TYPE_CHECKING:
+    from ..models import AnalysisMeasurement, CellCounts, State
 
 _WORST_SAMPLE = 5
 
