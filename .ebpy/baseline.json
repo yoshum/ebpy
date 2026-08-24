@@ -220,9 +220,6 @@
       "ruff:D103": {
         "count": 2
       },
-      "ruff:PLW0717": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       },

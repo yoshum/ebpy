@@ -266,6 +266,40 @@ def test_a_partial_swap_restores_the_previous_bundle(
     assert not list(project.glob(".ebpy-skills-*"))
 
 
+def test_a_backup_move_failure_restores_the_previous_bundle(
+    project: Path,
+    skill_bundle: SkillBundleSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failure while moving existing skills aside leaves the project untouched."""
+    assert run_skills_install(project, force=False, bundle=skill_bundle.load()).ok
+    destination = project / ".claude" / "skills"
+    before = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    (skill_bundle.root / "ebpy-guide" / "SKILL.md").write_text("updated\n", encoding="utf-8")
+
+    failed = False
+
+    def fail_moving_aside(source: Path, target: Path) -> None:
+        nonlocal failed
+        if not failed and source.parent.name == "skills" and source.name == "ebpy-guide":
+            failed = True
+            raise OSError("disk full while moving aside")
+        source.replace(target)
+
+    monkeypatch.setattr(skills_install, "_replace_path", fail_moving_aside)
+    result = run_skills_install(project, force=False, bundle=skill_bundle.load())
+
+    after = {
+        path.relative_to(destination): path.read_bytes() for path in destination.rglob("*") if path.is_file()
+    }
+    assert not result.ok
+    assert "previous managed skills were restored" in result.message
+    assert after == before
+    assert not list(project.glob(".ebpy-skills-*"))
+
+
 def test_an_incomplete_rollback_preserves_recovery_files(
     project: Path,
     skill_bundle: SkillBundleSource,

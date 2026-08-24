@@ -207,6 +207,32 @@ def _rollback_bundle(
     return errors
 
 
+def _move_existing_aside(
+    destination: Path, backup: Path, managed_entries: tuple[Path, ...], moved_old: list[Path]
+) -> None:
+    """Move each currently installed managed entry into ``backup``, recording progress.
+
+    ``moved_old`` is appended in place so a caller catching a mid-loop failure still
+    knows which entries were moved and can roll them back.
+    """
+    for relative in managed_entries:
+        target = destination / relative
+        if _path_exists(target):
+            _replace_path(target, backup / relative)
+            moved_old.append(relative)
+
+
+def _move_staged_into_place(destination: Path, stage: Path, bundle: Bundle, installed: list[Path]) -> None:
+    """Move each staged bundle entry onto ``destination``, recording progress.
+
+    ``installed`` is appended in place so a mid-loop failure leaves the caller the
+    list of entries to undo during rollback.
+    """
+    for relative in _bundle_entries(bundle):
+        _replace_path(stage / relative, destination / relative)
+        installed.append(relative)
+
+
 def _swap_staged_bundle(
     destination: Path, stage: Path, backup: Path, bundle: Bundle, manifest_hashes: dict[Path, str]
 ) -> None:
@@ -218,14 +244,8 @@ def _swap_staged_bundle(
     moved_old: list[Path] = []
     installed: list[Path] = []
     try:
-        for relative in managed_entries:
-            target = destination / relative
-            if _path_exists(target):
-                _replace_path(target, backup / relative)
-                moved_old.append(relative)
-        for relative in _bundle_entries(bundle):
-            _replace_path(stage / relative, destination / relative)
-            installed.append(relative)
+        _move_existing_aside(destination, backup, managed_entries, moved_old)
+        _move_staged_into_place(destination, stage, bundle, installed)
     except OSError as error:
         rollback_errors = _rollback_bundle(destination, backup, installed, moved_old)
         if rollback_errors:
