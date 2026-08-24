@@ -223,8 +223,8 @@ def test_tooling_block_renders_every_row_in_order_with_mypy_strict() -> None:
         "  mypy              strict",
         "  pytest            yes",
         "  vulture           yes",
-        "  pre-commit        yes",
         "  secret scanning   yes",
+        "  pre-commit        yes",
         "  agent rules       CLAUDE.md",
     ]
 
@@ -241,7 +241,7 @@ def test_tooling_block_renders_every_row_in_order_with_mypy_configured_but_not_s
         "  mypy              yes (not strict)",
         "  pytest            yes",
         "  vulture           yes",
-        "  pre-commit        no",
         "  secret scanning   yes",
+        "  pre-commit        no",
         "  agent rules       none",
     ]
