@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 291 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 293 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **204**
+- Open violations: **165**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,12 +19,12 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 204 findings across 11 rules
+- [ ] **P3 drain** — 165 findings across 11 rules
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
+  - [ ] `ruff:D401` — 2 left
   - [ ] `ruff:PLR2004` — 2 left
   - [ ] `ruff:PLC1901` — 3 left
-  - [ ] `ruff:RUF105` — 6 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -41,14 +41,14 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Rule | Ceiling | Now | Change | Status |
 | --- | ---: | ---: | ---: | --- |
-| `ruff:D205` | 96 | 96 | 0 | draining |
+| `ruff:D205` | 74 | 74 | 0 | draining |
 | `ruff:PLR6301` | 33 | 33 | 0 | draining |
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
-| `ruff:D401` | 19 | 19 | 0 | draining |
 | `ruff:PLC2701` | 14 | 14 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
+| `ruff:D401` | 2 | 2 | 0 | draining |
 | `ruff:PLR2004` | 2 | 2 | 0 | draining |
 | `ruff:PLC2801` | 1 | 1 | 0 | draining |
 | `ruff:RUF027` | 1 | 1 | 0 | draining |
@@ -63,6 +63,8 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 0812cd98 | drained | ruff:D401 | 17 src docstrings made imperative while keeping the why. No behaviour change. |
+| 2026-08-24 | 0812cd98 | drained | ruff:D205 | 22 src docstrings restructured to summary+body. No behaviour change. |
 | 2026-08-24 | f9179139 | drained | ruff:ANN401 | 8 Any annotations tightened: 6 JSON validators + _legacy_version to object (isinstance-narrowed), with_diagnosis to Diagnosis, test helper to Callable[[Path], AnalysisMeasurement]. None skipped; mypy clean. No bug. |
 | 2026-08-24 | 61ad5b5e | drained | ruff:FURB118 | 1 lambda in store/state.py state_to_dict replaced with operator.itemgetter(0); same trivial item[0] pattern. Mechanical, no bug. |
 | 2026-08-24 | 7d093cd5 | drained | ruff:D403 | 5 docstring first-word capitalizations in test_freeze.py and test_runners.py. Mechanical, no bug. |
@@ -81,8 +83,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 22fb31a3 | drained | ruff:D403 | 6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording |
 | 2026-08-24 | 428adea6 | drained | ruff:ANN401 | 2 violations in repo/detect/tooling.py and store/baseline.py; Any -> object for isinstance-narrowed JSON inputs; not a real bug, tighter typing |
 | 2026-08-24 | 844b88d6 | drained | ruff:PT018 | 7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages |
-| 2026-08-24 | 414e9de1 | drained | ruff:TC002 | 1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix |
-| 2026-08-24 | 17c4efdc | drained | ruff:TC001 | 34 of 38 violations across 20 files; moved annotation-only first-party imports into TYPE_CHECKING blocks; not a bug — import hygiene; 4 left in commands/freeze.py (leave-until-last) |
 
 ## Notes
 

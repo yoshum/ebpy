@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T11:18:21Z",
+  "updatedAt": "2026-08-24T11:58:37Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -46,13 +46,13 @@
   ],
   "rules": {
     "ruff:D205": {
-      "baseline": 96,
-      "current": 96,
+      "baseline": 74,
+      "current": 74,
       "status": "draining"
     },
     "ruff:D401": {
-      "baseline": 19,
-      "current": 19,
+      "baseline": 2,
+      "current": 2,
       "status": "draining"
     },
     "ruff:PLC1901": {
@@ -366,6 +366,20 @@
       "kind": "drained",
       "rule": "ruff:ANN401",
       "text": "8 Any annotations tightened: 6 JSON validators + _legacy_version to object (isinstance-narrowed), with_diagnosis to Diagnosis, test helper to Callable[[Path], AnalysisMeasurement]. None skipped; mypy clean. No bug."
+    },
+    {
+      "at": "2026-08-24T11:58:37Z",
+      "commit": "0812cd98e3e8091c1a03c6547222f584e923381e",
+      "kind": "drained",
+      "rule": "ruff:D205",
+      "text": "22 src docstrings restructured to summary+body. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T11:58:37Z",
+      "commit": "0812cd98e3e8091c1a03c6547222f584e923381e",
+      "kind": "drained",
+      "rule": "ruff:D401",
+      "text": "17 src docstrings made imperative while keeping the why. No behaviour change."
     }
   ]
 }
