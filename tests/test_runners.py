@@ -86,6 +86,35 @@ def test_an_invalid_ruff_diagnostic_is_not_reported_as_clean(tmp_path: Path) -> 
         parse_ruff_json("[123]", tmp_path)
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        pytest.param({"filename": None}, id="missing-filename"),
+        pytest.param({"filename": ""}, id="empty-filename"),
+        pytest.param({"code": ""}, id="empty-code"),
+        pytest.param({"code": 123}, id="non-string-code"),
+        pytest.param({"message": None}, id="non-string-message"),
+        pytest.param({"location": None}, id="non-dict-location"),
+        pytest.param({"location": {"column": 1}}, id="location-without-row"),
+        pytest.param({"location": {"row": "1"}}, id="non-integer-row"),
+    ],
+)
+def test_a_diagnostic_missing_a_field_a_cell_is_keyed_on_is_refused(
+    tmp_path: Path, mutation: dict[str, object]
+) -> None:
+    """A diagnostic lacking a field a cell is keyed on is refused, not silently dropped.
+
+    Ruff's JSON is trusted only as far as its schema: without a filename, code, message or
+    integer row the finding cannot be attributed to a cell, so parsing rejects the whole run
+    rather than guessing. A None code is the one accepted absence and is covered separately as
+    an unattributed finding.
+    """
+    item = diagnostic(str(tmp_path / "a.py"), "E501")
+    item.update(mutation)
+    with pytest.raises(RuffInvalidOutputError, match="index 0"):
+        parse_ruff_json(json.dumps([item]), tmp_path)
+
+
 def fatal_mypy(
     monkeypatch: pytest.MonkeyPatch,
     stderr: str,

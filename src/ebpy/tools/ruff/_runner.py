@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from ...cell_key import normalize_analyzer_path, qualify_rule
@@ -59,6 +60,47 @@ def find_ruff(cwd: Path) -> list[str] | None:
     return [on_path] if on_path else None
 
 
+@dataclass(frozen=True)
+class _Diagnostic:
+    """One ruff finding, reduced to the fields a cell is keyed on.
+
+    A `code` of None is ruff's way of reporting a finding with no rule (a syntax
+    error); it is kept so parsing can route it to the unattributed list rather
+    than a cell.
+    """
+
+    filename: str
+    code: str | None
+    message: str
+    row: int
+
+
+def _read_diagnostic(item: object) -> _Diagnostic | None:
+    """Read one ruff JSON diagnostic, or None when it lacks a field a cell needs.
+
+    Ruff's JSON is trusted only as far as its documented schema; a diagnostic
+    missing its filename, message or integer row cannot be attributed to a cell,
+    and an empty code is as unusable as a mistyped one. None is the one accepted
+    absence, because ruff uses it for a syntax error that belongs nowhere.
+    """
+    if not isinstance(item, dict):
+        return None
+    filename = item.get("filename")
+    code = item.get("code")
+    message = item.get("message")
+    location = item.get("location")
+    if not isinstance(filename, str) or not filename:
+        return None
+    if code is not None and (not isinstance(code, str) or not code):
+        return None
+    if not isinstance(message, str) or not isinstance(location, dict):
+        return None
+    row = location.get("row")
+    if type(row) is not int:
+        return None
+    return _Diagnostic(filename=filename, code=code, message=message, row=row)
+
+
 def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
     raw: Any = json.loads(stdout or "[]")
     if not isinstance(raw, list):
@@ -66,32 +108,20 @@ def parse_ruff_json(stdout: str, cwd: Path) -> AnalysisMeasurement:
     cells: CellCounts = {}
     unattributed: list[UnattributedFinding] = []
     for index, item in enumerate(raw):
-        if not isinstance(item, dict):
+        diagnostic = _read_diagnostic(item)
+        if diagnostic is None:
             raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
-        filename = item.get("filename")
-        code = item.get("code")
-        message = item.get("message")
-        location = item.get("location")
-        if (
-            not isinstance(filename, str)
-            or not filename
-            or (code is not None and (not isinstance(code, str) or not code))
-            or not isinstance(message, str)
-            or not isinstance(location, dict)
-            or type(location.get("row")) is not int
-        ):
-            raise RuffInvalidOutputError(f"ruff produced an invalid diagnostic at index {index}")
-        file = normalize_analyzer_path(filename, cwd)
-        if not code or code == "invalid-syntax":
+        file = normalize_analyzer_path(diagnostic.filename, cwd)
+        if not diagnostic.code or diagnostic.code == "invalid-syntax":
             unattributed.append(
                 UnattributedFinding(
                     file=file,
-                    line=location["row"],
-                    message=message,
+                    line=diagnostic.row,
+                    message=diagnostic.message,
                 )
             )
             continue
-        rule = qualify_rule("ruff", str(code))
+        rule = qualify_rule("ruff", diagnostic.code)
         file_cells = cells.setdefault(file, {})
         file_cells[rule] = file_cells.get(rule, 0) + 1
     return AnalysisMeasurement(
