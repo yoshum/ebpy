@@ -401,8 +401,8 @@ def test_diagnosis_round_trips_tool_setups_without_a_version_bump() -> None:
     assert restored.tool_setups["ruff"] == ToolSetup(configured=True)
     assert restored.pre_commit is True
     assert restored.agent_instructions == ("CLAUDE.md",)
-    # secretScanning is derived from the secret-scan detector, not stored as its own field.
-    assert restored.secret_scanning is True
+    # secret-scan is just another tool setup; the base layer does not special-case it.
+    assert restored.tool_setups["secret-scan"] == ToolSetup(configured=True)
 
 
 def test_a_mypy_setup_serializes_its_strictness() -> None:
@@ -429,7 +429,6 @@ def test_a_legacy_tooling_diagnosis_is_tolerated_by_ignoring_it() -> None:
     restored = diagnosis_from_dict(legacy)
 
     assert restored.tool_setups == {}
-    assert restored.secret_scanning is False
 
 
 def test_a_log_cannot_grow_without_bound() -> None:

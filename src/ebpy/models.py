@@ -137,16 +137,6 @@ class Diagnosis:
     sizes: SizeDistribution
     gaps: tuple[Gap, ...]
 
-    @property
-    def secret_scanning(self) -> bool:
-        """Whether a secret scanner is configured — the secret-scan detector's own answer.
-
-        Kept as a derived property rather than a field so there is one source of truth: the
-        detector that reports it. Absent from tool_setups (a hand-built diagnosis) reads as off.
-        """
-        setup = self.tool_setups.get("secret-scan")
-        return setup.configured if setup is not None else False
-
     def to_dict(self) -> dict[str, Any]:
         return {
             "packageManager": self.package_manager,
@@ -154,9 +144,6 @@ class Diagnosis:
             "framework": self.framework,
             "toolSetups": {name: setup.to_dict() for name, setup in self.tool_setups.items()},
             "preCommit": self.pre_commit,
-            # Derived from the secret-scan detector rather than stored, so it can never drift
-            # from what that detector reports.
-            "secretScanning": self.secret_scanning,
             "agentInstructions": list(self.agent_instructions),
             "ci": {
                 "present": self.ci.present,
