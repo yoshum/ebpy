@@ -63,6 +63,7 @@ class DrainPlan:
     importers: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the drain plan to a JSON-ready dict with camelCase keys."""
         return {
             "totals": {
                 "violations": self.totals.violations,

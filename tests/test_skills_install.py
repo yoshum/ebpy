@@ -36,6 +36,7 @@ class SkillBundleSource:
     root: Path
 
     def load(self) -> Bundle:
+        """Read the current on-disk tree into a Bundle."""
         files = {
             path.relative_to(self.root): path.read_bytes()
             for path in sorted(self.root.rglob("*"))

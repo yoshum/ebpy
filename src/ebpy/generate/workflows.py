@@ -29,6 +29,7 @@ class PinnedAction:
 
     @property
     def uses(self) -> str:
+        """Render the step's `uses:` value as `repository@commit # version`."""
         return f"{self.repository}@{self.commit} # {self.version}"
 
 

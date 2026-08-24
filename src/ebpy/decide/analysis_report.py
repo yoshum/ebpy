@@ -76,6 +76,7 @@ class AnalysisReport:
     analyzers: tuple[tuple[str, AnalyzerSummary], ...]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the report to a JSON-ready dict with camelCase keys."""
         return {
             "newTotal": self.new_total,
             "backlogTotal": self.backlog_total,

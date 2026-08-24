@@ -229,9 +229,6 @@
       "ruff:D101": {
         "count": 4
       },
-      "ruff:D102": {
-        "count": 1
-      },
       "ruff:D103": {
         "count": 2
       },
@@ -264,9 +261,6 @@
     "src/ebpy/decide/drain_order.py": {
       "ruff:D101": {
         "count": 5
-      },
-      "ruff:D102": {
-        "count": 1
       },
       "ruff:D103": {
         "count": 2
@@ -328,9 +322,6 @@
       }
     },
     "src/ebpy/generate/workflows.py": {
-      "ruff:D102": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -360,9 +351,6 @@
     "src/ebpy/models.py": {
       "ruff:D101": {
         "count": 11
-      },
-      "ruff:D102": {
-        "count": 1
       },
       "ruff:D103": {
         "count": 1
@@ -1112,9 +1100,6 @@
     },
     "tests/test_skills_install.py": {
       "ruff:D100": {
-        "count": 1
-      },
-      "ruff:D102": {
         "count": 1
       },
       "ruff:D103": {

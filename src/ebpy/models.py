@@ -139,6 +139,7 @@ class Diagnosis:
     gaps: tuple[Gap, ...]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the diagnosis to a JSON-ready dict with camelCase keys."""
         return {
             "packageManager": self.package_manager,
             "requiresPython": self.requires_python,
