@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:18:33Z",
+  "updatedAt": "2026-08-24T07:24:07Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -126,11 +126,6 @@
       "status": "draining"
     },
     "ruff:PLC2801": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
-    "ruff:PLR0914": {
       "baseline": 1,
       "current": 1,
       "status": "draining"
@@ -261,6 +256,13 @@
       "kind": "drained",
       "rule": "ruff:PT011",
       "text": "4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement"
+    },
+    {
+      "at": "2026-08-24T07:24:07Z",
+      "commit": "382bbee689c4989583c22a0dbd1eaee7e64ab542",
+      "kind": "drained",
+      "rule": "ruff:PLR0914",
+      "text": "1 violation; extracted _prune_one_analyzer pure helper to drop prune_measurement below the local-variable ceiling; not a bug, a clean refactor with added test coverage"
     }
   ]
 }
