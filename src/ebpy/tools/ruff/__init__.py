@@ -10,6 +10,7 @@ from ebpy.generate.configs import ruff_pyproject_section, ruff_toml_content
 from ebpy.measurement import Failed, Measured, Observation, Unavailable
 from ebpy.models import Gap, ToolSetup
 from ebpy.repo.detect.tooling import _tool_table
+
 from ._runner import (
     RuffFailedError,
     RuffInvalidOutputError,

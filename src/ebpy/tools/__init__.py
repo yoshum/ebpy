@@ -6,6 +6,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from ebpy.measurement import Measurement
+
 from .gitleaks import GitleaksDetector, GitleaksProvisioner
 from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
 from .pytest import PytestDetector, PytestProvisioner

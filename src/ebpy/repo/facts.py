@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ebpy.models import SourceFile, WorkflowFile
+
 from .git import tracked_files
 
 _SKIPPED_DIRS = {

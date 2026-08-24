@@ -11,6 +11,7 @@ from ebpy.generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 from ebpy.measurement import Failed, Measured, Observation, Unavailable
 from ebpy.models import Gap, ToolSetup
 from ebpy.repo.detect.tooling import _ini_has_section, _tool_table
+
 from ._runner import (
     MypyFailedError,
     MypyInvalidOutputError,

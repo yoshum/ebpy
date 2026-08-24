@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from ebpy import __version__
+
 from .install import InstallResult, _current_source
 
 if TYPE_CHECKING:

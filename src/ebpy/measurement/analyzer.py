@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from ebpy.models import AnalysisMeasurement
+
     from .observation import Observation
 
 

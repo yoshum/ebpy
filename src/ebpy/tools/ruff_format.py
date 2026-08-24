@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from ebpy.models import Gap, ToolSetup
 from ebpy.repo.detect.tooling import _dependency_names, _tool_table
+
 from .ruff import has_ruff_config
 
 if TYPE_CHECKING:
