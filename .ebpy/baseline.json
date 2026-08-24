@@ -1,20 +1,4 @@
 {
   "version": 2,
-  "cells": {
-    "src/ebpy/tools/__init__.py": {
-      "ruff:RUF067": {
-        "count": 11
-      }
-    },
-    "src/ebpy/tools/mypy/__init__.py": {
-      "ruff:RUF067": {
-        "count": 6
-      }
-    },
-    "src/ebpy/tools/ruff/__init__.py": {
-      "ruff:RUF067": {
-        "count": 4
-      }
-    }
-  }
+  "cells": {}
 }

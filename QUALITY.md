@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 303 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 306 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **21**
+- Open violations: **0**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,8 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 21 findings across 1 rules
-  - [ ] `ruff:RUF067` — 21 left
+- [x] **P3 drain** — backlog empty
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -35,9 +34,7 @@ Refactors left undone, with the commit each was seen at. Re-check before acting 
 
 Ceiling is the count at the last freeze. It may fall and must never rise.
 
-| Rule | Ceiling | Now | Change | Status |
-| --- | ---: | ---: | ---: | --- |
-| `ruff:RUF067` | 21 | 21 | 0 | draining |
+Nothing to grandfather — the freeze found no violations.
 
 ## Outstanding
 
@@ -49,6 +46,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 5f9fd84a | drained | ruff:RUF067 | 21 across tools/, tools/ruff/, tools/mypy/ __init__.py; moved implementations into named modules, __init__ now re-exports only. No behaviour change; rule graduated. |
 | 2026-08-24 | 07f77499 | drained | ruff:RUF105 | 6 noqa:ARG002 removed; ARG002 moved to a src/ebpy/tools/** per-file-ignore (protocol methods). No behaviour change; rule graduated. |
 | 2026-08-24 | e5aa3982 | drained | ruff:PLC1901 | 1 in store/state.py; frozen_at (already str-narrowed) != '' -> truthiness. tests' PLC1901 handled via config. No behaviour change. |
 | 2026-08-24 | a13213a1 | drained | ruff:PLR2004 | 2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change. |
@@ -68,7 +66,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 37613734 | deferred | ruff:D103 | 377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md — owner decision on exempting tests/, see #55 |
 | 2026-08-24 | 37613734 | deferred | ruff:TID252 | 340 across 47 files; whole-repo relative->absolute import migration reverses an established convention — owner decision, see #54 |
 | 2026-08-24 | 695de069 | drained | ruff:D101 | 36 classes across 16 files; added one-line docstrings to public dataclasses/value objects; no real bug |
-| 2026-08-24 | 4c9332ec | drained | ruff:D100 | 21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug |
 
 ## Notes
 

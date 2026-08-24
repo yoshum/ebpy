@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T13:37:16Z",
+  "updatedAt": "2026-08-24T14:37:04Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -44,13 +44,7 @@
     "mypy",
     "ruff"
   ],
-  "rules": {
-    "ruff:RUF067": {
-      "baseline": 21,
-      "current": 21,
-      "status": "draining"
-    }
-  },
+  "rules": {},
   "log": [
     {
       "at": "2026-08-18T00:08:49Z",
@@ -365,6 +359,13 @@
       "kind": "drained",
       "rule": "ruff:RUF105",
       "text": "6 noqa:ARG002 removed; ARG002 moved to a src/ebpy/tools/** per-file-ignore (protocol methods). No behaviour change; rule graduated."
+    },
+    {
+      "at": "2026-08-24T14:37:04Z",
+      "commit": "5f9fd84a62250e28ea615ec8dcf1ad808f00fc40",
+      "kind": "drained",
+      "rule": "ruff:RUF067",
+      "text": "21 across tools/, tools/ruff/, tools/mypy/ __init__.py; moved implementations into named modules, __init__ now re-exports only. No behaviour change; rule graduated."
     }
   ]
 }
