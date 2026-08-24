@@ -7,8 +7,8 @@ from ebpy.models import (
     Gap,
     RuleBaseline,
     SizeDistribution,
+    ToolSetup,
 )
-from ebpy.repo.detect.detector import ToolSetup
 from ebpy.store.state import empty_state
 
 

@@ -5,8 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..models import Gap
-from ..repo.detect.detector import ToolSetup
+from ..models import Gap, ToolSetup
 from ..repo.detect.tooling import pytest_configured
 
 if TYPE_CHECKING:

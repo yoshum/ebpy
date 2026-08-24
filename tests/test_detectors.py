@@ -5,11 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ebpy.models import WorkflowFile
-from ebpy.repo.detect.detector import MypySetup, ToolSetup
+from ebpy.models import ToolSetup, WorkflowFile
 from ebpy.repo.facts import RepoFacts
 from ebpy.tools.gitleaks import GitleaksDetector
-from ebpy.tools.mypy import MypyDetector
+from ebpy.tools.mypy import MypyDetector, MypySetup
 from ebpy.tools.pytest import PytestDetector
 from ebpy.tools.ruff import RuffDetector
 from ebpy.tools.ruff_format import RuffFormatDetector

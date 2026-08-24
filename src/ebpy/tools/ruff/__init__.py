@@ -6,8 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ...measurement import Failed, Measured, Observation, Unavailable
-from ...models import Gap
-from ...repo.detect.detector import ToolSetup
+from ...models import Gap, ToolSetup
 from ...repo.detect.tooling import has_ruff_config
 from ._runner import (
     RuffFailedError,

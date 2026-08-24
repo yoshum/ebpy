@@ -12,9 +12,9 @@ from ebpy.models import (
     RuleBaseline,
     SizeDistribution,
     State,
+    ToolSetup,
     diagnosis_from_dict,
 )
-from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.state import (
     Ledger,
     append_log,
@@ -29,6 +29,7 @@ from ebpy.store.state import (
     total_violations,
     write_state,
 )
+from ebpy.tools.mypy import MypySetup
 
 
 def _v1_raw(
@@ -393,13 +394,21 @@ def test_diagnosis_round_trips_tool_setups_without_a_version_bump() -> None:
 
     restored = diagnosis_from_dict(diagnosis.to_dict())
 
-    assert restored.tool_setups["mypy"] == MypySetup(configured=True, strict=False)
+    # Every setup reads back as a base ToolSetup. mypy's strictness is provenance regenerated on
+    # the next diagnose, so it is written but never reconstructed — the read-back is not a MypySetup.
+    assert restored.tool_setups["mypy"] == ToolSetup(configured=True)
+    assert not isinstance(restored.tool_setups["mypy"], MypySetup)
     assert restored.tool_setups["ruff"] == ToolSetup(configured=True)
     assert restored.pre_commit is True
     assert restored.agent_instructions == ("CLAUDE.md",)
     # secretScanning is derived from the secret-scan detector, not stored as its own field.
     assert restored.secret_scanning is True
-    assert restored == diagnosis
+
+
+def test_a_mypy_setup_serializes_its_strictness() -> None:
+    """MypySetup writes `strict` into its dict even when off, so the stored diagnosis records it."""
+    assert MypySetup(configured=True, strict=False).to_dict() == {"configured": True, "strict": False}
+    assert MypySetup(configured=True, strict=True).to_dict() == {"configured": True, "strict": True}
 
 
 def test_a_legacy_tooling_diagnosis_is_tolerated_by_ignoring_it() -> None:

@@ -6,9 +6,7 @@ missing absolutely everything is the normal input here, not an error case.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from ..models import CiCoverage, Diagnosis, Gap, SizeDistribution
+from ..models import CiCoverage, Diagnosis, Gap, SizeDistribution, ToolSetup
 from ..repo.detect.ci import detect_ci, missing_runners
 from ..repo.detect.package_manager import detect_package_manager
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT, summarize_sizes
@@ -20,9 +18,6 @@ from ..repo.detect.tooling import (
 )
 from ..repo.facts import RepoFacts
 from ..tools import ANALYZERS_BY_NAME, DETECTORS
-
-if TYPE_CHECKING:
-    from ..repo.detect.detector import ToolSetup
 
 # Enough to recognise the workflow they live in; the rest is a count, not a wall of refs.
 _ACTIONS_NAMED = 3

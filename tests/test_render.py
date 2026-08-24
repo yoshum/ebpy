@@ -3,13 +3,13 @@ from __future__ import annotations
 from ebpy.decide.drain_order import build_drain_plan
 from ebpy.decide.freshness import Freshness
 from ebpy.decide.worklist import build_worklist
-from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression
+from ebpy.models import CiCoverage, Diagnosis, RuleBaseline, SizeDistribution, Suppression, ToolSetup
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.report import render_diagnosis
 from ebpy.render.worklist import build_worklist_items, render_worklist
-from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.state import append_log, empty_state
+from ebpy.tools.mypy import MypySetup
 
 CURRENT = Freshness(stale=False, reason="current")
 STALE = Freshness(stale=True, reason="42 commits since the diagnosis")

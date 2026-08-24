@@ -6,26 +6,13 @@ Detection belongs here; the ratchet (Increment R) does not detect.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol, TypeVar
+
+from ...models import ToolSetup
 
 if TYPE_CHECKING:
     from ...models import Gap
     from ..facts import RepoFacts
-
-
-@dataclass(frozen=True)
-class ToolSetup:
-    """Baseline detection result shared by every tool."""
-
-    configured: bool
-
-
-@dataclass(frozen=True)
-class MypySetup(ToolSetup):
-    """Detection result for mypy, extending ToolSetup with strictness."""
-
-    strict: bool  # strict=False surfaces as a tighten gap
 
 
 S = TypeVar("S", bound=ToolSetup)

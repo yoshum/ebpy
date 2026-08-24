@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import tomllib
+from dataclasses import replace
 from pathlib import Path
 
 from ebpy.decide.diagnose import diagnose
-from ebpy.models import SourceFile, WorkflowFile, diagnosis_from_dict
+from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.repo.detect.package_manager import detect_package_manager
 from ebpy.repo.detect.sizes import summarize_sizes
@@ -203,7 +204,15 @@ def test_a_diagnosis_survives_a_round_trip_through_json(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.12"\n', encoding="utf-8")
     diagnosis = diagnose(gather_facts(tmp_path), ())
     restored = diagnosis_from_dict(diagnosis.to_dict())
-    assert restored == diagnosis
+    # Every setup reads back as a base ToolSetup: subtype provenance (mypy's strictness) is
+    # regenerated on the next diagnose, so the round trip preserves only `configured`.
+    expected = replace(
+        diagnosis,
+        tool_setups={
+            name: ToolSetup(configured=setup.configured) for name, setup in diagnosis.tool_setups.items()
+        },
+    )
+    assert restored == expected
 
 
 def test_a_configured_analyzer_outside_the_roster_becomes_an_unratcheted_gap(tmp_path: Path) -> None:

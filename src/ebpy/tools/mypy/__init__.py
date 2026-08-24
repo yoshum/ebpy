@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ...measurement import Failed, Measured, Observation, Unavailable
-from ...models import Gap
-from ...repo.detect.detector import MypySetup
+from ...models import Gap, ToolSetup
 from ...repo.detect.tooling import mypy_configured, mypy_strict_configured
 from ._runner import (
     MypyFailedError,
@@ -21,6 +20,22 @@ if TYPE_CHECKING:
 
     from ...models import AnalysisMeasurement
     from ...repo.facts import RepoFacts
+
+
+@dataclass(frozen=True)
+class MypySetup(ToolSetup):
+    """Detection result for mypy, extending ToolSetup with strictness."""
+
+    strict: bool  # strict=False surfaces as a tighten gap
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize configured plus mypy's strictness to the stored JSON shape."""
+        return {**super().to_dict(), "strict": self.strict}
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> MypySetup:
+        """Reconstruct a mypy setup, reading back its strictness alongside configured."""
+        return cls(configured=bool(raw.get("configured")), strict=bool(raw.get("strict")))
 
 
 @dataclass(frozen=True)

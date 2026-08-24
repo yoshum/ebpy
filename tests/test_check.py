@@ -15,10 +15,11 @@ from ebpy.models import (
     RuleBaseline,
     SizeDistribution,
     State,
+    ToolSetup,
 )
-from ebpy.repo.detect.detector import MypySetup, ToolSetup
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
+from ebpy.tools.mypy import MypySetup
 
 
 def _state(

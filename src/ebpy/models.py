@@ -11,8 +11,6 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, TypeAlias
 
-from .repo.detect.detector import MypySetup, ToolSetup
-
 AnalyzerName: TypeAlias = str
 
 RuleId: TypeAlias = str
@@ -33,6 +31,26 @@ LOG_KINDS: tuple[LogKind, ...] = ("drained", "deferred", "issue", "note")
 
 CellCounts = dict[str, dict[RuleId, int]]
 CellCountsView: TypeAlias = Mapping[str, Mapping[RuleId, int]]
+
+
+@dataclass(frozen=True)
+class ToolSetup:
+    """Baseline detection result shared by every tool.
+
+    Each tool serializes itself: `to_dict`/`from_dict` are the contract the ledger stores.
+    Subclasses (e.g. mypy's) add their own fields by overriding both.
+    """
+
+    configured: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this setup to the JSON shape the ledger stores."""
+        return {"configured": self.configured}
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> ToolSetup:
+        """Reconstruct a setup from its stored JSON shape."""
+        return cls(configured=bool(raw.get("configured")))
 
 
 @dataclass(frozen=True)
@@ -107,7 +125,8 @@ class Diagnosis:
     package_manager: PackageManager
     requires_python: str | None
     framework: Framework
-    # One setup per tool detector, keyed by detector name. mypy carries a MypySetup.
+    # One setup per tool detector, keyed by detector name. Each value serializes itself,
+    # so a tool with extra provenance (mypy's strictness) carries it without this layer knowing.
     tool_setups: Mapping[str, ToolSetup]
     # Signals that are not owned by a tool detector. pre-commit and the agent instruction
     # files are repository conventions rather than analyzers, so they stay here rather than
@@ -133,13 +152,7 @@ class Diagnosis:
             "packageManager": self.package_manager,
             "requiresPython": self.requires_python,
             "framework": self.framework,
-            "toolSetups": {
-                name: {
-                    "configured": setup.configured,
-                    **({"strict": setup.strict} if isinstance(setup, MypySetup) else {}),
-                }
-                for name, setup in self.tool_setups.items()
-            },
+            "toolSetups": {name: setup.to_dict() for name, setup in self.tool_setups.items()},
             "preCommit": self.pre_commit,
             # Derived from the secret-scan detector rather than stored, so it can never drift
             # from what that detector reports.
@@ -163,14 +176,6 @@ class Diagnosis:
         }
 
 
-def _tool_setup_from_dict(name: str, raw: dict[str, Any]) -> ToolSetup:
-    configured = bool(raw.get("configured"))
-    # mypy is the one tool whose setup carries strictness; every other tool is plain.
-    if name == "mypy":
-        return MypySetup(configured=configured, strict=bool(raw.get("strict")))
-    return ToolSetup(configured=configured)
-
-
 def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
     # A legacy `tooling` object from before the per-detector shape is ignored: provenance is
     # regenerated on the next `diagnose`, so there is nothing here worth reconstructing it for.
@@ -181,8 +186,11 @@ def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
         package_manager=raw.get("packageManager", "pip"),
         requires_python=raw.get("requiresPython"),
         framework=raw.get("framework", "none"),
+        # Every setup reads back as a base ToolSetup: any extra provenance a tool wrote (mypy's
+        # strictness) is regenerated on the next `diagnose` and never read from disk, so there is
+        # nothing here worth reconstructing the subtype for.
         tool_setups={
-            name: _tool_setup_from_dict(name, value if isinstance(value, dict) else {})
+            name: ToolSetup.from_dict(value if isinstance(value, dict) else {})
             for name, value in tool_setups_raw.items()
         },
         pre_commit=bool(raw.get("preCommit")),
