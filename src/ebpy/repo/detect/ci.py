@@ -23,7 +23,7 @@ _COMMIT_PIN = re.compile(r"@(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
 
 
 def unpinned_actions(workflows: tuple[WorkflowFile, ...]) -> tuple[str, ...]:
-    """The `uses:` references that name a tag or branch instead of a commit.
+    """Find the `uses:` references that name a tag or branch instead of a commit.
 
     Local actions (`./.github/actions/x`) and container steps (`docker://`) are not
     included: neither resolves through a moveable git ref, so neither is a pin anybody

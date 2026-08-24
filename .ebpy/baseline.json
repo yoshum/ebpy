@@ -1,129 +1,12 @@
 {
   "version": 2,
   "cells": {
-    "src/ebpy/catalog.py": {
-      "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/cell_key.py": {
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/freeze.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/log.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/prune.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/decide/drain_order.py": {
-      "ruff:D205": {
-        "count": 4
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/generate/configs.py": {
-      "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D401": {
-        "count": 2
-      }
-    },
-    "src/ebpy/generate/workflows.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
     "src/ebpy/measurement/observation.py": {
       "ruff:PLC2801": {
         "count": 1
       }
     },
-    "src/ebpy/render/analysis_report.py": {
-      "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D401": {
-        "count": 3
-      }
-    },
-    "src/ebpy/render/next.py": {
-      "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/render/quality.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/detect/ci.py": {
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/detect/tooling.py": {
-      "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/fan_in.py": {
-      "ruff:D205": {
-        "count": 3
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/git.py": {
-      "ruff:D205": {
-        "count": 2
-      }
-    },
-    "src/ebpy/secret_scan.py": {
-      "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/store/baseline.py": {
-      "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/store/ceiling_artifacts.py": {
-      "ruff:D401": {
-        "count": 2
-      }
-    },
     "src/ebpy/store/state.py": {
-      "ruff:D401": {
-        "count": 2
-      },
       "ruff:PLC1901": {
         "count": 1
       },

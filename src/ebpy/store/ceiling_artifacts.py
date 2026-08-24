@@ -86,7 +86,7 @@ def invalid_artifacts_message(artifacts: CeilingArtifacts) -> str:
 
 
 def _legacy_artifacts_message(version: int) -> str:
-    """A repository frozen by a retired ebpy: an old format, not corrupt bytes.
+    """Explain that a repository was frozen by a retired ebpy — an old format, not corrupt bytes.
 
     `ebpy freeze --force` is the only way forward, and it starts from an empty state — so it
     discards not just the old ceiling but the work log, the last diagnosis and the commit it
@@ -120,7 +120,7 @@ def _ledger_rule_ceilings(state: State) -> dict[RuleId, int]:
 
 
 def _validate_frozen_pair(cells: CellCounts, state: State) -> tuple[ArtifactKind, str | None]:
-    """The three ways a frozen pair's data can still disagree.
+    """Check the three ways a frozen pair's data can still disagree.
 
     Checked in this order because an analyzer missing from the roster always makes the
     rule-totals comparison disagree too (its cells have nowhere to be accounted for in the

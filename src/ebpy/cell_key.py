@@ -57,7 +57,7 @@ def analyzer_of(rule: str) -> str:
 
 
 def is_rule_id(value: object) -> bool:
-    """The total predicate persistence readers use on untrusted JSON: never raises."""
+    """Report whether the value is a namespaced rule id; never raises on untrusted JSON."""
     return isinstance(value, str) and _partition(value) is not None
 
 

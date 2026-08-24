@@ -29,8 +29,9 @@ _SENTENCE = re.compile(r"^(.*?[.!?])(\s|$)", re.DOTALL)
 
 
 def _first_sentence(doc: str | None) -> str | None:
-    """The first sentence, not the first line: docstrings are written to wrap, so a
-    first line alone usually stops mid-clause.
+    """Return the docstring's first sentence, not merely its first line.
+
+    Docstrings are written to wrap, so a first line alone usually stops mid-clause.
     """
     if not doc:
         return None

@@ -104,17 +104,20 @@ def totals_of(entries: list[Suppression]) -> Totals:
 
 
 def cheapest_first(entries: list[Suppression], limit: int = CHEAP_VIOLATION_LIMIT) -> list[Suppression]:
-    """The cheapest cells are not merely small — each one converts a file from
-    grandfathered to enforced, permanently, for the cost of one or two edits.
+    """Rank the cheapest cells first — the ones one or two edits from clearing a file.
+
+    The cheapest cells are not merely small: each one converts a file from grandfathered
+    to enforced, permanently, for the cost of one or two edits.
     """
     cheap = [entry for entry in entries if entry.count <= limit]
     return sorted(cheap, key=lambda entry: (entry.count, entry.file, entry.rule))
 
 
 def rule_spread(entries: list[Suppression]) -> list[RuleSpread]:
-    """Ranked by files to touch rather than by violations. Forty violations in three
-    files and forty across thirty are the same number in `status` and ten times apart
-    in work.
+    """Rank rules by the number of files to touch rather than by violation count.
+
+    Forty violations in three files and forty across thirty are the same number in
+    `status` and ten times apart in work.
     """
     groups: dict[str, list[Suppression]] = {}
     for entry in entries:
@@ -132,9 +135,10 @@ def _directory_of(file: str) -> str:
 
 
 def directory_tails(entries: list[Suppression], limit: int = DIRECTORY_TAIL_LIMIT) -> list[DirectoryTail]:
-    """Directories where a rule survives in a handful of files. This says what it
-    measures — the last files *carrying* the rule — and not that the rest of the
-    directory is clean: a file Ruff never looks at has no cell either, and no
+    """Find directories where a rule survives in only a handful of files.
+
+    This says what it measures — the last files *carrying* the rule — and not that the
+    rest of the directory is clean: a file Ruff never looks at has no cell either, and no
     arithmetic over this file can tell the two apart.
     """
     groups: dict[tuple[str, str], list[Suppression]] = {}
@@ -154,11 +158,13 @@ def directory_tails(entries: list[Suppression], limit: int = DIRECTORY_TAIL_LIMI
 
 
 def heaviest_files(entries: list[Suppression], limit: int = HEAVY_FILES_SHOWN) -> list[HeavyFile]:
-    """Heavy means ONE rule the file cannot clear in a couple of edits, not a large
-    total: a file holding two rules at one violation each sums past any cheap threshold
-    while every cell in it is a quick win. A file with one cheap rule and one enormous
-    one belongs in both lists, and that is the useful answer — take the quick win,
-    leave the rest.
+    """Rank files heavy with a rule too large to clear in a couple of edits.
+
+    Heavy means ONE rule the file cannot clear in a couple of edits, not a large total:
+    a file holding two rules at one violation each sums past any cheap threshold while
+    every cell in it is a quick win. A file with one cheap rule and one enormous one
+    belongs in both lists, and that is the useful answer — take the quick win, leave the
+    rest.
     """
     groups: dict[str, list[Suppression]] = {}
     for entry in entries:

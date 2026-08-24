@@ -82,12 +82,12 @@ def interpret_gitleaks(code: int, output: str, found: str = FOUND_IN_HISTORY) ->
 
 
 def combine_scans(verdicts: list[SecretVerdict]) -> SecretVerdict:
-    """The worst verdict wins, and a scan that failed outranks a clean one: two scans
-    run, and "one of them could not look" must not be reported as "nothing found".
+    """Combine two secret-scan verdicts so the worst one wins.
 
-    Every message survives, whichever code wins: a run that both found something and
-    could not finish has two things worth acting on, and dropping the finding to
-    report the failure loses the one that names a file.
+    A scan that failed outranks a clean one: two scans run, and "one of them could not
+    look" must not be reported as "nothing found". Every message survives, whichever code
+    wins: a run that both found something and could not finish has two things worth acting
+    on, and dropping the finding to report the failure loses the one that names a file.
     """
     bad = [verdict for verdict in verdicts if not verdict.ok]
     if not bad:

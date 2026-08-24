@@ -33,14 +33,16 @@ def _headline(report: AnalysisReport) -> list[str]:
 
 
 def _banner(title: str, failure: str, consequence: str) -> list[str]:
-    """A tool's complaint quoted whole. A blockquote can hold every line it wrote, so the
-    reason a run failed does not have to survive being squeezed into one.
+    """Quote a tool's complaint whole as a markdown blockquote.
+
+    A blockquote can hold every line it wrote, so the reason a run failed does not have to
+    survive being squeezed into one.
     """
     return [f"> **{title}**", *(f"> {line}" for line in failure.splitlines()), f"> {consequence}", ""]
 
 
 def _incomplete_detail(summary: AnalyzerSummary) -> str:
-    """The unparsed files an incomplete run left behind, named the way `check` names them.
+    """List the unparsed files an incomplete run left behind, named the way `check` names them.
 
     An incomplete analyzer has no `failure` string — the run started and produced cells —
     so its complaint is the list of files it could not parse, not a tool error message.
@@ -54,7 +56,7 @@ def _incomplete_detail(summary: AnalyzerSummary) -> str:
 
 
 def _consequence(name: str, in_contract: bool) -> str:
-    """What an unmeasured analyzer means for the numbers below, which turns on the contract.
+    """Explain what an unmeasured analyzer means for the numbers below, which turns on the contract.
 
     An analyzer under contract has a ceiling: the backlog falls back to what the baseline
     already recorded, and this run measured no new violations against it. One outside the

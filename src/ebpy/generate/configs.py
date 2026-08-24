@@ -65,7 +65,7 @@ _LINE_LENGTH = 100
 
 
 def ruff_pyproject_section(target_version: str) -> str:
-    """Appended to an existing pyproject.toml that has no [tool.ruff] table."""
+    """Build the [tool.ruff] section to append to a pyproject.toml that lacks one."""
     return (
         f'[tool.ruff]\nline-length = {_LINE_LENGTH}\ntarget-version = "{target_version}"\n'
         f"\n[tool.ruff.lint]\npreview = true\n{_RUFF_SELECT}\n{_RUFF_IGNORE}"
@@ -74,7 +74,7 @@ def ruff_pyproject_section(target_version: str) -> str:
 
 
 def ruff_toml_content(target_version: str) -> str:
-    """A standalone ruff.toml, for a repository with no pyproject.toml to append to."""
+    """Build a standalone ruff.toml for a repository with no pyproject.toml to append to."""
     return (
         f'line-length = {_LINE_LENGTH}\ntarget-version = "{target_version}"\n'
         f"\n[lint]\npreview = true\n{_RUFF_SELECT}\n{_RUFF_IGNORE}"
@@ -88,8 +88,9 @@ MYPY_INI_CONTENT = "[mypy]\nstrict = True\n"
 
 
 def python_version_from_requires(requires: str | None, default: str = "py311") -> str:
-    """``requires-python = ">=3.11"`` -> ``py311``, so the generated Ruff config allows
-    exactly the syntax the package already promises.
+    """Translate ``requires-python`` into Ruff's ``target-version`` code (``>=3.11`` -> ``py311``).
+
+    The generated Ruff config then allows exactly the syntax the package already promises.
     """
     if not requires:
         return default

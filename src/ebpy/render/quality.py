@@ -84,8 +84,10 @@ def _provenance(entry: LogEntry) -> str:
 
 
 def _carried_over(state: State) -> list[str]:
-    """Deferred work is the section that decays. Each entry carries the commit it was
-    written at, so a reader can see whether the observation predates half the repo.
+    """Render the "Carried over" section: deferred work, the section that decays.
+
+    Each entry carries the commit it was written at, so a reader can see whether the
+    observation predates half the repo.
     """
     deferred = log_of_kind(state, "deferred")
     if not deferred:

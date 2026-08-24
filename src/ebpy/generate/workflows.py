@@ -109,13 +109,14 @@ def _steps_for(manager: PackageManager, python_version: str) -> _ManagerSteps:
 def gate_workflow(
     manager: PackageManager, tool_steps: list[str], python_version: str = DEFAULT_PYTHON_VERSION
 ) -> str:
-    """Format check, test and the ratchet gate, on all three platforms — path handling
-    breaks per platform, and only per platform. There is no raw `ruff check` or `mypy`
-    step: each demands zero violations and would fail on the grandfathered backlog the
-    moment the repository freezes one. `ebpy check` is the gate — it runs ruff and mypy
-    through the measurement seam and fails only on findings above the ceiling. `report`
-    runs after `check` with `if: always()`: the run where the gate has just failed is
-    the run where the backlog is worth most.
+    """Build the CI workflow running format check, tests and the ratchet gate on all platforms.
+
+    Path handling breaks per platform, and only per platform. There is no raw `ruff check`
+    or `mypy` step: each demands zero violations and would fail on the grandfathered backlog
+    the moment the repository freezes one. `ebpy check` is the gate — it runs ruff and mypy
+    through the measurement seam and fails only on findings above the ceiling. `report` runs
+    after `check` with `if: always()`: the run where the gate has just failed is the run
+    where the backlog is worth most.
     """
     steps = _steps_for(manager, python_version)
     run = steps.run_prefix

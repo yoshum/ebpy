@@ -240,7 +240,7 @@ def read_ledger(cwd: Path) -> Ledger:
 
 
 def _legacy_version(raw: object) -> int | None:
-    """The schema version of a state.json this ebpy can no longer read, or None.
+    """Return the schema version of a state.json this ebpy can no longer read, or None.
 
     Only a file that parses as JSON and names an integer version below the current one counts
     as legacy — that is a format we retired, distinct from bytes that never parsed at all.
@@ -304,7 +304,7 @@ def next_baseline(existing: int | None, current: int, mode: BaselineMode) -> int
 
 
 def copy_state(state: State) -> State:
-    """A caller's own State, safe to hand to the helpers below.
+    """Return a caller's own copy of State, safe to hand to the helpers below.
 
     `State` is deliberately the one mutable value in the codebase, so `apply_analyzer_rule_counts`,
     `replace_analyzer_rules` and `with_phase` rewrite the object they are given. A decision function

@@ -30,9 +30,11 @@ def is_log_kind(value: str) -> bool:
 
 
 def run_log(cwd: Path, kind: LogKind, text: str, rule: str | None) -> str:
-    """`deferred` is the one that earns its keep: a refactor consciously not made,
-    stamped with the commit it was seen at, so the next session can tell whether the
-    observation still describes the code.
+    """Append a work-log entry of the given kind, stamped with the current commit.
+
+    `deferred` is the one that earns its keep: a refactor consciously not made, stamped
+    with the commit it was seen at, so the next session can tell whether the observation
+    still describes the code.
     """
     if rule is not None and not is_rule_id(rule):
         raise CommandError(RULE_HINT)

@@ -61,8 +61,10 @@ def _poetry_names(pyproject: dict[str, Any] | None) -> set[str]:
 
 
 def _dependency_names(pyproject: dict[str, Any] | None) -> set[str]:
-    """Every declared dependency name, normalised: PEP 621 dependencies and optional
-    groups, PEP 735 dependency-groups, and poetry's own tables.
+    """Collect every declared dependency name, normalised.
+
+    Covers PEP 621 dependencies and optional groups, PEP 735 dependency-groups, and
+    poetry's own tables.
     """
     return _pep621_names(pyproject) | _poetry_names(pyproject)
 
