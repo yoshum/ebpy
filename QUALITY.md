@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 298 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 300 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **52**
+- Open violations: **51**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,8 +19,8 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 52 findings across 5 rules
-  - [ ] `ruff:PLC1901` — 3 left
+- [ ] **P3 drain** — 51 findings across 5 rules
+  - [ ] `ruff:PLC1901` — 2 left
   - [ ] `ruff:RUF105` — 6 left
   - [ ] `ruff:SLF001` — 8 left
   - [ ] `ruff:PLC2701` — 14 left
@@ -45,7 +45,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:PLC2701` | 14 | 14 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
-| `ruff:PLC1901` | 3 | 3 | 0 | draining |
+| `ruff:PLC1901` | 2 | 2 | 0 | draining |
 
 ## Outstanding
 
@@ -57,6 +57,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | e5aa3982 | drained | ruff:PLC1901 | 1 in store/state.py; frozen_at (already str-narrowed) != '' -> truthiness. tests' PLC1901 handled via config. No behaviour change. |
 | 2026-08-24 | a13213a1 | drained | ruff:PLR2004 | 2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change. |
 | 2026-08-24 | 2c887a55 | drained | ruff:D401 | 2 test docstrings made imperative; rule graduated. |
 | 2026-08-24 | 2c887a55 | drained | ruff:D205 | 74 test docstrings restructured to summary+body; rule graduated. |
@@ -76,7 +77,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 695de069 | drained | ruff:D101 | 36 classes across 16 files; added one-line docstrings to public dataclasses/value objects; no real bug |
 | 2026-08-24 | 4c9332ec | drained | ruff:D100 | 21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug |
 | 2026-08-24 | cbe92432 | drained | ruff:D209 | 95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting) |
-| 2026-08-24 | 75240937 | drained | ruff:TC003 | 20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene |
 
 ## Notes
 

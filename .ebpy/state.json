@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T13:23:50Z",
+  "updatedAt": "2026-08-24T13:25:17Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -46,8 +46,8 @@
   ],
   "rules": {
     "ruff:PLC1901": {
-      "baseline": 3,
-      "current": 3,
+      "baseline": 2,
+      "current": 2,
       "status": "draining"
     },
     "ruff:PLC2701": {
@@ -371,6 +371,13 @@
       "kind": "drained",
       "rule": "ruff:PLR2004",
       "text": "2 in store/state.py; extracted STATE_SCHEMA_VERSION and used it at the comparisons and the write. No behaviour change."
+    },
+    {
+      "at": "2026-08-24T13:25:17Z",
+      "commit": "e5aa39824c37899e7ee050cf3ee1029964e8157f",
+      "kind": "drained",
+      "rule": "ruff:PLC1901",
+      "text": "1 in store/state.py; frozen_at (already str-narrowed) != '' -> truthiness. tests' PLC1901 handled via config. No behaviour change."
     }
   ]
 }
