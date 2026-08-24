@@ -881,9 +881,6 @@
       "ruff:D103": {
         "count": 11
       },
-      "ruff:D301": {
-        "count": 1
-      },
       "ruff:PT018": {
         "count": 1
       }

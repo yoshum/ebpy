@@ -68,7 +68,7 @@ def test_normalize_leaves_an_absolute_path_outside_cwd_absolute(tmp_path: Path) 
 
 
 def test_normalize_reads_a_windows_drive_path_without_the_host_being_windows(tmp_path: Path) -> None:
-    """A POSIX test host must still classify `C:\\work\\src\\a.py` the way Windows would."""
+    r"""A POSIX test host must still classify `C:\work\src\a.py` the way Windows would."""
     assert PureWindowsPath("C:\\work\\src\\a.py").is_absolute()
     assert normalize_analyzer_path("C:\\work\\src\\a.py", tmp_path) == "C:/work/src/a.py"
 
