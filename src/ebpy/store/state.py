@@ -7,6 +7,7 @@ the work log, and the diagnosis provenance. Everything QUALITY.md shows is rende
 from __future__ import annotations
 
 import json
+import operator
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -202,7 +203,7 @@ def state_to_dict(state: State) -> dict[str, Any]:
         "frozenAnalyzers": sorted(state.frozen_analyzers),
         "rules": {
             name: {"baseline": rule.baseline, "current": rule.current, "status": rule.status}
-            for name, rule in sorted(state.rules.items(), key=lambda item: item[0])
+            for name, rule in sorted(state.rules.items(), key=operator.itemgetter(0))
         },
         "log": [
             {

@@ -127,9 +127,6 @@
       "ruff:D401": {
         "count": 2
       },
-      "ruff:FURB118": {
-        "count": 1
-      },
       "ruff:PLC1901": {
         "count": 1
       },
