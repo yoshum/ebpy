@@ -1,11 +1,6 @@
 {
   "version": 2,
   "cells": {
-    "src/ebpy/measurement/observation.py": {
-      "ruff:PLC2801": {
-        "count": 1
-      }
-    },
     "src/ebpy/store/state.py": {
       "ruff:PLC1901": {
         "count": 1
@@ -20,52 +15,31 @@
       }
     },
     "src/ebpy/tools/gitleaks.py": {
-      "ruff:PLR6301": {
-        "count": 5
-      },
-      "ruff:RUF027": {
-        "count": 1
-      },
       "ruff:RUF105": {
         "count": 2
       }
     },
     "src/ebpy/tools/mypy/__init__.py": {
-      "ruff:PLR6301": {
-        "count": 6
-      },
       "ruff:RUF067": {
         "count": 6
       }
     },
     "src/ebpy/tools/pytest.py": {
-      "ruff:PLR6301": {
-        "count": 5
-      },
       "ruff:RUF105": {
         "count": 1
       }
     },
     "src/ebpy/tools/ruff/__init__.py": {
-      "ruff:PLR6301": {
-        "count": 6
-      },
       "ruff:RUF067": {
         "count": 4
       }
     },
     "src/ebpy/tools/ruff_format.py": {
-      "ruff:PLR6301": {
-        "count": 5
-      },
       "ruff:RUF105": {
         "count": 2
       }
     },
     "src/ebpy/tools/vulture.py": {
-      "ruff:PLR6301": {
-        "count": 5
-      },
       "ruff:RUF105": {
         "count": 1
       }
@@ -81,9 +55,6 @@
       }
     },
     "tests/test_install.py": {
-      "ruff:PLR6301": {
-        "count": 1
-      },
       "ruff:SLF001": {
         "count": 1
       }

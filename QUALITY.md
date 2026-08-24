@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 295 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 296 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **89**
+- Open violations: **54**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,12 +19,12 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 89 findings across 9 rules
-  - [ ] `ruff:PLC2801` — 1 left
-  - [ ] `ruff:RUF027` — 1 left
+- [ ] **P3 drain** — 54 findings across 6 rules
   - [ ] `ruff:PLR2004` — 2 left
   - [ ] `ruff:PLC1901` — 3 left
   - [ ] `ruff:RUF105` — 6 left
+  - [ ] `ruff:SLF001` — 8 left
+  - [ ] `ruff:PLC2701` — 14 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -41,15 +41,12 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Rule | Ceiling | Now | Change | Status |
 | --- | ---: | ---: | ---: | --- |
-| `ruff:PLR6301` | 33 | 33 | 0 | draining |
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
 | `ruff:PLC2701` | 14 | 14 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
 | `ruff:PLR2004` | 2 | 2 | 0 | draining |
-| `ruff:PLC2801` | 1 | 1 | 0 | draining |
-| `ruff:RUF027` | 1 | 1 | 0 | draining |
 
 ## Outstanding
 
