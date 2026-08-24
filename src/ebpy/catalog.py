@@ -47,18 +47,16 @@ def extract_exports(source: str, file: str) -> list[CatalogEntry]:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-    entries: list[CatalogEntry] = []
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.name.startswith("_"):
-            entries.append(
-                CatalogEntry(
-                    name=node.name,
-                    file=file,
-                    line=node.lineno,
-                    summary=_first_sentence(ast.get_docstring(node)),
-                )
-            )
-    return entries
+    return [
+        CatalogEntry(
+            name=node.name,
+            file=file,
+            line=node.lineno,
+            summary=_first_sentence(ast.get_docstring(node)),
+        )
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.name.startswith("_")
+    ]
 
 
 def _directory_of(file: str) -> str:

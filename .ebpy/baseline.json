@@ -21,9 +21,6 @@
       },
       "ruff:D401": {
         "count": 1
-      },
-      "ruff:PERF401": {
-        "count": 1
       }
     },
     "src/ebpy/cell_key.py": {
