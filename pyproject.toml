@@ -51,6 +51,7 @@ target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
+preview = true
 select = [
   "E",    # pycodestyle errors
   "W",    # pycodestyle warnings
@@ -59,6 +60,7 @@ select = [
   "PL",   # pylint
   "C90",  # mccabe complexity
   "I",    # isort
+  "TID",  # tidy-imports
   "N",    # naming
   "UP",   # pyupgrade
   "SIM",  # simplify
@@ -67,6 +69,7 @@ select = [
   "C4",   # comprehensions
   "ARG",  # unused arguments
   "A",    # builtin shadowing
+  "SLF",  # flake8-self
   "ANN",  # annotations
   "TC",   # type-checking blocks
   "D",    # pydocstyle

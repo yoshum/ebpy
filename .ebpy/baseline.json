@@ -1,6 +1,11 @@
 {
   "version": 2,
   "cells": {
+    "pyproject.toml": {
+      "ruff:RUF201": {
+        "count": 10
+      }
+    },
     "src/ebpy/catalog.py": {
       "ruff:D101": {
         "count": 1
@@ -51,6 +56,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 7
       }
     },
     "src/ebpy/commands/catalog.py": {
@@ -59,6 +67,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 6
       }
     },
     "src/ebpy/commands/check.py": {
@@ -68,17 +79,14 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D401": {
-        "count": 1
-      },
       "ruff:TC001": {
         "count": 3
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 24
       }
     },
     "src/ebpy/commands/diagnose.py": {
@@ -87,6 +95,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 11
       }
     },
     "src/ebpy/commands/freeze.py": {
@@ -110,6 +121,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 30
       }
     },
     "src/ebpy/commands/install.py": {
@@ -127,6 +141,9 @@
       },
       "ruff:TC006": {
         "count": 3
+      },
+      "ruff:TID252": {
+        "count": 6
       }
     },
     "src/ebpy/commands/log.py": {
@@ -141,6 +158,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 11
       }
     },
     "src/ebpy/commands/next_command.py": {
@@ -149,6 +169,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 11
       }
     },
     "src/ebpy/commands/prune.py": {
@@ -161,11 +184,17 @@
       "ruff:D209": {
         "count": 1
       },
+      "ruff:PLR0914": {
+        "count": 1
+      },
       "ruff:TC001": {
         "count": 3
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 24
       }
     },
     "src/ebpy/commands/report.py": {
@@ -174,6 +203,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 6
       }
     },
     "src/ebpy/commands/secrets.py": {
@@ -182,6 +214,9 @@
       },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 10
       }
     },
     "src/ebpy/commands/skills_install.py": {
@@ -191,19 +226,31 @@
       "ruff:D103": {
         "count": 2
       },
+      "ruff:PLW0717": {
+        "count": 1
+      },
       "ruff:TC003": {
         "count": 1
       },
       "ruff:TC006": {
         "count": 2
+      },
+      "ruff:TID252": {
+        "count": 1
       }
     },
     "src/ebpy/commands/status.py": {
       "ruff:D103": {
         "count": 1
       },
+      "ruff:FURB118": {
+        "count": 1
+      },
       "ruff:TC003": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 7
       }
     },
     "src/ebpy/decide/analysis_report.py": {
@@ -218,25 +265,28 @@
       },
       "ruff:TC001": {
         "count": 3
+      },
+      "ruff:TID252": {
+        "count": 13
       }
     },
     "src/ebpy/decide/bootstrap_plan.py": {
       "ruff:D101": {
-        "count": 3
+        "count": 1
       },
       "ruff:D103": {
         "count": 2
       },
-      "ruff:TC001": {
-        "count": 1
+      "ruff:TID252": {
+        "count": 9
       }
     },
     "src/ebpy/decide/diagnose.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 17
       }
     },
     "src/ebpy/decide/drain_order.py": {
@@ -260,6 +310,9 @@
       },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 1
       }
     },
     "src/ebpy/decide/freshness.py": {
@@ -273,12 +326,23 @@
         "count": 1
       }
     },
+    "src/ebpy/decide/provisioner.py": {
+      "ruff:TID252": {
+        "count": 1
+      }
+    },
     "src/ebpy/decide/worklist.py": {
       "ruff:D103": {
         "count": 1
       },
+      "ruff:FURB118": {
+        "count": 1
+      },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 2
       }
     },
     "src/ebpy/errors.py": {
@@ -310,54 +374,34 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 2
+        "count": 1
       },
       "ruff:D209": {
-        "count": 2
+        "count": 1
       },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 1
       }
     },
-    "src/ebpy/measurement/__init__.py": {
-      "ruff:D101": {
+    "src/ebpy/measurement/analyzer.py": {
+      "ruff:TID252": {
+        "count": 1
+      }
+    },
+    "src/ebpy/measurement/observation.py": {
+      "ruff:PLC2801": {
+        "count": 1
+      },
+      "ruff:TID252": {
         "count": 4
-      },
-      "ruff:D103": {
-        "count": 1
-      },
-      "ruff:D105": {
-        "count": 3
-      },
-      "ruff:D401": {
-        "count": 1
-      },
-      "ruff:TC001": {
-        "count": 2
-      },
-      "ruff:TC003": {
-        "count": 3
-      }
-    },
-    "src/ebpy/measurement/_mypy.py": {
-      "ruff:D401": {
-        "count": 1
-      },
-      "ruff:PLR2004": {
-        "count": 1
-      }
-    },
-    "src/ebpy/measurement/_ruff.py": {
-      "ruff:D401": {
-        "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "src/ebpy/models.py": {
       "ruff:D101": {
-        "count": 12
+        "count": 11
       },
       "ruff:D102": {
         "count": 1
@@ -408,6 +452,9 @@
       },
       "ruff:TC001": {
         "count": 3
+      },
+      "ruff:TID252": {
+        "count": 3
       }
     },
     "src/ebpy/render/next.py": {
@@ -424,6 +471,9 @@
         "count": 1
       },
       "ruff:TC001": {
+        "count": 1
+      },
+      "ruff:TID252": {
         "count": 1
       }
     },
@@ -442,14 +492,23 @@
       },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 11
       }
     },
     "src/ebpy/render/report.py": {
       "ruff:D103": {
         "count": 1
       },
+      "ruff:FURB113": {
+        "count": 1
+      },
       "ruff:TC001": {
         "count": 2
+      },
+      "ruff:TID252": {
+        "count": 4
       }
     },
     "src/ebpy/render/worklist.py": {
@@ -460,6 +519,9 @@
         "count": 2
       },
       "ruff:TC001": {
+        "count": 1
+      },
+      "ruff:TID252": {
         "count": 1
       }
     },
@@ -474,6 +536,14 @@
       },
       "ruff:D401": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 2
+      }
+    },
+    "src/ebpy/repo/detect/detector.py": {
+      "ruff:TID252": {
+        "count": 3
       }
     },
     "src/ebpy/repo/detect/package_manager.py": {
@@ -482,11 +552,17 @@
       },
       "ruff:TC001": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 1
       }
     },
     "src/ebpy/repo/detect/sizes.py": {
       "ruff:D103": {
         "count": 1
+      },
+      "ruff:TID252": {
+        "count": 2
       }
     },
     "src/ebpy/repo/detect/tooling.py": {
@@ -494,12 +570,15 @@
         "count": 1
       },
       "ruff:D103": {
-        "count": 5
+        "count": 2
       },
       "ruff:D205": {
         "count": 1
       },
       "ruff:D209": {
+        "count": 1
+      },
+      "ruff:TID252": {
         "count": 1
       }
     },
@@ -509,6 +588,9 @@
       },
       "ruff:D103": {
         "count": 4
+      },
+      "ruff:TID252": {
+        "count": 2
       }
     },
     "src/ebpy/repo/fan_in.py": {
@@ -536,6 +618,9 @@
         "count": 2
       },
       "ruff:TC003": {
+        "count": 1
+      },
+      "ruff:TID252": {
         "count": 1
       }
     },
@@ -577,6 +662,9 @@
       },
       "ruff:TC003": {
         "count": 2
+      },
+      "ruff:TID252": {
+        "count": 6
       }
     },
     "src/ebpy/store/ceiling_artifacts.py": {
@@ -591,6 +679,14 @@
       },
       "ruff:TC003": {
         "count": 2
+      },
+      "ruff:TID252": {
+        "count": 4
+      }
+    },
+    "src/ebpy/store/config.py": {
+      "ruff:TID252": {
+        "count": 2
       }
     },
     "src/ebpy/store/state.py": {
@@ -603,11 +699,113 @@
       "ruff:D401": {
         "count": 2
       },
+      "ruff:FURB118": {
+        "count": 1
+      },
+      "ruff:PLC1901": {
+        "count": 1
+      },
       "ruff:PLR2004": {
         "count": 2
       },
       "ruff:TC003": {
         "count": 2
+      },
+      "ruff:TID252": {
+        "count": 13
+      }
+    },
+    "src/ebpy/tools/__init__.py": {
+      "ruff:RUF067": {
+        "count": 11
+      },
+      "ruff:TID252": {
+        "count": 4
+      }
+    },
+    "src/ebpy/tools/gitleaks.py": {
+      "ruff:PLR6301": {
+        "count": 5
+      },
+      "ruff:RUF027": {
+        "count": 1
+      },
+      "ruff:RUF105": {
+        "count": 2
+      },
+      "ruff:TID252": {
+        "count": 7
+      }
+    },
+    "src/ebpy/tools/mypy/__init__.py": {
+      "ruff:PLR6301": {
+        "count": 6
+      },
+      "ruff:RUF067": {
+        "count": 6
+      },
+      "ruff:TID252": {
+        "count": 16
+      }
+    },
+    "src/ebpy/tools/mypy/_runner.py": {
+      "ruff:PLR6201": {
+        "count": 1
+      },
+      "ruff:TID252": {
+        "count": 7
+      }
+    },
+    "src/ebpy/tools/pytest.py": {
+      "ruff:PLR6301": {
+        "count": 5
+      },
+      "ruff:RUF105": {
+        "count": 1
+      },
+      "ruff:TID252": {
+        "count": 9
+      }
+    },
+    "src/ebpy/tools/ruff/__init__.py": {
+      "ruff:PLR6301": {
+        "count": 6
+      },
+      "ruff:RUF067": {
+        "count": 4
+      },
+      "ruff:TID252": {
+        "count": 16
+      }
+    },
+    "src/ebpy/tools/ruff/_runner.py": {
+      "ruff:PLR0916": {
+        "count": 1
+      },
+      "ruff:TID252": {
+        "count": 7
+      }
+    },
+    "src/ebpy/tools/ruff_format.py": {
+      "ruff:PLR6301": {
+        "count": 5
+      },
+      "ruff:RUF105": {
+        "count": 2
+      },
+      "ruff:TID252": {
+        "count": 7
+      }
+    },
+    "src/ebpy/tools/vulture.py": {
+      "ruff:PLR6301": {
+        "count": 5
+      },
+      "ruff:RUF105": {
+        "count": 1
+      },
+      "ruff:TID252": {
+        "count": 7
       }
     },
     "src/ebpy/util.py": {
@@ -647,6 +845,9 @@
       },
       "ruff:D209": {
         "count": 4
+      },
+      "ruff:PLC2701": {
+        "count": 1
       },
       "ruff:TC001": {
         "count": 1
@@ -725,7 +926,7 @@
         "count": 1
       },
       "ruff:D103": {
-        "count": 17
+        "count": 14
       },
       "ruff:D205": {
         "count": 10
@@ -795,6 +996,9 @@
       "ruff:PT018": {
         "count": 1
       },
+      "ruff:SLF001": {
+        "count": 4
+      },
       "ruff:TC003": {
         "count": 1
       }
@@ -813,6 +1017,12 @@
       },
       "ruff:D103": {
         "count": 17
+      },
+      "ruff:PLR6301": {
+        "count": 1
+      },
+      "ruff:SLF001": {
+        "count": 1
       },
       "ruff:TC001": {
         "count": 1
@@ -868,10 +1078,16 @@
         "count": 15
       },
       "ruff:D205": {
-        "count": 3
+        "count": 2
       },
       "ruff:D209": {
-        "count": 3
+        "count": 2
+      },
+      "ruff:PLC2701": {
+        "count": 6
+      },
+      "ruff:SLF001": {
+        "count": 1
       },
       "ruff:TC003": {
         "count": 1
@@ -917,6 +1133,9 @@
       },
       "ruff:D103": {
         "count": 20
+      },
+      "ruff:PLC1901": {
+        "count": 2
       }
     },
     "tests/test_report.py": {
@@ -949,6 +1168,9 @@
       "ruff:D403": {
         "count": 2
       },
+      "ruff:PLC2701": {
+        "count": 7
+      },
       "ruff:PT018": {
         "count": 1
       },
@@ -973,6 +1195,9 @@
       },
       "ruff:D103": {
         "count": 18
+      },
+      "ruff:SLF001": {
+        "count": 2
       }
     },
     "tests/test_state.py": {
