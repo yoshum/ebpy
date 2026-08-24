@@ -3,7 +3,7 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 269 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 270 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
@@ -27,6 +27,13 @@ Top to bottom. An unattended run works this list and nothing else.
   - [ ] `ruff:PLR2004` — 2 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
+
+## Carried over
+
+Refactors left undone, with the commit each was seen at. Re-check before acting on an old one.
+
+- [ ] `ruff:TID252` — 340 across 47 files; whole-repo relative->absolute import migration reverses an established convention — owner decision, see #54  _(2026-08-24, 37613734)_
+- [ ] `ruff:D103` — 377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md — owner decision on exempting tests/, see #55  _(2026-08-24, 37613734)_
 
 ## Ratchet
 
@@ -65,6 +72,8 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 37613734 | deferred | ruff:D103 | 377 across 66 files; many are sentence-named tests where a docstring is redundant per CLAUDE.md — owner decision on exempting tests/, see #55 |
+| 2026-08-24 | 37613734 | deferred | ruff:TID252 | 340 across 47 files; whole-repo relative->absolute import migration reverses an established convention — owner decision, see #54 |
 | 2026-08-24 | 695de069 | drained | ruff:D101 | 36 classes across 16 files; added one-line docstrings to public dataclasses/value objects; no real bug |
 | 2026-08-24 | 4c9332ec | drained | ruff:D100 | 21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug |
 | 2026-08-24 | cbe92432 | drained | ruff:D209 | 95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting) |
@@ -83,8 +92,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | b0d17551 | drained | ruff:D301 | 1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates |
 | 2026-08-24 | 45e3fcd2 | drained | ruff:TC006 | 12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates |
 | 2026-08-24 | 3c6eafd4 | drained | ruff:PLW0717 | 1 violation; split _swap_staged_bundle's try clause into _move_existing_aside and _move_staged_into_place; not a real bug, but the split preserves the partial-progress-for-rollback invariant and is now test-pinned |
-| 2026-08-24 | 382bbee6 | drained | ruff:PLR0914 | 1 violation; extracted _prune_one_analyzer pure helper to drop prune_measurement below the local-variable ceiling; not a bug, a clean refactor with added test coverage |
-| 2026-08-24 | 6ab6e121 | drained | ruff:PT011 | 4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement |
 
 ## Notes
 
