@@ -16,6 +16,7 @@ _LARGEST_SAMPLE = 10
 def summarize_sizes(
     source_files: tuple[SourceFile, ...], limit: int = DEFAULT_FILE_LINE_LIMIT
 ) -> SizeDistribution:
+    """Summarise the source file-size distribution and the largest files over the limit."""
     over = [file for file in source_files if file.lines > limit]
     return SizeDistribution(
         total=len(source_files),

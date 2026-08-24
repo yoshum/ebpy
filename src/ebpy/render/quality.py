@@ -172,6 +172,7 @@ def _headline(state: State) -> list[str]:
 
 
 def extract_notes(existing: str | None) -> str:
+    """Extract the owner's notes block from an existing QUALITY.md so a re-render can preserve it."""
     if not existing:
         return ""
     start = existing.find(NOTES_START)
@@ -182,6 +183,7 @@ def extract_notes(existing: str | None) -> str:
 
 
 def render_quality(state: State, notes: str, freshness: Freshness) -> str:
+    """Render the full QUALITY.md body from state, the owner's notes and the freshness verdict."""
     lines = [
         "# Quality",
         "",

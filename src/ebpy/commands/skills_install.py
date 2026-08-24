@@ -61,6 +61,7 @@ def _read_files(root: Traversable, relative: Path = Path()) -> dict[Path, bytes]
 
 
 def load_bundle() -> Bundle:
+    """Load the skills bundled inside the ebpy package, raising when none are present."""
     files = _read_files(_skills_root())
     if not files:
         raise FileNotFoundError("ebpy's bundled skills are empty")
@@ -287,6 +288,7 @@ def _write_bundle(cwd: Path, destination: Path, bundle: Bundle, manifest_hashes:
 
 
 def run_skills_install(cwd: Path, force: bool, bundle: Bundle | None = None) -> InstallResult:
+    """Run ``ebpy skills install``: copy the bundled skills into the project's .claude/skills."""
     if not (cwd / "pyproject.toml").is_file():
         return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
 

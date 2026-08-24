@@ -35,6 +35,7 @@ def _append_to_step_summary(markdown: str) -> None:
 
 
 def run_report(cwd: Path, as_json: bool) -> str:
+    """Run ``ebpy report``: render every rule's standing against the frozen contract."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))

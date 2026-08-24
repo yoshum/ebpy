@@ -67,6 +67,11 @@ class CeilingArtifacts:
 
 
 def invalid_artifacts_message(artifacts: CeilingArtifacts) -> str:
+    """Build the operator-facing message for an invalid ceiling pair.
+
+    A retired schema version is routed to its own explanation; every other case reports the
+    stored detail and refuses to reconstruct a ceiling from partial data.
+    """
     assert artifacts.detail is not None
     if artifacts.legacy_version is not None:
         return _legacy_artifacts_message(artifacts.legacy_version)

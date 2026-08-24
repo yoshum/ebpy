@@ -152,6 +152,7 @@ def _unratcheted_section(report: AnalysisReport) -> list[str]:
 
 
 def render_analysis_report(report: AnalysisReport) -> str:
+    """Render the analysis report as Markdown."""
     lines = [
         "# Analysis report",
         "",

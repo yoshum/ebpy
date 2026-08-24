@@ -64,10 +64,12 @@ def _now() -> str:
 
 
 def state_path(cwd: Path) -> Path:
+    """Locate ``.ebpy/state.json`` under a repository root."""
     return cwd / STATE_DIR / STATE_FILE
 
 
 def empty_state() -> State:
+    """Build the ledger a repository has before its first freeze records any rule."""
     return State(updated_at=_now())
 
 
@@ -155,6 +157,7 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
 
 
 def state_from_dict(raw: dict[str, Any]) -> State | None:
+    """Build a State from raw JSON, or None when it is not a valid version-2 ledger."""
     if not _has_valid_v2_shape(raw):
         return None
     try:
@@ -180,6 +183,11 @@ def state_from_dict(raw: dict[str, Any]) -> State | None:
 
 
 def state_to_dict(state: State) -> dict[str, Any]:
+    """Render a State as the version-2 JSON written to state.json.
+
+    Rules and analyzers are sorted so the file diffs stably across runs, and a log entry's
+    ``rule`` key is omitted rather than written null when it carries none.
+    """
     return {
         "version": 2,
         "tool": state.tool,
@@ -208,6 +216,11 @@ def state_to_dict(state: State) -> dict[str, Any]:
 
 
 def read_ledger(cwd: Path) -> Ledger:
+    """Read the ledger from disk as a Ledger that separates absence from corruption.
+
+    A symlink at the path or its parent is treated as present-but-unreadable rather than
+    followed, so a tampered ``.ebpy`` cannot redirect the read.
+    """
     path = state_path(cwd)
     if path.parent.is_symlink() or path.is_symlink():
         return Ledger(exists=True, state=None)
@@ -236,6 +249,7 @@ def _legacy_version(raw: Any) -> int | None:
 
 
 def write_state(cwd: Path, state: State) -> None:
+    """Write state to state.json, stamping ``updatedAt`` and replacing any symlink at the path."""
     path = state_path(cwd)
     if path.parent.is_symlink():
         path.parent.unlink()
@@ -247,6 +261,7 @@ def write_state(cwd: Path, state: State) -> None:
 
 
 def with_diagnosis(state: State, diagnosis: Any, commit: str | None) -> State:
+    """Attach a diagnosis to the ledger with the time and commit it was taken at."""
     state.diagnosis = diagnosis
     state.diagnosed_at = _now()
     state.diagnosed_commit = commit
@@ -254,21 +269,30 @@ def with_diagnosis(state: State, diagnosis: Any, commit: str | None) -> State:
 
 
 def append_log(state: State, kind: LogKind, text: str, commit: str | None, rule: str | None = None) -> State:
+    """Append a work-log entry, keeping only the most recent ``MAX_LOG_ENTRIES``."""
     state.log = [*state.log, LogEntry(at=_now(), commit=commit, kind=kind, text=text, rule=rule)]
     state.log = state.log[-MAX_LOG_ENTRIES:]
     return state
 
 
 def log_of_kind(state: State, kind: LogKind) -> list[LogEntry]:
+    """Return the log entries of a single kind, in the order they were recorded."""
     return [entry for entry in state.log if entry.kind == kind]
 
 
 def with_phase(state: State, phase: Phase) -> State:
+    """Move the ledger to a workflow phase."""
     state.phase = phase
     return state
 
 
 def next_baseline(existing: int | None, current: int, mode: BaselineMode) -> int:
+    """Compute a rule's next ceiling for a baseline mode.
+
+    ``freeze`` lowers the ceiling to today's count but never raises it; ``observe`` holds the
+    existing ceiling; ``rebaseline`` resets it to today's count. With no existing ceiling, any
+    mode takes today's count.
+    """
     if existing is None or mode == "rebaseline":
         return current
     return min(existing, current) if mode == "freeze" else existing
@@ -333,6 +357,7 @@ def replace_analyzer_rules(state: State, analyzer: str, counts: Mapping[RuleId, 
 
 
 def improvements(state: State) -> list[Regression]:
+    """Return the rules whose current count sits below their ceiling — the drain a freeze can bank."""
     return [
         Regression(name=name, baseline=rule.baseline, current=rule.current)
         for name, rule in state.rules.items()
@@ -341,4 +366,5 @@ def improvements(state: State) -> list[Regression]:
 
 
 def total_violations(state: State) -> int:
+    """Return the total number of live violations across every rule."""
     return sum(rule.current for rule in state.rules.values())

@@ -27,6 +27,7 @@ def is_git_repository(cwd: Path) -> bool:
 
 
 def head_commit(cwd: Path) -> str | None:
+    """Return the current HEAD sha, or None when it cannot be resolved or is malformed."""
     try:
         result = run(["git", "rev-parse", "HEAD"], cwd)
     except OSError:

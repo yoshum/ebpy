@@ -92,6 +92,7 @@ _FRAMEWORKS: tuple[tuple[str, Framework], ...] = (
 
 
 def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
+    """Identify the web framework from the project's dependencies, or 'none'."""
     deps = _dependency_names(pyproject)
     for name, framework in _FRAMEWORKS:
         if name in deps:
@@ -100,5 +101,6 @@ def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
 
 
 def requires_python(pyproject: dict[str, Any] | None) -> str | None:
+    """Return the project's declared requires-python, or None when absent or not a string."""
     value = ((pyproject or {}).get("project") or {}).get("requires-python")
     return value if isinstance(value, str) else None

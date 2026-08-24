@@ -71,6 +71,7 @@ def _gap_lines(gaps: tuple[Gap, ...]) -> list[str]:
 
 
 def render_diagnosis(diagnosis: Diagnosis) -> str:
+    """Render the ``ebpy diagnose`` report as text."""
     return "\n".join(
         [
             "ebpy diagnose",

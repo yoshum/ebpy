@@ -296,6 +296,7 @@ def build_scoped_freeze(
 
 
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
+    """Run ``ebpy freeze``: pin today's counts as the ceiling for one analyzer or the whole roster."""
     config = read_config(cwd)
     artifacts = read_ceiling_artifacts(cwd)
 

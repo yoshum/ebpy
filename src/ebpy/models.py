@@ -180,6 +180,7 @@ class Diagnosis:
 
 
 def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
+    """Rebuild a Diagnosis from its stored JSON form."""
     # A legacy `tooling` object from before the per-detector shape is ignored: provenance is
     # regenerated on the next `diagnose`, so there is nothing here worth reconstructing it for.
     tool_setups_raw = raw.get("toolSetups") or {}

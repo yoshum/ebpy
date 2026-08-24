@@ -29,6 +29,7 @@ def _backlog_children(smallest_backlogs: tuple[tuple[str, int], ...]) -> tuple[s
 
 
 def build_worklist_items(worklist: Worklist) -> list[WorklistItem]:
+    """Build the ordered P0-P5 worklist items, each marked done and annotated for the current state."""
     return [
         WorklistItem(
             done=worklist.diagnosed,
@@ -69,6 +70,7 @@ def build_worklist_items(worklist: Worklist) -> list[WorklistItem]:
 
 
 def render_worklist(items: list[WorklistItem]) -> list[str]:
+    """Render worklist items as the Markdown checklist lines shown in reports."""
     lines: list[str] = []
     for item in items:
         box = "[x]" if item.done else "[ ]"

@@ -18,6 +18,7 @@ _NEXT_RULE_SAMPLE = 5
 
 
 def run_status(cwd: Path, as_json: bool) -> str:
+    """Run ``ebpy status``: report the ledger's current phase, freshness and backlog."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))

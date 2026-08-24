@@ -36,6 +36,10 @@ _SCANS: tuple[tuple[list[str], str], ...] = (
 
 
 def run_secrets(cwd: Path) -> SecretVerdict:
+    """Run ``ebpy secrets``: scan history and the working tree with gitleaks.
+
+    An empty scan is never reported as clean.
+    """
     # Measured, not assumed: outside a work tree `gitleaks git` logs an error, scans
     # zero commits, and exits 0. Passing that on would be a clean result for a scan
     # that read nothing.

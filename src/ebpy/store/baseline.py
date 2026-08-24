@@ -25,6 +25,7 @@ BASELINE_VERSION = 2
 
 
 def baseline_path(cwd: Path) -> Path:
+    """Locate ``.ebpy/baseline.json`` under a repository root."""
     return cwd / BASELINE_FILE
 
 
@@ -99,6 +100,11 @@ class Ceiling:
 
 
 def read_ceiling(cwd: Path) -> Ceiling:
+    """Read the ratchet file as a Ceiling that separates a missing file from unreadable bytes.
+
+    A symlink at the path or its parent is treated as present-but-unreadable rather than
+    followed, so a tampered ``.ebpy`` cannot redirect the read.
+    """
     path = baseline_path(cwd)
     if path.parent.is_symlink() or path.is_symlink():
         return Ceiling(exists=True, cells=None)
@@ -112,6 +118,10 @@ def read_ceiling(cwd: Path) -> Ceiling:
 
 
 def write_cells(cwd: Path, cells: CellCountsView) -> None:
+    """Write cells to baseline.json, dropping zero counts and sorting files and rules for stable diffs.
+
+    A symlink at the path or its parent is replaced rather than followed.
+    """
     path = baseline_path(cwd)
     if path.parent.is_symlink():
         path.parent.unlink()
@@ -167,6 +177,7 @@ def split_against_baseline(
 
 
 def rule_totals(cells: CellCountsView) -> dict[RuleId, int]:
+    """Sum each rule's counts across all files — the per-rule totals the ledger stores."""
     totals: dict[RuleId, int] = {}
     for rules in cells.values():
         for rule, count in rules.items():
@@ -175,6 +186,7 @@ def rule_totals(cells: CellCountsView) -> dict[RuleId, int]:
 
 
 def analyzers_in(cells: CellCountsView) -> set[str]:
+    """Return the set of analyzer namespaces present among the cells' rules."""
     return {analyzer_of(rule) for rules in cells.values() for rule in rules}
 
 
@@ -222,4 +234,5 @@ def merge_cells(parts: Iterable[CellCountsView]) -> CellCounts:
 
 
 def finding_total(cells: CellCountsView) -> int:
+    """Return the total violation count across every cell."""
     return sum(count for rules in cells.values() for count in rules.values())

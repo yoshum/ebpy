@@ -23,6 +23,7 @@ def _gather_importers(cwd: Path, entries: list[Suppression]) -> dict[str, int]:
 
 
 def run_next(cwd: Path, as_json: bool, fan_in: bool) -> str:
+    """Run ``ebpy next``: rank the remaining backlog into the cheapest drain work to do next."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))

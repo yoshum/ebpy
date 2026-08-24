@@ -161,6 +161,7 @@ def _requirement(manager: PackageManager, target: InstallTarget) -> str:
 
 
 def run_install(cwd: Path, version: str | None, ref: str | None, force: bool) -> InstallResult:
+    """Run ``ebpy install``: pin ebpy into the project's dev dependencies at a matching Git ref."""
     if not (cwd / "pyproject.toml").is_file():
         return InstallResult(False, f"No pyproject.toml in {cwd}; run this from the project root.")
     target = _resolve_target(version, ref, _bootstrap_ref())

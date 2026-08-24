@@ -172,6 +172,7 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
 
 
 def run_check(cwd: Path, write: bool) -> CheckResult:
+    """Run ``ebpy check``: gate the repository, failing if any count rose above its ceiling."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         return CheckResult(ok=False, message=invalid_artifacts_message(artifacts))

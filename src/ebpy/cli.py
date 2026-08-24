@@ -65,6 +65,7 @@ class _Result(Protocol):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the ebpy argument parser, repeating the global --cwd/--json flags after each subcommand."""
     parser = argparse.ArgumentParser(
         prog="ebpy",
         description="Make a Python codebase that can only get better.",
@@ -217,6 +218,7 @@ def _dispatch(args: argparse.Namespace, cwd: Path) -> Outcome:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse argv, dispatch the subcommand, and return the process exit code."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.command:

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 
 def run_diagnose(cwd: Path, as_json: bool, write: bool) -> str:
+    """Run ``ebpy diagnose``: measure the repository and, when writing, record the diagnosis in the ledger."""
     artifacts = read_ceiling_artifacts(cwd) if write else None
     if artifacts is not None and artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))

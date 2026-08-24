@@ -95,6 +95,7 @@ class DrainPlan:
 
 
 def totals_of(entries: list[Suppression]) -> Totals:
+    """Sum a set of suppressions into their violation, file and rule totals."""
     return Totals(
         violations=sum(entry.count for entry in entries),
         files=len({entry.file for entry in entries}),
@@ -171,6 +172,7 @@ def heaviest_files(entries: list[Suppression], limit: int = HEAVY_FILES_SHOWN) -
 
 
 def build_drain_plan(entries: list[Suppression], importers: dict[str, int] | None = None) -> DrainPlan:
+    """Rank the backlog into a drain plan: cheapest targets, rule spread, directory tails, heaviest files."""
     return DrainPlan(
         totals=totals_of(entries),
         take_first=tuple(cheapest_first(entries)),

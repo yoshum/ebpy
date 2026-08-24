@@ -33,6 +33,7 @@ _WORST_SAMPLE = 5
 
 
 def area_of(file: str) -> str:
+    """Return the top-level area a file belongs to — its first path segment, or the root marker."""
     first, _, rest = file.partition("/")
     return ROOT_AREA if not rest or not first else first
 
@@ -121,6 +122,7 @@ class AnalysisReport:
 
 
 def matrix_from_cells(cells: CellCountsView) -> Matrix:
+    """Fold cells into a rule-by-area matrix, summing each rule's counts within an area."""
     matrix: Matrix = {}
     for file, rules in cells.items():
         area = matrix.setdefault(area_of(file), {})

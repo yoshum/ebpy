@@ -52,6 +52,7 @@ def build_plan(
     all_files: tuple[str, ...],
     python_version: str,
 ) -> BootstrapPlan:
+    """Decide the bootstrap plan — packages to install and files to create — from a diagnosis."""
     has_pyproject = "pyproject.toml" in root_entries
     packages = _missing_dev_packages(diagnosis)
     install = (
@@ -104,6 +105,7 @@ def build_plan(
 
 
 def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
+    """Render a bootstrap plan as the text shown for a real run or a dry run."""
     lines = ["ebpy bootstrap" + (" --dry-run" if dry_run else ""), ""]
     if plan.install:
         lines.append(("would run:  " if dry_run else "installing: ") + " ".join(plan.install.argv))

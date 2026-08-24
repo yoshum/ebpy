@@ -114,6 +114,7 @@ def build_graph(sources: Sources) -> ImportGraph:
 
 
 def count_importers(graph: ImportGraph) -> dict[str, int]:
+    """Count how many distinct files import each file — the fan-in that ranks drain targets."""
     importers = dict.fromkeys(graph, 0)
     for dependencies in graph.values():
         for dependency in set(dependencies):

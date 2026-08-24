@@ -57,6 +57,7 @@ def _smallest_backlogs(state: State) -> tuple[tuple[str, int], ...]:
 
 
 def build_worklist(state: State) -> Worklist:
+    """Derive from the ledger which phase the user is in and what step comes next."""
     diagnosed = state.diagnosed_at is not None
     bootstrap_gaps = _open_bootstrap_gaps(state)
     frozen = state.frozen_at is not None

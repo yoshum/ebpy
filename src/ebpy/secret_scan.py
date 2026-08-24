@@ -65,6 +65,7 @@ def _joined(headline: str, output: str) -> str:
 
 
 def interpret_gitleaks(code: int, output: str, found: str = FOUND_IN_HISTORY) -> SecretVerdict:
+    """Map a gitleaks exit code and output to a SecretVerdict, treating a failed scan as not clean."""
     if code == CLEAN_EXIT_CODE:
         return SecretVerdict(ok=True, code=CLEAN_EXIT_CODE, message="No secrets found.")
     if code == SECRET_FINDING_EXIT_CODE:

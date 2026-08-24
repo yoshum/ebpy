@@ -2,9 +2,6 @@
   "version": 2,
   "cells": {
     "src/ebpy/catalog.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -13,42 +10,11 @@
       }
     },
     "src/ebpy/cell_key.py": {
-      "ruff:D103": {
-        "count": 3
-      },
       "ruff:D401": {
         "count": 1
       }
     },
-    "src/ebpy/cli.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
-    "src/ebpy/commands/bootstrap.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/catalog.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/check.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/diagnose.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
     "src/ebpy/commands/freeze.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -62,21 +28,8 @@
         "count": 1
       }
     },
-    "src/ebpy/commands/install.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
     "src/ebpy/commands/log.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/next_command.py": {
-      "ruff:D103": {
         "count": 1
       }
     },
@@ -85,54 +38,11 @@
         "count": 1
       }
     },
-    "src/ebpy/commands/report.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/secrets.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/commands/skills_install.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
-    "src/ebpy/commands/status.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/decide/analysis_report.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
-    "src/ebpy/decide/bootstrap_plan.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
     "src/ebpy/decide/drain_order.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D205": {
         "count": 4
       },
       "ruff:D401": {
-        "count": 1
-      }
-    },
-    "src/ebpy/decide/freshness.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/decide/worklist.py": {
-      "ruff:D103": {
         "count": 1
       }
     },
@@ -154,20 +64,7 @@
         "count": 1
       }
     },
-    "src/ebpy/models.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/quality_file.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
     "src/ebpy/render/analysis_report.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -176,9 +73,6 @@
       }
     },
     "src/ebpy/render/next.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -187,58 +81,21 @@
       }
     },
     "src/ebpy/render/quality.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D205": {
         "count": 1
       }
     },
-    "src/ebpy/render/report.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/render/worklist.py": {
-      "ruff:D103": {
-        "count": 2
-      }
-    },
     "src/ebpy/repo/detect/ci.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D401": {
         "count": 1
       }
     },
-    "src/ebpy/repo/detect/package_manager.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/detect/sizes.py": {
-      "ruff:D103": {
-        "count": 1
-      }
-    },
     "src/ebpy/repo/detect/tooling.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D205": {
         "count": 1
       }
     },
-    "src/ebpy/repo/facts.py": {
-      "ruff:D103": {
-        "count": 4
-      }
-    },
     "src/ebpy/repo/fan_in.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 3
       },
@@ -247,17 +104,11 @@
       }
     },
     "src/ebpy/repo/git.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 2
       }
     },
     "src/ebpy/secret_scan.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -266,9 +117,6 @@
       }
     },
     "src/ebpy/store/baseline.py": {
-      "ruff:D103": {
-        "count": 6
-      },
       "ruff:D205": {
         "count": 2
       },
@@ -277,9 +125,6 @@
       }
     },
     "src/ebpy/store/ceiling_artifacts.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D401": {
         "count": 2
       }
@@ -287,9 +132,6 @@
     "src/ebpy/store/state.py": {
       "ruff:ANN401": {
         "count": 7
-      },
-      "ruff:D103": {
-        "count": 13
       },
       "ruff:D401": {
         "count": 2
@@ -360,11 +202,6 @@
         "count": 5
       },
       "ruff:RUF105": {
-        "count": 1
-      }
-    },
-    "src/ebpy/util.py": {
-      "ruff:D103": {
         "count": 1
       }
     },

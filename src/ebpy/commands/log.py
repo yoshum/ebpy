@@ -25,6 +25,7 @@ RULE_HINT = "--rule must be a namespaced rule ID, e.g. ruff:C901 or mypy:arg-typ
 
 
 def is_log_kind(value: str) -> bool:
+    """Report whether a string is a recognised work-log kind."""
     return value in LOG_KINDS
 
 

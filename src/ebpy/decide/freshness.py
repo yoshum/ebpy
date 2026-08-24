@@ -47,6 +47,7 @@ def _days_between(from_iso: str, to: datetime) -> int | None:
 
 
 def assess_freshness(inp: FreshnessInput) -> Freshness:
+    """Decide whether a recorded diagnosis can still be trusted given its age and the commits since."""
     if not inp.diagnosed_at or not inp.diagnosed_commit:
         return Freshness(stale=True, reason="never diagnosed — run `ebpy diagnose --write` first")
     age = _days_between(inp.diagnosed_at, inp.now)

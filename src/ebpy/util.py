@@ -20,6 +20,7 @@ class ExecResult:
 
 
 def run(argv: list[str], cwd: Path) -> ExecResult:
+    """Run a subprocess to completion, capturing its output; a nonzero exit is returned, not raised."""
     completed = subprocess.run(
         argv,
         cwd=cwd,

@@ -81,6 +81,7 @@ _HEADER = [
 
 
 def render_catalog(entries: list[CatalogEntry]) -> str:
+    """Render the shared-helpers catalog as Markdown, grouped by directory."""
     if not entries:
         return "\n".join([*_HEADER, "No public functions found.", ""])
     directories = sorted({_directory_of(entry.file) for entry in entries})
@@ -107,6 +108,7 @@ def render_catalog(entries: list[CatalogEntry]) -> str:
 
 
 def catalog_sources(paths: list[str]) -> list[str]:
+    """Return the Python source paths worth cataloguing, excluding test files and test directories."""
     return [
         path
         for path in paths

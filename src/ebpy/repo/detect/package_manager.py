@@ -19,6 +19,7 @@ _LOCKFILES: tuple[tuple[str, PackageManager], ...] = (
 
 
 def detect_package_manager(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> PackageManager:
+    """Identify the package manager in use, trusting a lockfile over a pyproject tool table."""
     for lockfile, manager in _LOCKFILES:
         if lockfile in root_entries:
             return manager

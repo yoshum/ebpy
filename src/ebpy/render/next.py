@@ -78,6 +78,7 @@ def _heavy_rows(plan: DrainPlan) -> list[str]:
 
 
 def render_next(plan: DrainPlan) -> str:
+    """Render the ``ebpy next`` drain guidance for a drain plan."""
     if plan.totals.violations == 0:
         return "\n".join(["ebpy next", "", _EMPTY, ""])
     headline = (
