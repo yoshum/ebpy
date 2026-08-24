@@ -15,10 +15,11 @@ from ebpy.models import (
     RuleBaseline,
     SizeDistribution,
     State,
-    ToolingPresence,
+    ToolSetup,
 )
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
+from ebpy.tools.mypy import MypySetup
 
 
 def _state(
@@ -39,17 +40,12 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
         package_manager="uv",
         requires_python=None,
         framework="none",
-        tooling=ToolingPresence(
-            ruff=True,
-            formatter=False,
-            mypy=mypy_configured,
-            mypy_strict=False,
-            pytest=False,
-            vulture=False,
-            pre_commit=False,
-            secret_scanning=False,
-            agent_instructions=(),
-        ),
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=mypy_configured, strict=False),
+        },
+        pre_commit=False,
+        agent_instructions=(),
         ci=CiCoverage(
             present=False,
             runners=(),
@@ -145,20 +141,27 @@ def test_a_non_contract_analyzer_is_named_but_never_gates() -> None:
     assert "not in the frozen contract" in decision.result.message
 
 
-def test_an_analyzer_the_repo_configures_but_the_contract_omits_is_reported_every_run() -> None:
+def test_check_stays_silent_about_a_configured_analyzer_that_did_not_run() -> None:
+    """A configured-but-unrun analyzer goes unmentioned by check.
+
+    The "configured but not ratcheted" advice moved to diagnose's gap; check speaks only about
+    analyzers this run actually attempted.
+    """
     previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {})})
 
     decision = check_measurement(previous, {}, measurement)
 
     assert decision.result.ok is True
-    assert (
-        "mypy is configured in this repository but is not in the frozen contract." in decision.result.message
-    )
-    assert "ebpy freeze --analyzer mypy" in decision.result.message
+    assert "mypy" not in decision.result.message
+    assert "configured in this repository" not in decision.result.message
 
 
-def test_that_standing_note_appears_even_when_the_analyzer_could_not_run() -> None:
+def test_an_unavailable_non_contract_analyzer_is_named_as_unmeasured_not_as_configured() -> None:
+    """An attempted but unavailable non-contract analyzer is reported as unmeasured.
+
+    The standing "configured but not ratcheted" strand is diagnose's job, not check's.
+    """
     previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
     measurement = Measurement(
         analyzers={
@@ -169,12 +172,11 @@ def test_that_standing_note_appears_even_when_the_analyzer_could_not_run() -> No
 
     decision = check_measurement(previous, {}, measurement)
 
-    assert (
-        "mypy is configured in this repository but is not in the frozen contract." in decision.result.message
-    )
+    assert "mypy was not measured and has no ceiling here" in decision.result.message
+    assert "configured in this repository" not in decision.result.message
 
 
-def test_no_standing_note_is_invented_when_the_repo_has_no_diagnosis() -> None:
+def test_check_never_reconstructs_a_note_from_the_diagnosis() -> None:
     previous = _state(frozen_analyzers=("ruff",), diagnosis=None)
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {})})
 
@@ -183,10 +185,8 @@ def test_no_standing_note_is_invented_when_the_repo_has_no_diagnosis() -> None:
     assert "configured in this repository" not in decision.result.message
 
 
-def test_a_configured_analyzer_that_ran_outside_the_contract_gets_one_merged_note() -> None:
-    """The "it ran, so its findings are unratcheted" fact and the "it is configured, freeze
-    puts it under the ceiling" fact are the same analyzer, so they collapse into a single
-    paragraph rather than double-warning about mypy."""
+def test_a_configured_analyzer_that_ran_outside_the_contract_is_named_once() -> None:
+    """A configured analyzer that ran outside the contract is named exactly once, not twice."""
     previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
     measurement = Measurement(
         analyzers={
@@ -200,22 +200,7 @@ def test_a_configured_analyzer_that_ran_outside_the_contract_gets_one_merged_not
     assert decision.result.ok is True
     assert decision.result.message.count("mypy ran but is not in the frozen contract") == 1
     assert decision.result.message.count("is configured in this repository") == 0
-    # The actionable freeze guidance still survives the merge.
-    assert "ebpy freeze --analyzer mypy" in decision.result.message
-
-
-def test_a_configured_analyzer_that_did_not_run_keeps_its_standing_note() -> None:
-    previous = _state(frozen_analyzers=("ruff",), diagnosis=_diagnosis(mypy_configured=True))
-    measurement = Measurement(
-        analyzers={
-            "ruff": _measured("ruff", {}),
-            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
-        }
-    )
-
-    decision = check_measurement(previous, {}, measurement)
-
-    assert decision.result.message.count("is configured in this repository") == 1
+    # Freeze guidance is still present.
     assert "ebpy freeze --analyzer mypy" in decision.result.message
 
 

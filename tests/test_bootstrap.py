@@ -24,7 +24,7 @@ from ebpy.repo.facts import gather_facts
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:
     facts = gather_facts(tmp_path)
-    return build_plan(diagnose(facts), facts.root_entries, facts.all_files, "3.12")
+    return build_plan(diagnose(facts, ()), facts.root_entries, facts.all_files, "3.12")
 
 
 def test_the_target_version_follows_requires_python() -> None:

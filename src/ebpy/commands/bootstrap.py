@@ -31,7 +31,9 @@ def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:
 
 def run_bootstrap(cwd: Path, dry_run: bool, python_version: str) -> str:
     facts = gather_facts(cwd)
-    diagnosis = diagnose(facts)
+    # The plan reads only the tool setups and required Python; the roster feeds the
+    # "configured but not ratcheted" gap, which the plan ignores, so an empty roster is enough.
+    diagnosis = diagnose(facts, ())
     plan = build_plan(diagnosis, facts.root_entries, facts.all_files, python_version)
     output = render_plan(plan, dry_run)
     if dry_run:

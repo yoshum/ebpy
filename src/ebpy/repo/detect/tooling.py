@@ -1,8 +1,10 @@
-"""What quality tooling is configured — read from configs, not from installs.
+"""Generic config-parsing primitives and the repository-level signals no tool owns.
 
-A tool that is installed but never configured enforces nothing, and a config
-with no install behind it fails the first run loudly enough to notice. Configs
-are the half worth detecting.
+Per-tool detection lives with each tool under ``tools/``; what stays here is the
+shared machinery those detectors build on — reading dependency names and config
+tables out of pyproject and ini files — plus the signals that belong to the
+repository rather than to any single tool: the package framework, the required
+Python, pre-commit, and the agent instruction files.
 """
 
 from __future__ import annotations
@@ -10,11 +12,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from ...models import Framework, ToolingPresence
-from ...tools import ANALYZER_NAMES
-
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from ...models import Framework
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
@@ -71,62 +70,17 @@ def _ini_has_section(text: str | None, section: str) -> bool:
     return bool(text) and bool(re.search(rf"^\[{re.escape(section)}\]", text or "", re.MULTILINE))
 
 
-def has_ruff_config(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:
-    return (
-        "ruff.toml" in root_entries
-        or ".ruff.toml" in root_entries
-        or _tool_table(pyproject, "ruff") is not None
-    )
+def pre_commit_configured(root_entries: tuple[str, ...]) -> bool:
+    """Return True when a pre-commit config sits at the repository root.
+
+    pre-commit is a repository convention rather than an analyzer, so no tool detector owns it.
+    """
+    return ".pre-commit-config.yaml" in root_entries
 
 
-def mypy_strict_configured(pyproject: dict[str, Any] | None, configs: dict[str, str]) -> bool:
-    table = _tool_table(pyproject, "mypy")
-    if table is not None and table.get("strict") is True:
-        return True
-    for name in ("mypy.ini", ".mypy.ini", "setup.cfg"):
-        text = configs.get(name)
-        if text and re.search(r"^\s*strict\s*=\s*[Tt]rue", text, re.MULTILINE):
-            return True
-    return False
-
-
-def detect_tooling(
-    root_entries: tuple[str, ...],
-    pyproject: dict[str, Any] | None,
-    configs: dict[str, str],
-    workflow_text: str,
-) -> ToolingPresence:
-    deps = _dependency_names(pyproject)
-    ruff = has_ruff_config(root_entries, pyproject)
-    mypy = (
-        _tool_table(pyproject, "mypy") is not None
-        or "mypy.ini" in root_entries
-        or ".mypy.ini" in root_entries
-        or _ini_has_section(configs.get("setup.cfg"), "mypy")
-    )
-    pytest = (
-        _tool_table(pyproject, "pytest") is not None
-        or "pytest.ini" in root_entries
-        or _ini_has_section(configs.get("tox.ini"), "pytest")
-        or _ini_has_section(configs.get("setup.cfg"), "tool:pytest")
-        or "pytest" in deps
-    )
-    pre_commit_text = configs.get(".pre-commit-config.yaml") or ""
-    return ToolingPresence(
-        ruff=ruff,
-        # Ruff formats as well as lints, so its config settles formatting too.
-        formatter=ruff or _tool_table(pyproject, "black") is not None or "black" in deps,
-        mypy=mypy,
-        mypy_strict=mypy_strict_configured(pyproject, configs),
-        pytest=pytest,
-        vulture=_tool_table(pyproject, "vulture") is not None or "vulture" in deps,
-        pre_commit=".pre-commit-config.yaml" in root_entries,
-        secret_scanning=bool(
-            re.search(r"gitleaks|detect-secrets|trufflehog", workflow_text + pre_commit_text, re.IGNORECASE)
-        )
-        or ".gitleaks.toml" in root_entries,
-        agent_instructions=tuple(name for name in _AGENT_FILES if name in root_entries),
-    )
+def detect_agent_instructions(root_entries: tuple[str, ...]) -> tuple[str, ...]:
+    """List the agent instruction files present at the root, in the order ebpy recognises them."""
+    return tuple(name for name in _AGENT_FILES if name in root_entries)
 
 
 _FRAMEWORKS: tuple[tuple[str, Framework], ...] = (
@@ -147,21 +101,3 @@ def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
 def requires_python(pyproject: dict[str, Any] | None) -> str | None:
     value = ((pyproject or {}).get("project") or {}).get("requires-python")
     return value if isinstance(value, str) else None
-
-
-# Temporary bridge to the diagnosis side: maps analyzer name to the ToolingPresence field
-# that indicates it is configured. Replaced by per-detector detection (ToolDetector) in
-# the D increment; until then, the registry ensures we only report names that actually exist.
-_ANALYZER_CONFIGURED: dict[str, Callable[[ToolingPresence], bool]] = {
-    "ruff": lambda t: t.ruff,
-    "mypy": lambda t: t.mypy,
-}
-
-
-def configured_analyzers(tooling: ToolingPresence) -> set[str]:
-    """Names of analyzers that are both registered and configured in this repository."""
-    return {
-        name
-        for name in ANALYZER_NAMES
-        if name in _ANALYZER_CONFIGURED and _ANALYZER_CONFIGURED[name](tooling)
-    }

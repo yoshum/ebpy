@@ -6,100 +6,59 @@ missing absolutely everything is the normal input here, not an error case.
 
 from __future__ import annotations
 
-from ..models import CiCoverage, Diagnosis, Gap, SizeDistribution, ToolingPresence
+from ..models import CiCoverage, Diagnosis, Gap, SizeDistribution, ToolSetup
 from ..repo.detect.ci import detect_ci, missing_runners
 from ..repo.detect.package_manager import detect_package_manager
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT, summarize_sizes
-from ..repo.detect.tooling import detect_framework, detect_tooling, requires_python
+from ..repo.detect.tooling import (
+    detect_agent_instructions,
+    detect_framework,
+    pre_commit_configured,
+    requires_python,
+)
 from ..repo.facts import RepoFacts
+from ..tools import ANALYZERS_BY_NAME, DETECTORS
 
 # Enough to recognise the workflow they live in; the rest is a count, not a wall of refs.
 _ACTIONS_NAMED = 3
 
 
-def _tooling_gaps(tooling: ToolingPresence) -> list[Gap]:
+def _agent_instruction_gaps(agent_instructions: tuple[str, ...]) -> list[Gap]:
+    if agent_instructions:
+        return []
+    return [
+        Gap(
+            id="agent-instructions",
+            title="No CLAUDE.md / AGENTS.md",
+            detail="Draining is done by agents. Rules that live only in your head produce a "
+            "different fix every session.",
+            phase="drain",
+        )
+    ]
+
+
+def _unratcheted_gaps(tool_setups: dict[str, ToolSetup], frozen_analyzers: tuple[str, ...]) -> list[Gap]:
+    """Report a gap per analyzer this repository configures but the frozen contract omits.
+
+    Only the registered analyzers (ruff, mypy) can be ratcheted, so only they can be
+    "configured but not ratcheted"; the other tools are report-only. These derive from
+    detected configuration, which is always present here — there is no absence to confuse
+    with zero.
+    """
+    roster = set(frozen_analyzers)
     gaps: list[Gap] = []
-    if not tooling.ruff:
-        gaps.append(
-            Gap(
-                id="ruff",
-                title="Ruff is not configured",
-                detail="Nothing enforces anything yet. This is the first thing bootstrap installs — "
-                "one tool covers linting, import order and formatting.",
-                phase="bootstrap",
+    for name in ANALYZERS_BY_NAME:
+        setup = tool_setups.get(name)
+        if setup is not None and setup.configured and name not in roster:
+            gaps.append(
+                Gap(
+                    id=f"unratcheted:{name}",
+                    title=f"{name} is configured but not ratcheted",
+                    detail=f"{name} runs in this repository but is not in the frozen contract, so its "
+                    f"findings hold no ceiling. `ebpy freeze --analyzer {name}` pins them.",
+                    phase="tighten",
+                )
             )
-        )
-    if not tooling.formatter:
-        gaps.append(
-            Gap(
-                id="formatter",
-                title="No formatter",
-                detail="Formatting must land before linting starts, or the first drain PR is a diff "
-                "nobody can read. `ruff format` comes free with the Ruff config.",
-                phase="bootstrap",
-            )
-        )
-    if not tooling.mypy:
-        gaps.append(
-            Gap(
-                id="mypy",
-                title="No type checking",
-                detail="Type hints are the cheapest rule set there is. mypy errors are "
-                "grandfathered per file per rule, one `mypy:<code>` cell at a time, exactly as "
-                "Ruff findings are.",
-                phase="bootstrap",
-            )
-        )
-    elif not tooling.mypy_strict:
-        gaps.append(
-            Gap(
-                id="mypy-strict",
-                title="mypy `strict` is off",
-                detail="Everything else in the type tier is moot until this is on. Enable it and "
-                "let the per-cell ratchet hold the line while the backlog drains.",
-                phase="tighten",
-            )
-        )
-    if not tooling.pytest:
-        gaps.append(
-            Gap(
-                id="pytest",
-                title="No test runner",
-                detail="Draining violations finds bugs. Without a runner there is nowhere to pin them.",
-                phase="bootstrap",
-            )
-        )
-    if not tooling.vulture:
-        gaps.append(
-            Gap(
-                id="vulture",
-                title="No dead-code detection",
-                detail="vulture reports unused functions, classes and variables. Report-only at "
-                "first; a counter later.",
-                phase="tighten",
-            )
-        )
-    if not tooling.secret_scanning:
-        gaps.append(
-            Gap(
-                id="secret-scan",
-                title="Nothing would notice a committed credential",
-                detail="The one check with no baseline: a leaked key is already public, so it gates "
-                "from the first run. GitHub's own push protection is a repository setting and "
-                "cannot be seen from here, so ignore this if that is on.",
-                phase="bootstrap",
-            )
-        )
-    if not tooling.agent_instructions:
-        gaps.append(
-            Gap(
-                id="agent-instructions",
-                title="No CLAUDE.md / AGENTS.md",
-                detail="Draining is done by agents. Rules that live only in your head produce a "
-                "different fix every session.",
-                phase="drain",
-            )
-        )
     return gaps
 
 
@@ -174,17 +133,31 @@ def _size_gaps(sizes: SizeDistribution) -> list[Gap]:
     ]
 
 
-def diagnose(facts: RepoFacts) -> Diagnosis:
-    workflow_text = "\n".join(workflow.content for workflow in facts.workflows)
-    tooling = detect_tooling(facts.root_entries, facts.pyproject, facts.extra_config_text, workflow_text)
+def diagnose(facts: RepoFacts, frozen_analyzers: tuple[str, ...]) -> Diagnosis:
+    """Survey the repository, naming every gap.
+
+    `frozen_analyzers` is the roster the ledger already holds — empty for a repository that
+    has never frozen. It is what tells a configured analyzer apart from a ratcheted one, so
+    the "configured but not ratcheted" gap can be raised.
+    """
+    tool_setups = {detector.name: detector.detect(facts) for detector in DETECTORS}
+    agent_instructions = detect_agent_instructions(facts.root_entries)
     ci = detect_ci(facts.workflows)
     sizes = summarize_sizes(facts.source_files)
-    gaps = [*_tooling_gaps(tooling), *_ci_gaps(ci), *_size_gaps(sizes)]
+    gaps = [
+        *(gap for detector in DETECTORS for gap in detector.gaps(tool_setups[detector.name])),
+        *_agent_instruction_gaps(agent_instructions),
+        *_ci_gaps(ci),
+        *_size_gaps(sizes),
+        *_unratcheted_gaps(tool_setups, frozen_analyzers),
+    ]
     return Diagnosis(
         package_manager=detect_package_manager(facts.root_entries, facts.pyproject),
         requires_python=requires_python(facts.pyproject),
         framework=detect_framework(facts.pyproject),
-        tooling=tooling,
+        tool_setups=tool_setups,
+        pre_commit=pre_commit_configured(facts.root_entries),
+        agent_instructions=agent_instructions,
         ci=ci,
         sizes=sizes,
         gaps=tuple(gaps),

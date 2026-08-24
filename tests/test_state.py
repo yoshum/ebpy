@@ -6,7 +6,15 @@ from typing import Any
 
 import pytest
 
-from ebpy.models import RuleBaseline, State
+from ebpy.models import (
+    CiCoverage,
+    Diagnosis,
+    RuleBaseline,
+    SizeDistribution,
+    State,
+    ToolSetup,
+    diagnosis_from_dict,
+)
 from ebpy.store.state import (
     Ledger,
     append_log,
@@ -21,6 +29,7 @@ from ebpy.store.state import (
     total_violations,
     write_state,
 )
+from ebpy.tools.mypy import MypySetup
 
 
 def _v1_raw(
@@ -350,6 +359,76 @@ def test_invalid_ceiling_fields_are_not_coerced_into_valid_state() -> None:
         )
         is None
     )
+
+
+def test_diagnosis_round_trips_tool_setups_without_a_version_bump() -> None:
+    """The decomposed diagnosis survives to_dict/from_dict unchanged, under state version 2.
+
+    The state validator only checks that `diagnosis` is a dict, so the diagnosis's internal
+    shape — per-detector tool setups plus the residual signals — may change without a bump.
+    """
+    ci = CiCoverage(
+        present=False,
+        runners=(),
+        unpinned_actions=(),
+        runs_lint=False,
+        runs_typecheck=False,
+        runs_test=False,
+        runs_ebpy_check=False,
+    )
+    diagnosis = Diagnosis(
+        package_manager="uv",
+        requires_python=">=3.12",
+        framework="none",
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=True, strict=False),
+            "secret-scan": ToolSetup(configured=True),
+        },
+        pre_commit=True,
+        agent_instructions=("CLAUDE.md",),
+        ci=ci,
+        sizes=SizeDistribution(total=0, over_file_limit=0, largest=()),
+        gaps=(),
+    )
+
+    restored = diagnosis_from_dict(diagnosis.to_dict())
+
+    # Every setup reads back as a base ToolSetup. mypy's strictness is provenance regenerated on
+    # the next diagnose, so it is written but never reconstructed — the read-back is not a MypySetup.
+    assert restored.tool_setups["mypy"] == ToolSetup(configured=True)
+    assert not isinstance(restored.tool_setups["mypy"], MypySetup)
+    assert restored.tool_setups["ruff"] == ToolSetup(configured=True)
+    assert restored.pre_commit is True
+    assert restored.agent_instructions == ("CLAUDE.md",)
+    # secret-scan is just another tool setup; the base layer does not special-case it.
+    assert restored.tool_setups["secret-scan"] == ToolSetup(configured=True)
+
+
+def test_a_mypy_setup_serializes_its_strictness() -> None:
+    """MypySetup writes `strict` into its dict even when off, so the stored diagnosis records it."""
+    assert MypySetup(configured=True, strict=False).to_dict() == {"configured": True, "strict": False}
+    assert MypySetup(configured=True, strict=True).to_dict() == {"configured": True, "strict": True}
+
+
+def test_a_legacy_tooling_diagnosis_is_tolerated_by_ignoring_it() -> None:
+    """A diagnosis persisted in the pre-decomposition `tooling` shape must not crash the reader.
+
+    The provenance is regenerated on the next `diagnose`, so the old object is simply ignored.
+    """
+    legacy: dict[str, Any] = {
+        "packageManager": "uv",
+        "requiresPython": None,
+        "framework": "none",
+        "tooling": {"ruff": True, "mypy": True, "secretScanning": True},
+        "ci": {},
+        "sizes": {},
+        "gaps": [],
+    }
+
+    restored = diagnosis_from_dict(legacy)
+
+    assert restored.tool_setups == {}
 
 
 def test_a_log_cannot_grow_without_bound() -> None:

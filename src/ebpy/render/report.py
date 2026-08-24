@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..models import Diagnosis, Gap
 from ..repo.detect.sizes import DEFAULT_FILE_LINE_LIMIT
+from ..tools import DETECTORS
 
 
 def _check(value: bool) -> str:
@@ -11,20 +12,16 @@ def _check(value: bool) -> str:
 
 
 def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
-    tooling = diagnosis.tooling
-    mypy = "strict" if tooling.mypy_strict else ("yes (not strict)" if tooling.mypy else "no")
+    # Each detector renders its own row, in registry order; the repository-level signals that
+    # no detector owns (pre-commit, agent rules) follow them.
+    detector_rows = [detector.render_row(diagnosis.tool_setups[detector.name]) for detector in DETECTORS]
     return [
         f"  package manager   {diagnosis.package_manager}",
         f"  python            {diagnosis.requires_python or 'unspecified'}",
         f"  framework         {diagnosis.framework}",
-        f"  ruff              {_check(tooling.ruff)}",
-        f"  formatter         {_check(tooling.formatter)}",
-        f"  mypy              {mypy}",
-        f"  pytest            {_check(tooling.pytest)}",
-        f"  vulture           {_check(tooling.vulture)}",
-        f"  pre-commit        {_check(tooling.pre_commit)}",
-        f"  secret scanning   {_check(tooling.secret_scanning)}",
-        f"  agent rules       {', '.join(tooling.agent_instructions) or 'none'}",
+        *detector_rows,
+        f"  pre-commit        {_check(diagnosis.pre_commit)}",
+        f"  agent rules       {', '.join(diagnosis.agent_instructions) or 'none'}",
     ]
 
 

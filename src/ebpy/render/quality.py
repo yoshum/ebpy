@@ -9,8 +9,8 @@ from __future__ import annotations
 from ..decide.freshness import Freshness
 from ..decide.worklist import build_worklist
 from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
-from ..repo.detect.tooling import configured_analyzers
 from ..store.state import improvements, log_of_kind, total_violations
+from ..tools import ANALYZERS_BY_NAME
 from .worklist import build_worklist_items, render_worklist
 
 QUALITY_FILE = "QUALITY.md"
@@ -136,7 +136,12 @@ def _unratcheted_marker(state: State, roster: set[str]) -> str:
     """
     if state.diagnosis is None:
         return ""
-    unratcheted = sorted(configured_analyzers(state.diagnosis.tooling) - roster)
+    setups = state.diagnosis.tool_setups
+    unratcheted = sorted(
+        name
+        for name in ANALYZERS_BY_NAME
+        if name in setups and setups[name].configured and name not in roster
+    )
     if not unratcheted:
         return ""
     return " (" + ", ".join(f"{analyzer} is configured but not ratcheted" for analyzer in unratcheted) + ")"

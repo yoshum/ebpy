@@ -20,11 +20,14 @@ def run_diagnose(cwd: Path, as_json: bool, write: bool) -> str:
     if artifacts is not None and artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))
 
+    existing = artifacts.ledger.state if artifacts is not None else None
+    frozen_analyzers = existing.frozen_analyzers if existing is not None else ()
+
     facts = gather_facts(cwd)
-    diagnosis = diagnose(facts)
+    diagnosis = diagnose(facts, frozen_analyzers)
 
     if artifacts is not None:
-        state = artifacts.ledger.state or empty_state()
+        state = existing or empty_state()
         state = with_diagnosis(state, diagnosis, head_commit(cwd))
         write_state(cwd, state)
         write_quality_file(cwd, state)

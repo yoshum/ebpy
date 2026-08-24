@@ -34,6 +34,26 @@ CellCountsView: TypeAlias = Mapping[str, Mapping[RuleId, int]]
 
 
 @dataclass(frozen=True)
+class ToolSetup:
+    """Baseline detection result shared by every tool.
+
+    Each tool serializes itself: `to_dict`/`from_dict` are the contract the ledger stores.
+    Subclasses (e.g. mypy's) add their own fields by overriding both.
+    """
+
+    configured: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this setup to the JSON shape the ledger stores."""
+        return {"configured": self.configured}
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> ToolSetup:
+        """Reconstruct a setup from its stored JSON shape."""
+        return cls(configured=bool(raw.get("configured")))
+
+
+@dataclass(frozen=True)
 class SourceFile:
     path: str
     lines: int
@@ -72,20 +92,6 @@ class WorkflowFile:
 
 
 @dataclass(frozen=True)
-class ToolingPresence:
-    ruff: bool
-    formatter: bool
-    mypy: bool
-    mypy_strict: bool
-    pytest: bool
-    vulture: bool
-    pre_commit: bool
-    # Anything that would notice a committed credential. Not drainable — see secret_scan.py.
-    secret_scanning: bool
-    agent_instructions: tuple[str, ...]
-
-
-@dataclass(frozen=True)
 class CiCoverage:
     present: bool
     # Runner labels seen across all workflows, e.g. ("ubuntu-latest", "macos-latest").
@@ -119,7 +125,14 @@ class Diagnosis:
     package_manager: PackageManager
     requires_python: str | None
     framework: Framework
-    tooling: ToolingPresence
+    # One setup per tool detector, keyed by detector name. Each value serializes itself,
+    # so a tool with extra provenance (mypy's strictness) carries it without this layer knowing.
+    tool_setups: Mapping[str, ToolSetup]
+    # Signals that are not owned by a tool detector. pre-commit and the agent instruction
+    # files are repository conventions rather than analyzers, so they stay here rather than
+    # in tool_setups.
+    pre_commit: bool
+    agent_instructions: tuple[str, ...]
     ci: CiCoverage
     sizes: SizeDistribution
     gaps: tuple[Gap, ...]
@@ -129,17 +142,9 @@ class Diagnosis:
             "packageManager": self.package_manager,
             "requiresPython": self.requires_python,
             "framework": self.framework,
-            "tooling": {
-                "ruff": self.tooling.ruff,
-                "formatter": self.tooling.formatter,
-                "mypy": self.tooling.mypy,
-                "mypyStrict": self.tooling.mypy_strict,
-                "pytest": self.tooling.pytest,
-                "vulture": self.tooling.vulture,
-                "preCommit": self.tooling.pre_commit,
-                "secretScanning": self.tooling.secret_scanning,
-                "agentInstructions": list(self.tooling.agent_instructions),
-            },
+            "toolSetups": {name: setup.to_dict() for name, setup in self.tool_setups.items()},
+            "preCommit": self.pre_commit,
+            "agentInstructions": list(self.agent_instructions),
             "ci": {
                 "present": self.ci.present,
                 "runners": list(self.ci.runners),
@@ -159,24 +164,24 @@ class Diagnosis:
 
 
 def diagnosis_from_dict(raw: dict[str, Any]) -> Diagnosis:
-    tooling = raw.get("tooling") or {}
+    # A legacy `tooling` object from before the per-detector shape is ignored: provenance is
+    # regenerated on the next `diagnose`, so there is nothing here worth reconstructing it for.
+    tool_setups_raw = raw.get("toolSetups") or {}
     ci = raw.get("ci") or {}
     sizes = raw.get("sizes") or {}
     return Diagnosis(
         package_manager=raw.get("packageManager", "pip"),
         requires_python=raw.get("requiresPython"),
         framework=raw.get("framework", "none"),
-        tooling=ToolingPresence(
-            ruff=bool(tooling.get("ruff")),
-            formatter=bool(tooling.get("formatter")),
-            mypy=bool(tooling.get("mypy")),
-            mypy_strict=bool(tooling.get("mypyStrict")),
-            pytest=bool(tooling.get("pytest")),
-            vulture=bool(tooling.get("vulture")),
-            pre_commit=bool(tooling.get("preCommit")),
-            secret_scanning=bool(tooling.get("secretScanning")),
-            agent_instructions=tuple(tooling.get("agentInstructions") or ()),
-        ),
+        # Every setup reads back as a base ToolSetup: any extra provenance a tool wrote (mypy's
+        # strictness) is regenerated on the next `diagnose` and never read from disk, so there is
+        # nothing here worth reconstructing the subtype for.
+        tool_setups={
+            name: ToolSetup.from_dict(value if isinstance(value, dict) else {})
+            for name, value in tool_setups_raw.items()
+        },
+        pre_commit=bool(raw.get("preCommit")),
+        agent_instructions=tuple(raw.get("agentInstructions") or ()),
         ci=CiCoverage(
             present=bool(ci.get("present")),
             runners=tuple(ci.get("runners") or ()),
