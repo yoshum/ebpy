@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 224 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 226 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1229**
+- Open violations: **1228**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1229 findings across 35 rules
+- [ ] **P3 drain** — 1228 findings across 34 rules
   - [ ] `ruff:D105` — 1 left
   - [ ] `ruff:D107` — 1 left
   - [ ] `ruff:D301` — 1 left
@@ -66,7 +66,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:PLC2801` | 1 | 1 | 0 | draining |
 | `ruff:PLR0914` | 1 | 1 | 0 | draining |
 | `ruff:PLR0916` | 1 | 1 | 0 | draining |
-| `ruff:PLR6201` | 1 | 1 | 0 | draining |
 | `ruff:PLW0717` | 1 | 1 | 0 | draining |
 | `ruff:RUF027` | 1 | 1 | 0 | draining |
 
@@ -80,6 +79,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 134aefea | drained | ruff:PLR6201 | 1 violation; changed mypy exit-code membership test from a tuple to a set literal and added a characterization test; not a real bug, behaviour-preserving refactor |
 | 2026-08-24 | 242261a3 | drained | ruff:FURB110 | 1 violation; replaced ternary notes fallback with 'or' in render/quality.py; not a bug, pure readability |
 | 2026-08-24 | 22d97c8d | drained | ruff:FURB113 | 1 violation in render/report.py; _gap_lines now uses lines.extend((title,detail)) instead of two appends. Not a bug — mechanical simplification. Rule fully graduated from the baseline. |
 | 2026-08-24 | e3e27b97 | drained | ruff:FURB162 | 1 violation in decide/freshness.py; removed the redundant .replace(Z,+00:00) since fromisoformat handles Z on py>=3.11. Added a test pinning Z-suffixed parsing. Not a bug — a mechanical simplification. Rule graduated. |
