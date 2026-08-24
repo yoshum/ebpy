@@ -20,9 +20,6 @@
       },
       "ruff:PT018": {
         "count": 1
-      },
-      "ruff:TC001": {
-        "count": 4
       }
     },
     "src/ebpy/commands/log.py": {

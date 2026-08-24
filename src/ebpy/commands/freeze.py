@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
-from ebpy.models import AnalysisMeasurement, CellCounts, CellCountsView, State
 from ebpy.quality_file import write_quality_file
 from ebpy.store.baseline import (
     cells_excluding,
@@ -36,6 +35,8 @@ from ebpy.tools import ANALYZER_NAMES, measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from ebpy.models import AnalysisMeasurement, CellCounts, CellCountsView, State
 
 _UNATTRIBUTED_SHOWN = 5
 

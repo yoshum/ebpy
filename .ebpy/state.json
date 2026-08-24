@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T11:15:00Z",
+  "updatedAt": "2026-08-24T11:15:13Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -118,11 +118,6 @@
     "ruff:SLF001": {
       "baseline": 8,
       "current": 8,
-      "status": "draining"
-    },
-    "ruff:TC001": {
-      "baseline": 4,
-      "current": 4,
       "status": "draining"
     },
     "ruff:TC002": {
