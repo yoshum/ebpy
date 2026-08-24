@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:32:02Z",
+  "updatedAt": "2026-08-24T07:32:48Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -73,11 +73,6 @@
     "ruff:D104": {
       "baseline": 4,
       "current": 4,
-      "status": "draining"
-    },
-    "ruff:D105": {
-      "baseline": 1,
-      "current": 1,
       "status": "draining"
     },
     "ruff:D107": {
@@ -269,6 +264,13 @@
       "kind": "drained",
       "rule": "ruff:D301",
       "text": "1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:32:48Z",
+      "commit": "47eeae337bdd407c9a36ba3f1d52fab4a4364cc2",
+      "kind": "drained",
+      "rule": "ruff:D105",
+      "text": "1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy"
     }
   ]
 }

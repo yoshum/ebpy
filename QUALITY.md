@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 239 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 241 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1208**
+- Open violations: **1207**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,12 +19,12 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1208 findings across 28 rules
-  - [ ] `ruff:D105` — 1 left
+- [ ] **P3 drain** — 1207 findings across 27 rules
   - [ ] `ruff:D107` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
   - [ ] `ruff:PLR2004` — 2 left
+  - [ ] `ruff:TC002` — 2 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -58,7 +58,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
 | `ruff:PLR2004` | 2 | 2 | 0 | draining |
 | `ruff:TC002` | 2 | 2 | 0 | draining |
-| `ruff:D105` | 1 | 1 | 0 | draining |
 | `ruff:D107` | 1 | 1 | 0 | draining |
 | `ruff:PLC2801` | 1 | 1 | 0 | draining |
 | `ruff:RUF027` | 1 | 1 | 0 | draining |
@@ -73,6 +72,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 47eeae33 | drained | ruff:D105 | 1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 | 2026-08-24 | b0d17551 | drained | ruff:D301 | 1 violation; raw-stringed the Windows-path docstring in test_cell_key.py; not a bug, docstring-only, rule fully graduates |
 | 2026-08-24 | 45e3fcd2 | drained | ruff:TC006 | 12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates |
 | 2026-08-24 | 3c6eafd4 | drained | ruff:PLW0717 | 1 violation; split _swap_staged_bundle's try clause into _move_existing_aside and _move_staged_into_place; not a real bug, but the split preserves the partial-progress-for-rollback invariant and is now test-pinned |
