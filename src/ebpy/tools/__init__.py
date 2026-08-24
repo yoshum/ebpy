@@ -2,77 +2,24 @@
 
 from __future__ import annotations
 
-from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from .registry import (
+    ANALYZER_NAMES,
+    ANALYZERS,
+    ANALYZERS_BY_NAME,
+    DETECTORS,
+    DETECTORS_BY_NAME,
+    PROVISIONERS,
+    PROVISIONERS_BY_NAME,
+    measure_repository,
+)
 
-from ebpy.measurement import Measurement
-
-from .gitleaks import GitleaksDetector, GitleaksProvisioner
-from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
-from .pytest import PytestDetector, PytestProvisioner
-from .ruff import RuffAnalyzer, RuffDetector, RuffProvisioner
-from .ruff_format import RuffFormatDetector, RuffFormatProvisioner
-from .vulture import VultureDetector, VultureProvisioner
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from pathlib import Path
-
-    from ebpy.decide.provisioner import Provisioner
-    from ebpy.measurement import Analyzer
-    from ebpy.repo.detect.detector import ToolDetector
-
-# Build via a typed list so mypy can verify Protocol compatibility and infer
-# tuple[Analyzer, ...] for ANALYZERS rather than the narrower concrete tuple.
-_registry: list[Analyzer] = [RuffAnalyzer(), MypyAnalyzer()]
-
-ANALYZERS: tuple[Analyzer, ...] = tuple(_registry)
-
-ANALYZERS_BY_NAME: Mapping[str, Analyzer] = MappingProxyType({a.name: a for a in ANALYZERS})
-
-# Derived from the registry so the name list cannot drift from the actual set.
-ANALYZER_NAMES: tuple[str, ...] = tuple(sorted(ANALYZERS_BY_NAME))
-
-# Build via a typed list so mypy can verify Protocol compatibility and infer
-# tuple[ToolDetector[Any], ...] for DETECTORS rather than the narrower concrete tuple.
-# Any is required for the type parameter because the registry is heterogeneous:
-# most detectors use ToolSetup but MypyDetector uses MypySetup, and S appears
-# in both covariant (detect return) and contravariant (gaps/render_row parameter)
-# positions, making ToolDetector invariant in S.
-#
-# Order is the diagnosis display order: it drives both the gap sequence and the report rows,
-# which the report renders in this order before appending the repository-level pre-commit and
-# agent-rules rows.
-_detectors: list[ToolDetector[Any]] = [
-    RuffDetector(),
-    RuffFormatDetector(),
-    MypyDetector(),
-    PytestDetector(),
-    VultureDetector(),
-    GitleaksDetector(),
+__all__ = [
+    "ANALYZERS",
+    "ANALYZERS_BY_NAME",
+    "ANALYZER_NAMES",
+    "DETECTORS",
+    "DETECTORS_BY_NAME",
+    "PROVISIONERS",
+    "PROVISIONERS_BY_NAME",
+    "measure_repository",
 ]
-
-DETECTORS: tuple[ToolDetector[Any], ...] = tuple(_detectors)
-
-DETECTORS_BY_NAME: Mapping[str, ToolDetector[Any]] = MappingProxyType({d.name: d for d in DETECTORS})
-
-# Build via a typed list so mypy can verify Protocol compatibility and infer
-# tuple[Provisioner, ...] for PROVISIONERS rather than the narrower concrete tuple.
-# Order matches DETECTORS: it is the canonical tool sequence across the whole CLI.
-_provisioners: list[Provisioner] = [
-    RuffProvisioner(),
-    RuffFormatProvisioner(),
-    MypyProvisioner(),
-    PytestProvisioner(),
-    VultureProvisioner(),
-    GitleaksProvisioner(),
-]
-
-PROVISIONERS: tuple[Provisioner, ...] = tuple(_provisioners)
-
-PROVISIONERS_BY_NAME: Mapping[str, Provisioner] = MappingProxyType({p.name: p for p in PROVISIONERS})
-
-
-def measure_repository(cwd: Path) -> Measurement:
-    """Measure every registered analyzer, retaining partial success as data."""
-    return Measurement(analyzers={a.name: a.measure(cwd) for a in ANALYZERS})
