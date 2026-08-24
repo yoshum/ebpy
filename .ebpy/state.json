@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:52:36Z",
+  "updatedAt": "2026-08-24T09:50:34Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -151,8 +151,8 @@
       "status": "draining"
     },
     "ruff:TC003": {
-      "baseline": 40,
-      "current": 40,
+      "baseline": 20,
+      "current": 20,
       "status": "draining"
     },
     "ruff:TID252": {
@@ -321,6 +321,13 @@
       "kind": "drained",
       "rule": "ruff:D403",
       "text": "6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording"
+    },
+    {
+      "at": "2026-08-24T09:50:34Z",
+      "commit": "752409374cb500755ec54664e0394c97f7844ebd",
+      "kind": "drained",
+      "rule": "ruff:TC003",
+      "text": "20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene"
     }
   ]
 }
