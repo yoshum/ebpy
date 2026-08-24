@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 265 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 267 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1020**
+- Open violations: **999**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1020 findings across 22 rules
+- [ ] **P3 drain** — 999 findings across 21 rules
   - [ ] `ruff:FURB118` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
@@ -39,7 +39,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:D205` | 96 | 96 | 0 | draining |
 | `ruff:D101` | 36 | 36 | 0 | draining |
 | `ruff:PLR6301` | 33 | 33 | 0 | draining |
-| `ruff:D100` | 21 | 21 | 0 | draining |
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
 | `ruff:TC003` | 20 | 20 | 0 | draining |
 | `ruff:D401` | 19 | 19 | 0 | draining |
@@ -67,6 +66,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 4c9332ec | drained | ruff:D100 | 21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug |
 | 2026-08-24 | cbe92432 | drained | ruff:D209 | 95 violations across 30 files; moved multi-line docstring closing quotes to their own line via ruff --fix; no real bug (pure formatting) |
 | 2026-08-24 | 75240937 | drained | ruff:TC003 | 20 violations across 18 src modules; moved type-only imports (Path, Iterable, Callable, Traversable) into TYPE_CHECKING blocks; not a real bug, mechanical import hygiene |
 | 2026-08-24 | 22fb31a3 | drained | ruff:D403 | 6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording |
@@ -86,7 +86,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 382bbee6 | drained | ruff:PLR0914 | 1 violation; extracted _prune_one_analyzer pure helper to drop prune_measurement below the local-variable ceiling; not a bug, a clean refactor with added test coverage |
 | 2026-08-24 | 6ab6e121 | drained | ruff:PT011 | 4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement |
 | 2026-08-24 | 2da1cb12 | drained | ruff:PLR0916 | 1 violation in ruff/_runner.py; extracted _read_diagnostic pure function so per-field validation reads as guards instead of one 8-term boolean; behaviour-preserving refactor, not a real bug |
-| 2026-08-24 | 134aefea | drained | ruff:PLR6201 | 1 violation; changed mypy exit-code membership test from a tuple to a set literal and added a characterization test; not a real bug, behaviour-preserving refactor |
 
 ## Notes
 
