@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 212 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 214 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1233**
+- Open violations: **1232**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1233 findings across 39 rules
+- [ ] **P3 drain** — 1232 findings across 38 rules
   - [ ] `ruff:D105` — 1 left
   - [ ] `ruff:D107` — 1 left
   - [ ] `ruff:D301` — 1 left
@@ -66,7 +66,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:FURB110` | 1 | 1 | 0 | draining |
 | `ruff:FURB113` | 1 | 1 | 0 | draining |
 | `ruff:FURB162` | 1 | 1 | 0 | draining |
-| `ruff:PERF401` | 1 | 1 | 0 | draining |
 | `ruff:PLC2801` | 1 | 1 | 0 | draining |
 | `ruff:PLR0914` | 1 | 1 | 0 | draining |
 | `ruff:PLR0916` | 1 | 1 | 0 | draining |
@@ -84,6 +83,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | b4a50418 | drained | ruff:PERF401 | 1 violation in catalog.py; extract_exports rebuilt as a list comprehension. Not a bug — a mechanical simplification. Rule fully graduated from the baseline. |
 | 2026-08-18 | 8decde14 | note |  | ported ever-better to Python: ratchet, diagnose, freeze, drain |
 
 ## Notes

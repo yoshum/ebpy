@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T06:19:18Z",
+  "updatedAt": "2026-08-24T06:24:34Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -130,11 +130,6 @@
       "current": 1,
       "status": "draining"
     },
-    "ruff:PERF401": {
-      "baseline": 1,
-      "current": 1,
-      "status": "draining"
-    },
     "ruff:PLC1901": {
       "baseline": 3,
       "current": 3,
@@ -247,6 +242,13 @@
       "commit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
       "kind": "note",
       "text": "ported ever-better to Python: ratchet, diagnose, freeze, drain"
+    },
+    {
+      "at": "2026-08-24T06:21:30Z",
+      "commit": "b4a50418c29f918d8957a9d818e4f4a2fb68683d",
+      "kind": "drained",
+      "rule": "ruff:PERF401",
+      "text": "1 violation in catalog.py; extract_exports rebuilt as a list comprehension. Not a bug \u2014 a mechanical simplification. Rule fully graduated from the baseline."
     }
   ]
 }
