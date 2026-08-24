@@ -36,7 +36,7 @@ class Freshness:
 
 def _days_between(from_iso: str, to: datetime) -> int | None:
     try:
-        start = datetime.fromisoformat(from_iso.replace("Z", "+00:00"))
+        start = datetime.fromisoformat(from_iso)
     except ValueError:
         return None
     return (to - start).days

@@ -318,9 +318,6 @@
       },
       "ruff:D103": {
         "count": 1
-      },
-      "ruff:FURB162": {
-        "count": 1
       }
     },
     "src/ebpy/decide/provisioner.py": {
