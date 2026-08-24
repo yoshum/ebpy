@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:50:16Z",
+  "updatedAt": "2026-08-24T07:51:28Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -46,8 +46,8 @@
   ],
   "rules": {
     "ruff:ANN401": {
-      "baseline": 10,
-      "current": 10,
+      "baseline": 8,
+      "current": 8,
       "status": "draining"
     },
     "ruff:D100": {
@@ -307,6 +307,13 @@
       "kind": "drained",
       "rule": "ruff:PT018",
       "text": "7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages"
+    },
+    {
+      "at": "2026-08-24T07:51:28Z",
+      "commit": "428adea696257d833cb710c839933de20f028b3f",
+      "kind": "drained",
+      "rule": "ruff:ANN401",
+      "text": "2 violations in repo/detect/tooling.py and store/baseline.py; Any -> object for isinstance-narrowed JSON inputs; not a real bug, tighter typing"
     }
   ]
 }
