@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:51:28Z",
+  "updatedAt": "2026-08-24T07:52:36Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -81,8 +81,8 @@
       "status": "draining"
     },
     "ruff:D403": {
-      "baseline": 11,
-      "current": 11,
+      "baseline": 5,
+      "current": 5,
       "status": "draining"
     },
     "ruff:FURB118": {
@@ -314,6 +314,13 @@
       "kind": "drained",
       "rule": "ruff:ANN401",
       "text": "2 violations in repo/detect/tooling.py and store/baseline.py; Any -> object for isinstance-narrowed JSON inputs; not a real bug, tighter typing"
+    },
+    {
+      "at": "2026-08-24T07:52:36Z",
+      "commit": "22fb31a3949b316fbb7912fd16b104a044416d57",
+      "kind": "drained",
+      "rule": "ruff:D403",
+      "text": "6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording"
     }
   ]
 }

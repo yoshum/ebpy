@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 259 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 261 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1141**
+- Open violations: **1135**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1141 findings across 23 rules
+- [ ] **P3 drain** — 1135 findings across 23 rules
   - [ ] `ruff:FURB118` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
@@ -45,10 +45,10 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
 | `ruff:D401` | 19 | 19 | 0 | draining |
 | `ruff:PLC2701` | 14 | 14 | 0 | draining |
-| `ruff:D403` | 11 | 11 | 0 | draining |
 | `ruff:ANN401` | 8 | 8 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
+| `ruff:D403` | 5 | 5 | 0 | draining |
 | `ruff:TC001` | 4 | 4 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
 | `ruff:PT018` | 3 | 3 | 0 | draining |
@@ -68,6 +68,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 22fb31a3 | drained | ruff:D403 | 6 violations in test_diagnose.py and test_mypy_lifecycle.py; capitalized sentence-initial mypy/freeze; not a real bug, docstring wording |
 | 2026-08-24 | 428adea6 | drained | ruff:ANN401 | 2 violations in repo/detect/tooling.py and store/baseline.py; Any -> object for isinstance-narrowed JSON inputs; not a real bug, tighter typing |
 | 2026-08-24 | 844b88d6 | drained | ruff:PT018 | 7 violations across render/analysis_report.py and 3 test modules; split compound 'assert A and B' into separate asserts; not a real bug, clearer failure messages |
 | 2026-08-24 | 414e9de1 | drained | ruff:TC002 | 1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix |
@@ -87,7 +88,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 134aefea | drained | ruff:PLR6201 | 1 violation; changed mypy exit-code membership test from a tuple to a set literal and added a characterization test; not a real bug, behaviour-preserving refactor |
 | 2026-08-24 | 242261a3 | drained | ruff:FURB110 | 1 violation; replaced ternary notes fallback with 'or' in render/quality.py; not a bug, pure readability |
 | 2026-08-24 | 22d97c8d | drained | ruff:FURB113 | 1 violation in render/report.py; _gap_lines now uses lines.extend((title,detail)) instead of two appends. Not a bug — mechanical simplification. Rule fully graduated from the baseline. |
-| 2026-08-24 | e3e27b97 | drained | ruff:FURB162 | 1 violation in decide/freshness.py; removed the redundant .replace(Z,+00:00) since fromisoformat handles Z on py>=3.11. Added a test pinning Z-suffixed parsing. Not a bug — a mechanical simplification. Rule graduated. |
 
 ## Notes
 
