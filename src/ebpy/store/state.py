@@ -103,7 +103,7 @@ def _valid_common_fields(raw: dict[str, Any]) -> bool:
         raw.get("tool", "ebpy") == "ebpy"
         and phase in PHASE_ORDER
         and ("updatedAt" not in raw or isinstance(raw["updatedAt"], str))
-        and (frozen_at is None or (isinstance(frozen_at, str) and frozen_at != ""))
+        and (frozen_at is None or (isinstance(frozen_at, str) and bool(frozen_at)))
         and _is_optional_string(raw.get("diagnosedAt"))
         and _is_optional_string(raw.get("diagnosedCommit"))
         and (raw.get("diagnosis") is None or isinstance(raw.get("diagnosis"), dict))
