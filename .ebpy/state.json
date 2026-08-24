@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T10:04:34Z",
+  "updatedAt": "2026-08-24T10:08:31Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -48,11 +48,6 @@
     "ruff:ANN401": {
       "baseline": 8,
       "current": 8,
-      "status": "draining"
-    },
-    "ruff:D101": {
-      "baseline": 36,
-      "current": 36,
       "status": "draining"
     },
     "ruff:D103": {
@@ -332,6 +327,13 @@
       "kind": "drained",
       "rule": "ruff:D100",
       "text": "21 files (20 test modules + errors.py); added one-line module docstrings; enforced convention, no real bug"
+    },
+    {
+      "at": "2026-08-24T10:08:31Z",
+      "commit": "695de06954ad072ea286d81abc9b2cfa20ace58d",
+      "kind": "drained",
+      "rule": "ruff:D101",
+      "text": "36 classes across 16 files; added one-line docstrings to public dataclasses/value objects; no real bug"
     }
   ]
 }
