@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-08-24)
+
+### Features
+
+- Add SLF and TID and enable lint preview in the ruff ruleset
+  ([`d6c1864`](https://github.com/yoshum/ebpy/commit/d6c18649891eb361db19beb9a037f118a1eb27b6))
+
+
 ## v0.8.0 (2026-08-24)
 
 ### Bug Fixes
