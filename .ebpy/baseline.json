@@ -233,9 +233,6 @@
       "ruff:D401": {
         "count": 1
       },
-      "ruff:D403": {
-        "count": 3
-      },
       "ruff:SLF001": {
         "count": 4
       }
@@ -298,9 +295,6 @@
     "tests/test_runners.py": {
       "ruff:D205": {
         "count": 7
-      },
-      "ruff:D403": {
-        "count": 2
       },
       "ruff:PLC2701": {
         "count": 7

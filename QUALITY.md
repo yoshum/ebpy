@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 285 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 286 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **218**
+- Open violations: **213**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 218 findings across 14 rules
+- [ ] **P3 drain** — 213 findings across 13 rules
   - [ ] `ruff:FURB118` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
@@ -49,7 +49,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:ANN401` | 8 | 8 | 0 | draining |
 | `ruff:SLF001` | 8 | 8 | 0 | draining |
 | `ruff:RUF105` | 6 | 6 | 0 | draining |
-| `ruff:D403` | 5 | 5 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
 | `ruff:PLR2004` | 2 | 2 | 0 | draining |
 | `ruff:FURB118` | 1 | 1 | 0 | draining |

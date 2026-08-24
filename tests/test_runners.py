@@ -208,7 +208,7 @@ def test_mypy_ini_naming_modules_suppresses_the_positional_target(
 def test_mypy_ini_takes_precedence_over_a_later_pyproject_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """mypy stops at the first config file it finds; a bare mypy.ini wins over pyproject.
+    """Mypy stops at the first config file it finds; a bare mypy.ini wins over pyproject.
 
     With a `[mypy]` mypy.ini that names no target, mypy never reads pyproject.toml — so its
     `files` there does not apply and the positional `.` must remain.
@@ -331,7 +331,7 @@ def test_mypy_exit_one_with_no_parsed_error_is_invalid_output(
 def test_mypy_exit_one_with_an_unlocated_error_line_surfaces_the_real_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """mypy can exit 1 with an error that carries no `:line:` location (a non-blocker
+    """Mypy can exit 1 with an error that carries no `:line:` location (a non-blocker
     emitted with line=-1, e.g. under `follow_imports = error`). The parser attributes no
     cell to it, but it is a real error, not invalid output — so it must reach the user as
     an ordinary MypyFailedError carrying the text, not be mistaken for garbled output.

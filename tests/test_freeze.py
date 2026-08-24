@@ -480,7 +480,7 @@ def test_scoped_freeze_on_a_fresh_pair_yields_a_valid_frozen_contract(
 
 
 def test_scoped_freeze_ignores_another_analyzers_failure() -> None:
-    """freeze --force --analyzer ruff succeeds even when mypy failed."""
+    """Freeze --force --analyzer ruff succeeds even when mypy failed."""
     artifacts = _frozen_artifacts_ruff_only()
     assert artifacts.ledger.state is not None
 
@@ -503,7 +503,7 @@ def test_scoped_freeze_ignores_another_analyzers_failure() -> None:
 
 
 def test_scoped_freeze_adds_mypy_and_leaves_the_ruff_ceiling_identical() -> None:
-    """freeze --analyzer mypy on a ruff-only contract extends the roster without touching ruff."""
+    """Freeze --analyzer mypy on a ruff-only contract extends the roster without touching ruff."""
     artifacts = _frozen_artifacts_ruff_only()
     assert artifacts.ledger.state is not None
 
@@ -531,7 +531,7 @@ def test_scoped_freeze_adds_mypy_and_leaves_the_ruff_ceiling_identical() -> None
 
 
 def test_scoped_force_replaces_only_the_named_namespace() -> None:
-    """freeze --force --analyzer ruff replaces ruff cells; mypy cells are untouched."""
+    """Freeze --force --analyzer ruff replaces ruff cells; mypy cells are untouched."""
     state = empty_state()
     state = apply_analyzer_rule_counts(state, "ruff", {"ruff:F401": 5}, "freeze")
     state = apply_analyzer_rule_counts(state, "mypy", {"mypy:arg-type": 3}, "freeze")
