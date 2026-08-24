@@ -37,11 +37,6 @@
         "count": 1
       }
     },
-    "src/ebpy/commands/__init__.py": {
-      "ruff:D104": {
-        "count": 1
-      }
-    },
     "src/ebpy/commands/bootstrap.py": {
       "ruff:D103": {
         "count": 1
@@ -321,11 +316,6 @@
         "count": 1
       }
     },
-    "src/ebpy/generate/__init__.py": {
-      "ruff:D104": {
-        "count": 1
-      }
-    },
     "src/ebpy/generate/configs.py": {
       "ruff:D205": {
         "count": 1
@@ -391,11 +381,6 @@
         "count": 1
       },
       "ruff:TC003": {
-        "count": 1
-      }
-    },
-    "src/ebpy/render/__init__.py": {
-      "ruff:D104": {
         "count": 1
       }
     },
@@ -481,11 +466,6 @@
         "count": 1
       },
       "ruff:TID252": {
-        "count": 1
-      }
-    },
-    "src/ebpy/repo/detect/__init__.py": {
-      "ruff:D104": {
         "count": 1
       }
     },
