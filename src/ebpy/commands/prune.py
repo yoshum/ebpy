@@ -5,34 +5,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..errors import CommandError
-from ..measurement import (
-    AnalyzerStatus,
-    Failed,
-    Measured,
-    Measurement,
-    Observation,
-    Unavailable,
-    classify,
-)
-from ..quality_file import write_quality_file
-from ..store.baseline import cells_for, finding_total, merge_cells, prune_cells, write_cells
-from ..store.ceiling_artifacts import (
+from ebpy.errors import CommandError
+from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
+from ebpy.quality_file import write_quality_file
+from ebpy.store.baseline import cells_for, finding_total, merge_cells, prune_cells, write_cells
+from ebpy.store.ceiling_artifacts import (
     align_analyzer_rules_to_cells,
     invalid_artifacts_message,
     read_ceiling_artifacts,
 )
-from ..store.state import (
-    copy_state,
-    total_violations,
-    write_state,
-)
-from ..tools import measure_repository
+from ebpy.store.state import copy_state, total_violations, write_state
+from ebpy.tools import measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..models import AnalysisMeasurement, CellCounts, State
+    from ebpy.models import AnalysisMeasurement, CellCounts, State
 
 NO_FROZEN_CEILING = "\n".join(
     [

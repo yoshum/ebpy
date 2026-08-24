@@ -12,13 +12,13 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
+from ebpy.cell_key import analyzer_of, is_rule_id, normalize_analyzer_path
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from ..models import CellCounts, CellCountsView, RuleId
+    from ebpy.models import CellCounts, CellCountsView, RuleId
 
 BASELINE_FILE = ".ebpy/baseline.json"
 BASELINE_VERSION = 2

@@ -6,11 +6,11 @@ import json
 import os
 from typing import TYPE_CHECKING
 
-from ..decide.analysis_report import report_from_measurement
-from ..errors import CommandError
-from ..render.analysis_report import render_analysis_report
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..tools import measure_repository
+from ebpy.decide.analysis_report import report_from_measurement
+from ebpy.errors import CommandError
+from ebpy.render.analysis_report import render_analysis_report
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.tools import measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path

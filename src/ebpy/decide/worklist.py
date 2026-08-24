@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from operator import itemgetter
 from typing import TYPE_CHECKING
 
-from ..store.state import total_violations
+from ebpy.store.state import total_violations
 
 if TYPE_CHECKING:
-    from ..models import State
+    from ebpy.models import State
 
 # How many of the smallest remaining backlogs the drain phase names as next targets.
 NEXT_RULES_SHOWN = 5

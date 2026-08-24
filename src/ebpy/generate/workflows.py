@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..models import PackageManager
+    from ebpy.models import PackageManager
 
 DEFAULT_PYTHON_VERSION = "3.12"
 

@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ...models import Framework
+    from ebpy.models import Framework
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 

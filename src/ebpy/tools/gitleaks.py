@@ -6,13 +6,13 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..decide.provisioner import CreateFile
-from ..generate.workflows import CHECKOUT_ACTION
-from ..models import Gap, ToolSetup
+from ebpy.decide.provisioner import CreateFile
+from ebpy.generate.workflows import CHECKOUT_ACTION
+from ebpy.models import Gap, ToolSetup
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction, ProvisionContext
-    from ..repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.repo.facts import RepoFacts
 
 # The MIT CLI rather than gitleaks-action, which needs a licence key under a GitHub
 # Organization. Verified against a digest below, because a release asset can be replaced

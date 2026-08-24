@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from ..models import ToolSetup
+    from ebpy.models import ToolSetup
 
 
 @dataclass(frozen=True)

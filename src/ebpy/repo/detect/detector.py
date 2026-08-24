@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
-from ...models import ToolSetup
+from ebpy.models import ToolSetup
 
 if TYPE_CHECKING:
-    from ...models import Gap
-    from ..facts import RepoFacts
+    from ebpy.models import Gap
+    from ebpy.repo.facts import RepoFacts
 
 
 S = TypeVar("S", bound=ToolSetup)

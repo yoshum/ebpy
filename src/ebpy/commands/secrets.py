@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..repo.git import is_git_repository
-from ..secret_scan import (
+from ebpy.repo.git import is_git_repository
+from ebpy.secret_scan import (
     FOUND_IN_HISTORY,
     FOUND_IN_WORKING_TREE,
     MISSING_GITLEAKS,
@@ -15,7 +15,7 @@ from ..secret_scan import (
     combine_scans,
     interpret_gitleaks,
 )
-from ..util import run
+from ebpy.util import run
 
 if TYPE_CHECKING:
     from pathlib import Path

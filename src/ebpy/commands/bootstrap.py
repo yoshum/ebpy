@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
-from ..decide.diagnose import diagnose
-from ..decide.provisioner import AppendText
-from ..repo.facts import gather_facts
-from ..util import run
+from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.decide.diagnose import diagnose
+from ebpy.decide.provisioner import AppendText
+from ebpy.repo.facts import gather_facts
+from ebpy.util import run
 
 if TYPE_CHECKING:
     from pathlib import Path

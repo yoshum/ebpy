@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ..models import Gap, ToolSetup
-from ..repo.detect.tooling import _dependency_names, _tool_table
+from ebpy.models import Gap, ToolSetup
+from ebpy.repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
-    from ..decide.provisioner import FileAction, ProvisionContext
-    from ..repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.repo.facts import RepoFacts
 
 
 def vulture_configured(pyproject: dict[str, Any] | None) -> bool:

@@ -13,7 +13,7 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..models import Suppression
+    from ebpy.models import Suppression
 
 # A file within this many violations of clean for one rule is one edit, not a project.
 CHEAP_VIOLATION_LIMIT = 2

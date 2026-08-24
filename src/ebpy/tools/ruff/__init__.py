@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...decide.provisioner import AddWorkflowStep, AppendText, CreateFile
-from ...generate.configs import ruff_pyproject_section, ruff_toml_content
-from ...measurement import Failed, Measured, Observation, Unavailable
-from ...models import Gap, ToolSetup
-from ...repo.detect.tooling import _tool_table
+from ebpy.decide.provisioner import AddWorkflowStep, AppendText, CreateFile
+from ebpy.generate.configs import ruff_pyproject_section, ruff_toml_content
+from ebpy.measurement import Failed, Measured, Observation, Unavailable
+from ebpy.models import Gap, ToolSetup
+from ebpy.repo.detect.tooling import _tool_table
 from ._runner import (
     RuffFailedError,
     RuffInvalidOutputError,
@@ -20,9 +20,9 @@ from ._runner import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ...decide.provisioner import FileAction, ProvisionContext
-    from ...models import AnalysisMeasurement
-    from ...repo.facts import RepoFacts
+    from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import AnalysisMeasurement
+    from ebpy.repo.facts import RepoFacts
 
 
 def has_ruff_config(root_entries: tuple[str, ...], pyproject: dict[str, Any] | None) -> bool:

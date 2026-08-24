@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from ..decide.drain_order import build_drain_plan
-from ..errors import CommandError
-from ..models import Suppression
-from ..render.next import render_next
-from ..repo.facts import list_source_paths, read_sources
-from ..repo.fan_in import build_graph, count_importers, importers_of
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.decide.drain_order import build_drain_plan
+from ebpy.errors import CommandError
+from ebpy.models import Suppression
+from ebpy.render.next import render_next
+from ebpy.repo.facts import list_source_paths, read_sources
+from ebpy.repo.fan_in import build_graph, count_importers, importers_of
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 
 if TYPE_CHECKING:
     from pathlib import Path

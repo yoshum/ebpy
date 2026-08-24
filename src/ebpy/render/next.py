@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..decide.drain_order import DrainPlan
+    from ebpy.decide.drain_order import DrainPlan
 
 _FILES_SHOWN = 10
 _RULES_SHOWN = 8

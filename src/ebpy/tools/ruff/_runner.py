@@ -12,10 +12,10 @@ import shutil
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...cell_key import normalize_analyzer_path, qualify_rule
-from ...errors import ToolError
-from ...models import AnalysisMeasurement, CellCounts, UnattributedFinding
-from ...util import run
+from ebpy.cell_key import normalize_analyzer_path, qualify_rule
+from ebpy.errors import ToolError
+from ebpy.models import AnalysisMeasurement, CellCounts, UnattributedFinding
+from ebpy.util import run
 
 if TYPE_CHECKING:
     from pathlib import Path

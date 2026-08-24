@@ -9,8 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ..measurement import AnalyzerStatus, Measured, Measurement, classify
-from ..store.baseline import (
+from ebpy.measurement import AnalyzerStatus, Measured, Measurement, classify
+from ebpy.store.baseline import (
     cells_for,
     finding_total,
     merge_cells,
@@ -20,7 +20,7 @@ from ..store.baseline import (
 )
 
 if TYPE_CHECKING:
-    from ..models import CellCounts, CellCountsView, UnattributedFinding
+    from ebpy.models import CellCounts, CellCountsView, UnattributedFinding
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"

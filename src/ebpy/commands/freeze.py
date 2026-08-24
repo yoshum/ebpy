@@ -11,18 +11,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..errors import CommandError
-from ..measurement import (
-    AnalyzerStatus,
-    Failed,
-    Measured,
-    Measurement,
-    Unavailable,
-    classify,
-)
-from ..models import AnalysisMeasurement, CellCounts, CellCountsView, State
-from ..quality_file import write_quality_file
-from ..store.baseline import (
+from ebpy.errors import CommandError
+from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
+from ebpy.models import AnalysisMeasurement, CellCounts, CellCountsView, State
+from ebpy.quality_file import write_quality_file
+from ebpy.store.baseline import (
     cells_excluding,
     cells_for,
     finding_total,
@@ -30,21 +23,16 @@ from ..store.baseline import (
     rule_totals,
     write_cells,
 )
-from ..store.ceiling_artifacts import (
+from ebpy.store.ceiling_artifacts import (
     CeilingArtifacts,
     align_all_analyzer_rules_to_cells,
     align_analyzer_rules_to_cells,
     invalid_artifacts_message,
     read_ceiling_artifacts,
 )
-from ..store.config import read_config
-from ..store.state import (
-    copy_state,
-    empty_state,
-    with_phase,
-    write_state,
-)
-from ..tools import ANALYZER_NAMES, measure_repository
+from ebpy.store.config import read_config
+from ebpy.store.state import copy_state, empty_state, with_phase, write_state
+from ebpy.tools import ANALYZER_NAMES, measure_repository
 
 _UNATTRIBUTED_SHOWN = 5
 

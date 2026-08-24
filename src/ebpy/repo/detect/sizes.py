@@ -6,7 +6,7 @@ rather than a number copied from a blog post.
 
 from __future__ import annotations
 
-from ...models import SizeDistribution, SourceFile
+from ebpy.models import SizeDistribution, SourceFile
 
 DEFAULT_FILE_LINE_LIMIT = 600
 

@@ -14,10 +14,10 @@ import tomllib
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
-from ...cell_key import normalize_analyzer_path, qualify_rule
-from ...errors import ToolError
-from ...models import AnalysisMeasurement, CellCounts, UnattributedFinding
-from ...util import run
+from ebpy.cell_key import normalize_analyzer_path, qualify_rule
+from ebpy.errors import ToolError
+from ebpy.models import AnalysisMeasurement, CellCounts, UnattributedFinding
+from ebpy.util import run
 
 # The location prefix of an error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: `.
 # This is what marks a line as an error mypy is reporting, as opposed to a `note:` whose own

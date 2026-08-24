@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..cell_key import is_rule_id
-from ..errors import CommandError
-from ..models import LOG_KINDS, LogKind
-from ..quality_file import write_quality_file
-from ..repo.git import head_commit
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..store.state import append_log, empty_state, write_state
+from ebpy.cell_key import is_rule_id
+from ebpy.errors import CommandError
+from ebpy.models import LOG_KINDS, LogKind
+from ebpy.quality_file import write_quality_file
+from ebpy.repo.git import head_commit
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.store.state import append_log, empty_state, write_state
 
 if TYPE_CHECKING:
     from pathlib import Path

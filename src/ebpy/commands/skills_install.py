@@ -11,7 +11,7 @@ from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from .. import __version__
+from ebpy import __version__
 from .install import InstallResult, _current_source
 
 if TYPE_CHECKING:

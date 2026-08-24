@@ -6,10 +6,10 @@ import json
 from operator import itemgetter
 from typing import TYPE_CHECKING
 
-from ..errors import CommandError
-from ..quality_file import freshness_of
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..store.state import improvements, state_to_dict, total_violations
+from ebpy.errors import CommandError
+from ebpy.quality_file import freshness_of
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.store.state import improvements, state_to_dict, total_violations
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from ..models import CellCounts, CellCountsView, RuleId, State
+    from ebpy.models import CellCounts, CellCountsView, RuleId, State
     from .config import EbpyConfig
 
 ArtifactKind = Literal["fresh", "frozen", "invalid"]

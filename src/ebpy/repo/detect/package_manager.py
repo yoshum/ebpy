@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ...models import PackageManager
+    from ebpy.models import PackageManager
 
 # Most specific first: a repo can carry requirements.txt exports next to the lockfile
 # that is actually the source of truth.

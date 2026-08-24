@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..models import AnalysisMeasurement
+    from ebpy.models import AnalysisMeasurement
     from .observation import Observation
 
 

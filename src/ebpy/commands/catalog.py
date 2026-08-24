@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..catalog import CatalogEntry, catalog_sources, extract_exports, render_catalog
-from ..repo.facts import list_source_paths, read_sources
+from ebpy.catalog import CatalogEntry, catalog_sources, extract_exports, render_catalog
+from ebpy.repo.facts import list_source_paths, read_sources
 
 if TYPE_CHECKING:
     from pathlib import Path

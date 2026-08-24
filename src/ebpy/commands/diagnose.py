@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from ..decide.diagnose import diagnose
-from ..errors import CommandError
-from ..quality_file import write_quality_file
-from ..render.report import render_diagnosis
-from ..repo.facts import gather_facts
-from ..repo.git import head_commit
-from ..store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ..store.state import empty_state, with_diagnosis, write_state
+from ebpy.decide.diagnose import diagnose
+from ebpy.errors import CommandError
+from ebpy.quality_file import write_quality_file
+from ebpy.render.report import render_diagnosis
+from ebpy.repo.facts import gather_facts
+from ebpy.repo.git import head_commit
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
+from ebpy.store.state import empty_state, with_diagnosis, write_state
 
 if TYPE_CHECKING:
     from pathlib import Path

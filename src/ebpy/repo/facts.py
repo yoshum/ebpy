@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..models import SourceFile, WorkflowFile
+from ebpy.models import SourceFile, WorkflowFile
 from .git import tracked_files
 
 _SKIPPED_DIRS = {

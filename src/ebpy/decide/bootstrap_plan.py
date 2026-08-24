@@ -9,15 +9,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..generate.configs import (
-    DEPENDABOT_CONTENT,
-    GITATTRIBUTES_CONTENT,
-    python_version_from_requires,
-)
-from ..generate.workflows import gate_workflow, run_prefix_for
-from ..models import Diagnosis, ToolSetup
-from ..package_manager import DEV_INSTALL_PREFIXES
-from ..tools import PROVISIONERS
+from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT, python_version_from_requires
+from ebpy.generate.workflows import gate_workflow, run_prefix_for
+from ebpy.models import Diagnosis, ToolSetup
+from ebpy.package_manager import DEV_INSTALL_PREFIXES
+from ebpy.tools import PROVISIONERS
 from .provisioner import AddWorkflowStep, AppendText, CreateFile, ProvisionContext
 
 

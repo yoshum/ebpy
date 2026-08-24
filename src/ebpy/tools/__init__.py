@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from ..measurement import Measurement
+from ebpy.measurement import Measurement
 from .gitleaks import GitleaksDetector, GitleaksProvisioner
 from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
 from .pytest import PytestDetector, PytestProvisioner
@@ -17,9 +17,9 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
-    from ..decide.provisioner import Provisioner
-    from ..measurement import Analyzer
-    from ..repo.detect.detector import ToolDetector
+    from ebpy.decide.provisioner import Provisioner
+    from ebpy.measurement import Analyzer
+    from ebpy.repo.detect.detector import ToolDetector
 
 # Build via a typed list so mypy can verify Protocol compatibility and infer
 # tuple[Analyzer, ...] for ANALYZERS rather than the narrower concrete tuple.

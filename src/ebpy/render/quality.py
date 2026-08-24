@@ -8,14 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ..decide.worklist import build_worklist
-from ..models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
-from ..store.state import improvements, log_of_kind, total_violations
-from ..tools import ANALYZERS_BY_NAME
+from ebpy.decide.worklist import build_worklist
+from ebpy.models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
+from ebpy.store.state import improvements, log_of_kind, total_violations
+from ebpy.tools import ANALYZERS_BY_NAME
 from .worklist import build_worklist_items, render_worklist
 
 if TYPE_CHECKING:
-    from ..decide.freshness import Freshness
+    from ebpy.decide.freshness import Freshness
 
 QUALITY_FILE = "QUALITY.md"
 

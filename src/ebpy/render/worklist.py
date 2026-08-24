@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..decide.worklist import Worklist
+    from ebpy.decide.worklist import Worklist
 
 
 @dataclass(frozen=True)
