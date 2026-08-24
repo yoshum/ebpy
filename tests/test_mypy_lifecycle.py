@@ -294,7 +294,7 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze
     below.
 
     The suite's module-level skipif guard ensures mypy IS on PATH when the suite runs,
-    so absence is simulated by monkeypatching ``find_mypy`` in ``ebpy.measurement._mypy`` to
+    so absence is simulated by monkeypatching ``find_mypy`` in ``ebpy.tools.mypy._runner`` to
     return None — the same value it returns when no venv candidate and no PATH entry
     exist.  Patching the runner rather than ``shutil.which`` is more surgical: it leaves
     the ruff check unaffected and targets exactly the code path ``run_mypy_check`` calls.
@@ -304,7 +304,7 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "initial")
 
-    monkeypatch.setattr("ebpy.measurement._mypy.find_mypy", lambda _cwd: None)
+    monkeypatch.setattr("ebpy.tools.mypy._runner.find_mypy", lambda _cwd: None)
 
     # Neither global freeze must succeed without mypy.
     assert run(repo, "freeze") == 1
@@ -328,7 +328,7 @@ def test_a_scoped_ruff_freeze_builds_a_narrow_contract_when_mypy_is_absent(
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "initial")
 
-    monkeypatch.setattr("ebpy.measurement._mypy.find_mypy", lambda _cwd: None)
+    monkeypatch.setattr("ebpy.tools.mypy._runner.find_mypy", lambda _cwd: None)
 
     # A scoped ruff freeze succeeds where the global one is refused.
     assert run(repo, "freeze", "--analyzer", "ruff") == 0

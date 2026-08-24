@@ -14,7 +14,6 @@ from ..measurement import (
     Observation,
     Unavailable,
     classify,
-    measure_repository,
 )
 from ..models import AnalysisMeasurement, CellCounts, State
 from ..quality_file import write_quality_file
@@ -29,6 +28,7 @@ from ..store.state import (
     total_violations,
     write_state,
 )
+from ..tools import measure_repository
 
 NO_FROZEN_CEILING = "\n".join(
     [

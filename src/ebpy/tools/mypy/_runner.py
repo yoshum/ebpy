@@ -14,10 +14,10 @@ import tomllib
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
-from ..cell_key import normalize_analyzer_path, qualify_rule
-from ..errors import ToolError
-from ..models import AnalysisMeasurement, CellCounts, UnattributedFinding
-from ..util import run
+from ...cell_key import normalize_analyzer_path, qualify_rule
+from ...errors import ToolError
+from ...models import AnalysisMeasurement, CellCounts, UnattributedFinding
+from ...util import run
 
 # The location prefix of an error line: `<file>:<line>[:<column>[:<end-line>:<end-column>]]: error: `.
 # This is what marks a line as an error mypy is reporting, as opposed to a `note:` whose own
@@ -48,6 +48,11 @@ _SUMMARY_LIMIT = 200
 # is invisible to every type rule, so its errors are recorded as unattributed rather than as
 # cells the baseline could grandfather.
 _SYNTAX_CODE = "syntax"
+
+# mypy's fatal exit code, distinct from 0 (clean) and 1 (errors found). It carries two shapes:
+# an unparseable file still prints `[syntax]` lines to stdout, while a config or usage error
+# prints none. See the branch below for how the two are told apart.
+_EXIT_FATAL = 2
 
 
 class MypyNotFoundError(ToolError):
@@ -169,8 +174,8 @@ def parse_mypy_output(output: str, cwd: Path) -> AnalysisMeasurement:
     return AnalysisMeasurement(cells=cells, unattributed=tuple(unattributed))
 
 
-def _summary_clause(output: str) -> str:
-    """The one line of mypy's complaint a human acts on, for the summary reading.
+def _summarize_cause(output: str) -> str:
+    """Return the one line of mypy's complaint a human acts on, for the summary reading.
 
     Which line that is depends on how mypy failed: a rejected argument prints a two-line
     usage banner and puts ``mypy: error: ...`` last, while a bad config file prints its
@@ -214,7 +219,7 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
     # unattributed exactly as Ruff's syntax errors do. Anything else at exit 2 (a config or
     # usage error, missing stubs) prints no such lines, and a negative code means a signal
     # killed the process; both are genuine failures with no measurement to keep.
-    if result.code == 2:
+    if result.code == _EXIT_FATAL:
         try:
             syntax = parse_mypy_output(result.stdout, cwd)
         except MypyInvalidOutputError:
@@ -227,7 +232,7 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
         headline = f"mypy failed (exit {result.code})"
         output = (result.stderr or result.stdout).strip()
         raise MypyFailedError(
-            f"{headline}{_summary_clause(output)}",
+            f"{headline}{_summarize_cause(output)}",
             detail=f"{headline}:\n{output}" if output else headline,
         )
     measured = parse_mypy_output(result.stdout, cwd)
@@ -245,7 +250,7 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
         if "error:" in output:
             headline = "mypy exited 1 with an error carrying no location"
             raise MypyFailedError(
-                f"{headline}{_summary_clause(output)}",
+                f"{headline}{_summarize_cause(output)}",
                 detail=f"{headline}:\n{output}",
             )
         raise MypyInvalidOutputError(

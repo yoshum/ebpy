@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import json
 import shutil
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..cell_key import normalize_analyzer_path, qualify_rule
-from ..errors import ToolError
-from ..models import AnalysisMeasurement, CellCounts, UnattributedFinding
-from ..util import run
+from ...cell_key import normalize_analyzer_path, qualify_rule
+from ...errors import ToolError
+from ...models import AnalysisMeasurement, CellCounts, UnattributedFinding
+from ...util import run
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Long enough for a config error, short enough to stay one line.
 _SUMMARY_LIMIT = 200
@@ -33,8 +35,8 @@ class RuffInvalidOutputError(RuffFailedError):
     pass
 
 
-def _summary_clause(output: str) -> str:
-    """The one line of Ruff's complaint a human acts on, for the summary reading.
+def _summarize_cause(output: str) -> str:
+    """Return the one line of Ruff's complaint a human acts on, for the summary reading.
 
     Ruff prints a bare `ruff failed`, then indented `Cause:` lines from the outermost
     cause inward. The first cause names what to go and fix; the ones below it explain
@@ -111,7 +113,7 @@ def run_ruff_check(cwd: Path) -> AnalysisMeasurement:
         headline = f"ruff check failed (exit {result.code})"
         output = result.stderr.strip()
         raise RuffFailedError(
-            f"{headline}{_summary_clause(output)}",
+            f"{headline}{_summarize_cause(output)}",
             detail=f"{headline}:\n{output}" if output else headline,
         )
     try:

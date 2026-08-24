@@ -6,14 +6,14 @@ from pathlib import Path
 import pytest
 
 from ebpy.cell_key import normalize_analyzer_path
-from ebpy.measurement import _mypy as mypy_runner
-from ebpy.measurement._mypy import (
+from ebpy.tools.mypy import _runner as mypy_runner
+from ebpy.tools.mypy._runner import (
     MypyFailedError,
     MypyInvalidOutputError,
     parse_mypy_output,
     run_mypy_check,
 )
-from ebpy.measurement._ruff import RuffInvalidOutputError, parse_ruff_json
+from ebpy.tools.ruff._runner import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
 
 

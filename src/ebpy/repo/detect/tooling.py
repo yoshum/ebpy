@@ -8,9 +8,13 @@ are the half worth detecting.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ...models import Framework, ToolingPresence
+from ...tools import ANALYZER_NAMES
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _AGENT_FILES = ("CLAUDE.md", "AGENTS.md", ".cursorrules")
 
@@ -143,3 +147,21 @@ def detect_framework(pyproject: dict[str, Any] | None) -> Framework:
 def requires_python(pyproject: dict[str, Any] | None) -> str | None:
     value = ((pyproject or {}).get("project") or {}).get("requires-python")
     return value if isinstance(value, str) else None
+
+
+# Temporary bridge to the diagnosis side: maps analyzer name to the ToolingPresence field
+# that indicates it is configured. Replaced by per-detector detection (ToolDetector) in
+# the D increment; until then, the registry ensures we only report names that actually exist.
+_ANALYZER_CONFIGURED: dict[str, Callable[[ToolingPresence], bool]] = {
+    "ruff": lambda t: t.ruff,
+    "mypy": lambda t: t.mypy,
+}
+
+
+def configured_analyzers(tooling: ToolingPresence) -> set[str]:
+    """Names of analyzers that are both registered and configured in this repository."""
+    return {
+        name
+        for name in ANALYZER_NAMES
+        if name in _ANALYZER_CONFIGURED and _ANALYZER_CONFIGURED[name](tooling)
+    }

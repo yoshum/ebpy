@@ -24,7 +24,7 @@ from .commands.skills_install import run_skills_install
 from .commands.status import run_status
 from .errors import CommandError
 from .generate.workflows import DEFAULT_PYTHON_VERSION
-from .measurement import ANALYZER_NAMES
+from .tools import ANALYZER_NAMES
 
 USAGE_EPILOG = f"""\
 commands:
