@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
+from ebpy.decide.provisioner import AppendText
 from ebpy.generate.configs import (
     DEPENDABOT_CONTENT,
     python_version_from_requires,
@@ -12,14 +13,25 @@ from ebpy.generate.configs import (
     ruff_toml_content,
 )
 from ebpy.generate.workflows import (
-    GITLEAKS_SHA256,
     PinnedAction,
     gate_workflow,
-    secret_scan_workflow,
+    run_prefix_for,
 )
-from ebpy.models import WorkflowFile
+from ebpy.models import PackageManager, WorkflowFile
 from ebpy.repo.detect.ci import unpinned_actions
 from ebpy.repo.facts import gather_facts
+from ebpy.tools.gitleaks import GITLEAKS_SHA256, secret_scan_workflow
+
+
+def _tool_steps(manager: PackageManager) -> list[str]:
+    """Return the run-prefixed Format check + Test lines bootstrap splices into the gate workflow."""
+    run = run_prefix_for(manager)
+    return [
+        "      - name: Format check",
+        f"        run: {run}ruff format --check .",
+        "      - name: Test",
+        f"        run: {run}pytest",
+    ]
 
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:
@@ -47,8 +59,48 @@ def test_a_standalone_ruff_toml_carries_no_tool_prefix() -> None:
     assert parsed["lint"]["mccabe"]["max-complexity"] == 10
 
 
+def test_gate_workflow_uv_full_text() -> None:
+    """Pins the full gate_workflow("uv") output so any content change surfaces immediately."""
+    expected = (
+        "name: quality\n"
+        "\n"
+        "on:\n"
+        "  push:\n"
+        "    branches: [main]\n"
+        "  pull_request:\n"
+        "\n"
+        "permissions:\n"
+        "  contents: read\n"
+        "\n"
+        "jobs:\n"
+        "  quality:\n"
+        "    strategy:\n"
+        "      fail-fast: false\n"
+        "      matrix:\n"
+        "        os: [ubuntu-latest, macos-latest, windows-latest]\n"
+        "    runs-on: ${{ matrix.os }}\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0\n"
+        "      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2\n"
+        "        with:\n"
+        '          python-version: "3.12"\n'
+        "      - name: Install\n"
+        "        run: uv sync --all-groups\n"
+        "      - name: Format check\n"
+        "        run: uv run ruff format --check .\n"
+        "      - name: Test\n"
+        "        run: uv run pytest\n"
+        "      - name: Ratchet gate\n"
+        "        run: uv run ebpy check\n"
+        "      - name: Lint report\n"
+        "        if: always()\n"
+        "        run: uv run ebpy report\n"
+    )
+    assert gate_workflow("uv", _tool_steps("uv")) == expected
+
+
 def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
-    workflow = gate_workflow("uv")
+    workflow = gate_workflow("uv", [])
     assert "ubuntu-latest, macos-latest, windows-latest" in workflow
     assert "uv run ebpy check" in workflow
     # The run where the gate has just failed is the run where the backlog is worth most.
@@ -56,8 +108,8 @@ def test_the_gate_workflow_runs_the_ratchet_on_three_platforms() -> None:
 
 
 def test_the_workflow_follows_the_repositorys_own_package_manager() -> None:
-    assert "poetry run ebpy check" in gate_workflow("poetry")
-    assert "pdm run pytest" in gate_workflow("pdm")
+    assert "poetry run ebpy check" in gate_workflow("poetry", [])
+    assert "pdm run pytest" in gate_workflow("pdm", _tool_steps("pdm"))
 
 
 def test_the_secret_workflow_scans_history_and_working_tree() -> None:
@@ -72,9 +124,10 @@ def test_the_secret_workflow_scans_history_and_working_tree() -> None:
 
 def test_every_generated_action_is_pinned_to_a_commit() -> None:
     """What bootstrap writes must not trip the gap diagnose reports."""
-    for manager in ("uv", "poetry", "pdm", "pipenv", "pip"):
+    managers: tuple[PackageManager, ...] = ("uv", "poetry", "pdm", "pipenv", "pip")
+    for manager in managers:
         workflows = (
-            WorkflowFile(path="quality.yml", content=gate_workflow(manager)),
+            WorkflowFile(path="quality.yml", content=gate_workflow(manager, _tool_steps(manager))),
             WorkflowFile(path="secret-scan.yml", content=secret_scan_workflow()),
         )
         assert unpinned_actions(workflows) == ()
@@ -119,7 +172,7 @@ def test_a_bare_repository_gets_configs_and_a_dev_install(tmp_path: Path) -> Non
 def test_configs_are_appended_to_an_existing_pyproject_rather_than_a_new_file(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[project]\nname = "app"\n', encoding="utf-8")
     plan = plan_for(tmp_path)
-    appends = [action for action in plan.files if action.mode == "append"]
+    appends = [action for action in plan.files if isinstance(action, AppendText)]
     assert {action.path for action in appends} == {"pyproject.toml"}
     assert "ruff.toml" not in {action.path for action in plan.files}
 
@@ -142,6 +195,24 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
     plan = plan_for(tmp_path)
     assert ".github/workflows/quality.yml" not in {a.path for a in plan.files}
     assert any("quality.yml" in note for note in plan.skipped)
+
+
+def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:
+    """build_plan iterates PROVISIONERS in registry order and splices each step into quality.yml.
+
+    A broken loop or dropped partition would produce wrong or empty CI steps; this
+    verifies that the Format check step appears before the Test step.
+    """
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    # A bare repo with no lockfile resolves to pip; run_prefix_for("pip") is empty.
+    quality = next(a for a in plan.files if a.path == ".github/workflows/quality.yml")
+    content = quality.content
+    assert "      - name: Format check" in content
+    assert "        run: ruff format --check ." in content
+    assert "      - name: Test" in content
+    assert "        run: pytest" in content
+    assert content.index("Format check") < content.index("Test")
 
 
 def test_a_dry_run_says_what_it_would_do_and_nothing_else(tmp_path: Path) -> None:

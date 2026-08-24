@@ -1,4 +1,4 @@
-"""vulture detector: configuration detection and diagnosis."""
+"""vulture detector and provisioner: configuration detection, diagnosis, and provisioning."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from ..models import Gap, ToolSetup
 from ..repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
+    from ..decide.provisioner import FileAction, ProvisionContext
     from ..repo.facts import RepoFacts
 
 
@@ -48,3 +49,21 @@ class VultureDetector:
     def render_row(self, setup: ToolSetup) -> str:
         """Render a one-line vulture row for the diagnosis table."""
         return f"  vulture           {'yes' if setup.configured else 'no'}"
+
+
+@dataclass(frozen=True)
+class VultureProvisioner:
+    """Provisioner for vulture: installs the package; no generated config or CI step today."""
+
+    @property
+    def name(self) -> str:
+        """Unique short identifier for vulture."""
+        return "vulture"
+
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
+        """Return ("vulture",) when vulture is absent, empty tuple when already configured."""
+        return ("vulture",) if not setup.configured else ()
+
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+        """Return empty list: vulture has no generated config and no gate step today."""
+        return []
