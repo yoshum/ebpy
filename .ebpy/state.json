@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T11:15:51Z",
+  "updatedAt": "2026-08-24T11:15:52Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -353,6 +353,13 @@
       "kind": "drained",
       "rule": "ruff:TC002",
       "text": "1 violation in test_check.py; type-only third-party (pytest) import guarded by TYPE_CHECKING. Mechanical, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:52Z",
+      "commit": "5d48102a0318600b4f24fb9eb26e5a6539bae087",
+      "kind": "drained",
+      "rule": "ruff:PT018",
+      "text": "3 compound asserts (freeze.py, test_freeze.py, test_runners.py) split into single-condition asserts. Mechanical, no bug."
     }
   ]
 }

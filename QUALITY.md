@@ -3,7 +3,7 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 284 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 285 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
@@ -66,6 +66,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 5d48102a | drained | ruff:PT018 | 3 compound asserts (freeze.py, test_freeze.py, test_runners.py) split into single-condition asserts. Mechanical, no bug. |
 | 2026-08-24 | ce13d008 | drained | ruff:TC002 | 1 violation in test_check.py; type-only third-party (pytest) import guarded by TYPE_CHECKING. Mechanical, no bug. |
 | 2026-08-24 | c549e499 | drained | ruff:TC001 | 4 violations in freeze.py; first-party type-only imports guarded by TYPE_CHECKING. Mechanical, no bug. |
 | 2026-08-24 | c228771b | drained | ruff:TC003 | 20 violations across 17 test files, freeze.py and store/state.py; type-only stdlib imports moved behind TYPE_CHECKING. Mechanical, no behaviour change, no bug. |
@@ -85,7 +86,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 3cd6be2c | drained | ruff:D102 | 5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug — fully graduates |
 | 2026-08-24 | 1a630f96 | drained | ruff:D104 | 4 violations across 4 subpackage __init__ files; added package docstrings naming each responsibility; not a bug — fully graduates |
 | 2026-08-24 | 808114ee | drained | ruff:FURB118 | 2 of 3 violations (status.py, worklist.py); replaced (count,name) lambda sort key with operator.itemgetter(1,0); not a bug — clarity; 1 left in store/state.py (leave-until-last) |
-| 2026-08-24 | ebe95816 | drained | ruff:RUF201 | 10 violations in pyproject.toml; replaced rule codes with names in ruff ignore lists; not a bug — config readability, behaviour unchanged |
 
 ## Notes
 
