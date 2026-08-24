@@ -36,6 +36,10 @@ if TYPE_CHECKING:
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"
 
+# The on-disk schema version of the ledger. A file naming an integer version below this is a
+# format we retired (see `_legacy_version`); anything else is not a ledger this ebpy reads.
+STATE_SCHEMA_VERSION = 2
+
 # `observe` records today's number without touching the ceiling — what `diagnose` and
 # `check` do. `freeze` lowers the ceiling to today's number if it improved, and never
 # raises it: running `freeze` twice after a bad week must not legalise the damage.
@@ -153,7 +157,7 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
     if not _valid_frozen_analyzers(frozen_analyzers):
         return False
     return (
-        raw.get("version") == 2
+        raw.get("version") == STATE_SCHEMA_VERSION
         and "counters" not in raw
         and _valid_common_fields(raw)
         and _valid_v2_rules(raw.get("rules"), frozen_analyzers)
@@ -194,7 +198,7 @@ def state_to_dict(state: State) -> dict[str, Any]:
     ``rule`` key is omitted rather than written null when it carries none.
     """
     return {
-        "version": 2,
+        "version": STATE_SCHEMA_VERSION,
         "tool": state.tool,
         "phase": state.phase,
         "updatedAt": state.updated_at,
@@ -248,7 +252,7 @@ def _legacy_version(raw: object) -> int | None:
     if not isinstance(raw, dict):
         return None
     version = raw.get("version")
-    if type(version) is int and version < 2:
+    if type(version) is int and version < STATE_SCHEMA_VERSION:
         return version
     return None
 

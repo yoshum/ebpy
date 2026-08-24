@@ -4,9 +4,6 @@
     "src/ebpy/store/state.py": {
       "ruff:PLC1901": {
         "count": 1
-      },
-      "ruff:PLR2004": {
-        "count": 2
       }
     },
     "src/ebpy/tools/__init__.py": {
