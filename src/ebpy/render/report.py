@@ -62,8 +62,7 @@ def _gap_lines(gaps: tuple[Gap, ...]) -> list[str]:
         return ["", "No gaps found. Freeze the baseline and start draining."]
     lines = ["", f"{len(gaps)} gap(s):"]
     for gap in gaps:
-        lines.append(f"  [{gap.phase}] {gap.title}")
-        lines.append(f"      {gap.detail}")
+        lines.extend((f"  [{gap.phase}] {gap.title}", f"      {gap.detail}"))
     return lines
 
 

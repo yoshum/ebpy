@@ -495,9 +495,6 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:FURB113": {
-        "count": 1
-      },
       "ruff:TC001": {
         "count": 2
       },
