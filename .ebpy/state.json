@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T10:25:11Z",
+  "updatedAt": "2026-08-24T10:52:37Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -51,8 +51,8 @@
       "status": "draining"
     },
     "ruff:D103": {
-      "baseline": 377,
-      "current": 377,
+      "baseline": 72,
+      "current": 72,
       "status": "draining"
     },
     "ruff:D205": {

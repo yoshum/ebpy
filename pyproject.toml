@@ -97,7 +97,9 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 # Tests carry literal expectations and wide fixtures; the ratchet still counts everything else.
-"tests/*" = ["too-many-arguments", "magic-value-comparison"]
+# A test's sentence-style name is its specification, so a docstring would only restate it —
+# undocumented-public-function (D103) is exempt here for that reason.
+"tests/*" = ["too-many-arguments", "magic-value-comparison", "undocumented-public-function"]
 
 [tool.mypy]
 strict = true

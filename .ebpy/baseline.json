@@ -369,17 +369,11 @@
       }
     },
     "tests/test_analysis_report.py": {
-      "ruff:D103": {
-        "count": 5
-      },
       "ruff:D205": {
         "count": 4
       }
     },
     "tests/test_baseline.py": {
-      "ruff:D103": {
-        "count": 19
-      },
       "ruff:D205": {
         "count": 4
       },
@@ -391,9 +385,6 @@
       }
     },
     "tests/test_bootstrap.py": {
-      "ruff:D103": {
-        "count": 14
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -401,15 +392,7 @@
         "count": 1
       }
     },
-    "tests/test_catalog.py": {
-      "ruff:D103": {
-        "count": 9
-      }
-    },
     "tests/test_ceiling_artifacts.py": {
-      "ruff:D103": {
-        "count": 11
-      },
       "ruff:D205": {
         "count": 5
       },
@@ -417,15 +400,7 @@
         "count": 1
       }
     },
-    "tests/test_cell_key.py": {
-      "ruff:D103": {
-        "count": 11
-      }
-    },
     "tests/test_check.py": {
-      "ruff:D103": {
-        "count": 14
-      },
       "ruff:D205": {
         "count": 10
       },
@@ -437,9 +412,6 @@
       }
     },
     "tests/test_diagnose.py": {
-      "ruff:D103": {
-        "count": 26
-      },
       "ruff:D205": {
         "count": 2
       },
@@ -447,20 +419,7 @@
         "count": 1
       }
     },
-    "tests/test_drain_order.py": {
-      "ruff:D103": {
-        "count": 11
-      }
-    },
-    "tests/test_fan_in.py": {
-      "ruff:D103": {
-        "count": 9
-      }
-    },
     "tests/test_freeze.py": {
-      "ruff:D103": {
-        "count": 14
-      },
       "ruff:D205": {
         "count": 12
       },
@@ -480,15 +439,7 @@
         "count": 1
       }
     },
-    "tests/test_freshness.py": {
-      "ruff:D103": {
-        "count": 8
-      }
-    },
     "tests/test_install.py": {
-      "ruff:D103": {
-        "count": 17
-      },
       "ruff:PLR6301": {
         "count": 1
       },
@@ -505,9 +456,6 @@
       }
     },
     "tests/test_lifecycle.py": {
-      "ruff:D103": {
-        "count": 18
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -516,9 +464,6 @@
       }
     },
     "tests/test_log.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
@@ -529,9 +474,6 @@
     "tests/test_measurement.py": {
       "ruff:ANN401": {
         "count": 1
-      },
-      "ruff:D103": {
-        "count": 15
       },
       "ruff:D205": {
         "count": 2
@@ -547,9 +489,6 @@
       }
     },
     "tests/test_mypy_lifecycle.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:D205": {
         "count": 2
       },
@@ -558,9 +497,6 @@
       }
     },
     "tests/test_prune.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 12
       },
@@ -572,25 +508,16 @@
       }
     },
     "tests/test_render.py": {
-      "ruff:D103": {
-        "count": 20
-      },
       "ruff:PLC1901": {
         "count": 2
       }
     },
     "tests/test_report.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       }
     },
     "tests/test_runners.py": {
-      "ruff:D103": {
-        "count": 18
-      },
       "ruff:D205": {
         "count": 7
       },
@@ -607,23 +534,12 @@
         "count": 1
       }
     },
-    "tests/test_secret_scan.py": {
-      "ruff:D103": {
-        "count": 8
-      }
-    },
     "tests/test_skills_install.py": {
-      "ruff:D103": {
-        "count": 18
-      },
       "ruff:SLF001": {
         "count": 2
       }
     },
     "tests/test_state.py": {
-      "ruff:D103": {
-        "count": 24
-      },
       "ruff:D205": {
         "count": 3
       },
@@ -632,27 +548,16 @@
       }
     },
     "tests/test_state_writers.py": {
-      "ruff:D103": {
-        "count": 2
-      },
       "ruff:TC003": {
         "count": 1
       }
     },
     "tests/test_status.py": {
-      "ruff:D103": {
-        "count": 1
-      },
       "ruff:D205": {
         "count": 1
       },
       "ruff:TC003": {
         "count": 1
-      }
-    },
-    "tests/test_worklist.py": {
-      "ruff:D103": {
-        "count": 8
       }
     }
   }
