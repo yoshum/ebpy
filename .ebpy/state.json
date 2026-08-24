@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:28:46Z",
+  "updatedAt": "2026-08-24T07:30:13Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -185,11 +185,6 @@
       "current": 40,
       "status": "draining"
     },
-    "ruff:TC006": {
-      "baseline": 12,
-      "current": 12,
-      "status": "draining"
-    },
     "ruff:TID252": {
       "baseline": 340,
       "current": 340,
@@ -265,6 +260,13 @@
       "kind": "drained",
       "rule": "ruff:PLW0717",
       "text": "1 violation; split _swap_staged_bundle's try clause into _move_existing_aside and _move_staged_into_place; not a real bug, but the split preserves the partial-progress-for-rollback invariant and is now test-pinned"
+    },
+    {
+      "at": "2026-08-24T07:30:13Z",
+      "commit": "45e3fcd23a89d85a27ee74cfa6f51a5f1fe25d2a",
+      "kind": "drained",
+      "rule": "ruff:TC006",
+      "text": "12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates"
     }
   ]
 }

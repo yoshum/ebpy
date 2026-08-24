@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 235 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 237 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1221**
+- Open violations: **1209**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,7 +19,7 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1221 findings across 30 rules
+- [ ] **P3 drain** — 1209 findings across 29 rules
   - [ ] `ruff:D105` — 1 left
   - [ ] `ruff:D107` — 1 left
   - [ ] `ruff:D301` — 1 left
@@ -46,7 +46,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:RUF067` | 21 | 21 | 0 | draining |
 | `ruff:D401` | 19 | 19 | 0 | draining |
 | `ruff:PLC2701` | 14 | 14 | 0 | draining |
-| `ruff:TC006` | 12 | 12 | 0 | draining |
 | `ruff:D403` | 11 | 11 | 0 | draining |
 | `ruff:ANN401` | 10 | 10 | 0 | draining |
 | `ruff:PT018` | 10 | 10 | 0 | draining |
@@ -75,6 +74,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 45e3fcd2 | drained | ruff:TC006 | 12 violations across install.py, skills_install.py, test_measurement.py; quoted cast() type expressions so they are not evaluated at runtime; not a real bug, pure type-level change, rule fully graduates |
 | 2026-08-24 | 3c6eafd4 | drained | ruff:PLW0717 | 1 violation; split _swap_staged_bundle's try clause into _move_existing_aside and _move_staged_into_place; not a real bug, but the split preserves the partial-progress-for-rollback invariant and is now test-pinned |
 | 2026-08-24 | 382bbee6 | drained | ruff:PLR0914 | 1 violation; extracted _prune_one_analyzer pure helper to drop prune_measurement below the local-variable ceiling; not a bug, a clean refactor with added test coverage |
 | 2026-08-24 | 6ab6e121 | drained | ruff:PT011 | 4 violations in tests/test_cell_key.py; added match= to each pytest.raises(ValueError) so tests assert the specific guard message; not a real bug, a test-precision improvement |
