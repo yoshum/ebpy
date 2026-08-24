@@ -203,7 +203,7 @@ def render_quality(state: State, notes: str, freshness: Freshness) -> str:
         "## Notes",
         "",
         NOTES_START,
-        notes if notes else "_Anything written between these markers survives a re-render._",
+        notes or "_Anything written between these markers survives a re-render._",
         NOTES_END,
         "",
     ]

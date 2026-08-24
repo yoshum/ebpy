@@ -54,6 +54,12 @@ def test_a_file_without_markers_yields_no_notes() -> None:
     assert extract_notes(None) == ""
 
 
+def test_empty_notes_render_the_placeholder() -> None:
+    """With no saved notes, the block shows the placeholder rather than an empty line."""
+    rendered = render_quality(empty_state(), "", CURRENT)
+    assert "_Anything written between these markers survives a re-render._" in rendered
+
+
 def test_rendering_is_pure() -> None:
     state = empty_state()
     assert render_quality(state, "", CURRENT) == render_quality(state, "", CURRENT)
