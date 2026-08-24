@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
-    from ..repo.detect.detector import ToolSetup
+    from ..models import ToolSetup
 
 
 @dataclass(frozen=True)

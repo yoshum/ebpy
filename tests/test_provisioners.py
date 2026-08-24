@@ -13,7 +13,7 @@ from ebpy.generate.configs import (
     ruff_pyproject_section,
     ruff_toml_content,
 )
-from ebpy.repo.detect.detector import ToolSetup
+from ebpy.models import ToolSetup
 from ebpy.tools.gitleaks import GitleaksProvisioner
 from ebpy.tools.mypy import MypyProvisioner
 from ebpy.tools.pytest import PytestProvisioner

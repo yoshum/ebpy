@@ -15,9 +15,8 @@ from ..generate.configs import (
     python_version_from_requires,
 )
 from ..generate.workflows import gate_workflow, secret_scan_workflow
-from ..models import Diagnosis
+from ..models import Diagnosis, ToolSetup
 from ..package_manager import DEV_INSTALL_PREFIXES
-from ..repo.detect.detector import ToolSetup
 from ..tools import PROVISIONERS
 from .provisioner import FileAction, InstallAction
 
