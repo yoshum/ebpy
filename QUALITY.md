@@ -3,12 +3,12 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 253 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 255 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
 - Frozen: 2026-08-24T06:07:06Z
-- Open violations: **1151**
+- Open violations: **1150**
 - Rules improved since the ceiling: **0**
 - Analyzers: **mypy, ruff**
 
@@ -19,12 +19,12 @@ Top to bottom. An unattended run works this list and nothing else.
 - [x] **P0 diagnose** — taken 2026-08-18T00:08:49Z
 - [x] **P1 bootstrap** — nothing missing
 - [x] **P2 freeze** — frozen 2026-08-24T06:07:06Z
-- [ ] **P3 drain** — 1151 findings across 23 rules
+- [ ] **P3 drain** — 1150 findings across 23 rules
   - [ ] `ruff:FURB118` — 1 left
   - [ ] `ruff:PLC2801` — 1 left
   - [ ] `ruff:RUF027` — 1 left
+  - [ ] `ruff:TC002` — 1 left
   - [ ] `ruff:PLR2004` — 2 left
-  - [ ] `ruff:TC002` — 2 left
 - [ ] **P4 tighten** — add the next rule tier, then freeze and drain again
 - [ ] **P5 duplication and dead code** — report-only scans; extraction is judgment, not a threshold
 
@@ -53,10 +53,10 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | `ruff:TC001` | 4 | 4 | 0 | draining |
 | `ruff:PLC1901` | 3 | 3 | 0 | draining |
 | `ruff:PLR2004` | 2 | 2 | 0 | draining |
-| `ruff:TC002` | 2 | 2 | 0 | draining |
 | `ruff:FURB118` | 1 | 1 | 0 | draining |
 | `ruff:PLC2801` | 1 | 1 | 0 | draining |
 | `ruff:RUF027` | 1 | 1 | 0 | draining |
+| `ruff:TC002` | 1 | 1 | 0 | draining |
 
 ## Outstanding
 
@@ -68,6 +68,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | 414e9de1 | drained | ruff:TC002 | 1 violation in tests/test_report.py; moved type-only pytest import into TYPE_CHECKING block; not a real bug, mechanical typing fix |
 | 2026-08-24 | 17c4efdc | drained | ruff:TC001 | 34 of 38 violations across 20 files; moved annotation-only first-party imports into TYPE_CHECKING blocks; not a bug — import hygiene; 4 left in commands/freeze.py (leave-until-last) |
 | 2026-08-24 | 3cd6be2c | drained | ruff:D102 | 5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug — fully graduates |
 | 2026-08-24 | 1a630f96 | drained | ruff:D104 | 4 violations across 4 subpackage __init__ files; added package docstrings naming each responsibility; not a bug — fully graduates |
