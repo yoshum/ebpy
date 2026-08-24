@@ -792,9 +792,6 @@
       "ruff:D209": {
         "count": 2
       },
-      "ruff:D403": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       }
@@ -934,9 +931,6 @@
       },
       "ruff:D205": {
         "count": 2
-      },
-      "ruff:D403": {
-        "count": 5
       },
       "ruff:TC003": {
         "count": 1

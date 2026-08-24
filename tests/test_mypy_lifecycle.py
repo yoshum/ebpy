@@ -138,7 +138,7 @@ def _write_ruff_only_v2_artifacts(repo: Path) -> None:
 
 
 def test_freeze_records_both_namespaces_and_check_then_passes(tmp_path: Path) -> None:
-    """freeze writes cells for both ruff: and mypy: namespaces; subsequent check == 0."""
+    """Freeze writes cells for both ruff: and mypy: namespaces; subsequent check == 0."""
     repo = _init_repo(tmp_path)
     (repo / "src" / "app.py").write_text(DIRTY_BOTH, encoding="utf-8")
     git(repo, "add", "-A")
@@ -224,7 +224,7 @@ def test_reintroducing_the_same_error_fails_check_again(tmp_path: Path) -> None:
 def test_a_ruff_only_contract_accepts_a_scoped_mypy_freeze_without_moving_ruff_cells(
     tmp_path: Path,
 ) -> None:
-    """freeze --analyzer mypy adds mypy cells without changing existing ruff cells."""
+    """Freeze --analyzer mypy adds mypy cells without changing existing ruff cells."""
     repo = _init_repo(tmp_path)
     (repo / "src" / "app.py").write_text(DIRTY_BOTH, encoding="utf-8")
     git(repo, "add", "-A")
@@ -262,7 +262,7 @@ def test_a_ruff_only_contract_accepts_a_scoped_mypy_freeze_without_moving_ruff_c
 def test_a_repository_with_an_unparseable_file_cannot_be_frozen_by_any_invocation(
     tmp_path: Path,
 ) -> None:
-    """freeze and freeze --force both refuse when a file has a syntax error.
+    """Freeze and freeze --force both refuse when a file has a syntax error.
 
     A file that does not parse is invisible to every rule: recording a ceiling for it
     would be a lie.  Neither the global freeze nor the --force re-pin escape can write
@@ -286,7 +286,7 @@ def test_a_repository_with_an_unparseable_file_cannot_be_frozen_by_any_invocatio
 def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """freeze and freeze --force both refuse when mypy is not installed.
+    """Freeze and freeze --force both refuse when mypy is not installed.
 
     A global freeze covers every analyzer this build ships, so a missing mypy fails it closed:
     a contract that silently omits an analyzer is indistinguishable from one that measured zero.
@@ -317,7 +317,7 @@ def test_a_repository_without_mypy_installed_cannot_be_frozen_by_a_global_freeze
 def test_a_scoped_ruff_freeze_builds_a_narrow_contract_when_mypy_is_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """freeze --analyzer ruff pins a ruff-only contract on a repository without mypy, then
+    """Freeze --analyzer ruff pins a ruff-only contract on a repository without mypy, then
     check gates ruff alone and names mypy as an unratcheted, configured analyzer.
 
     This is the staged-adoption path: a repository whose toolchain is incomplete freezes what
