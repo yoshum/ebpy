@@ -265,7 +265,8 @@ def test_an_exit_code_that_is_neither_clean_nor_errors_found_is_a_failure(
     """Only 0 (clean) and 1 (errors found) mean mypy completed a run; any other code fails.
 
     Codes 2 and negative signals have their own branches; this pins the general rule for an
-    otherwise-undocumented code such as 3, which carries no measurement to keep."""
+    otherwise-undocumented code such as 3, which carries no measurement to keep.
+    """
     fatal_mypy(monkeypatch, "boom", code=3)
 
     with pytest.raises(MypyFailedError, match=r"exit 3"):
