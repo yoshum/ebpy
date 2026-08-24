@@ -259,6 +259,19 @@ def test_mypy_signal_exit_is_a_failure(tmp_path: Path, monkeypatch: pytest.Monke
         run_mypy_check(tmp_path)
 
 
+def test_an_exit_code_that_is_neither_clean_nor_errors_found_is_a_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only 0 (clean) and 1 (errors found) mean mypy completed a run; any other code fails.
+
+    Codes 2 and negative signals have their own branches; this pins the general rule for an
+    otherwise-undocumented code such as 3, which carries no measurement to keep."""
+    fatal_mypy(monkeypatch, "boom", code=3)
+
+    with pytest.raises(MypyFailedError, match=r"exit 3"):
+        run_mypy_check(tmp_path)
+
+
 def test_mypy_exit_zero_with_an_error_line_is_invalid_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -228,7 +228,7 @@ def run_mypy_check(cwd: Path) -> AnalysisMeasurement:
             syntax = None
         if syntax is not None and syntax.unattributed and not syntax.cells:
             return syntax
-    if result.code not in (0, 1):
+    if result.code not in {0, 1}:
         headline = f"mypy failed (exit {result.code})"
         output = (result.stderr or result.stdout).strip()
         raise MypyFailedError(
