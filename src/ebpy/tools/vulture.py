@@ -64,6 +64,6 @@ class VultureProvisioner:
         """Return ("vulture",) when vulture is absent, empty tuple when already configured."""
         return ("vulture",) if not setup.configured else ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Return empty list: vulture has no generated config and no gate step today."""
         return []

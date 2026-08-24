@@ -128,11 +128,11 @@ class GitleaksProvisioner:
         """Unique short identifier for secret scanning."""
         return "secret-scan"
 
-    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return empty tuple: gitleaks is not a Python package dependency."""
         return ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Create secret-scan.yml unconditionally; the applier skips it if the file already exists."""
         return [
             CreateFile(

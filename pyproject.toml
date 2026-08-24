@@ -114,7 +114,9 @@ max-complexity = 10
 ]
 # Every tool here implements a fixed provisioner/analyzer protocol, so its methods must remain
 # instance methods even when a given one does not touch self (no-self-use is a false positive here).
-"src/ebpy/tools/**" = ["no-self-use"]
+# The same protocol conformance forces each method to accept the full argument set (setup, ctx) even
+# when it uses none of them, so unused-method-argument is a false positive here too.
+"src/ebpy/tools/**" = ["no-self-use", "unused-method-argument"]
 # The install step is a GitHub Actions YAML template carrying shell ${VAR} expansions; making it an
 # f-string would try to interpolate them as Python names and break the workflow (missing-f-string-syntax).
 "src/ebpy/tools/gitleaks.py" = ["no-self-use", "missing-f-string-syntax"]

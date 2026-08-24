@@ -76,6 +76,6 @@ class PytestProvisioner:
         """Return ("pytest",) when pytest is absent, empty tuple when already configured."""
         return ("pytest",) if not setup.configured else ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Return the Test gate step (pytest needs no generated config file)."""
         return [AddWorkflowStep(lines=("      - name: Test", f"        run: {ctx.run_prefix}pytest"))]

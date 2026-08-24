@@ -6,34 +6,14 @@
         "count": 11
       }
     },
-    "src/ebpy/tools/gitleaks.py": {
-      "ruff:RUF105": {
-        "count": 2
-      }
-    },
     "src/ebpy/tools/mypy/__init__.py": {
       "ruff:RUF067": {
         "count": 6
       }
     },
-    "src/ebpy/tools/pytest.py": {
-      "ruff:RUF105": {
-        "count": 1
-      }
-    },
     "src/ebpy/tools/ruff/__init__.py": {
       "ruff:RUF067": {
         "count": 4
-      }
-    },
-    "src/ebpy/tools/ruff_format.py": {
-      "ruff:RUF105": {
-        "count": 2
-      }
-    },
-    "src/ebpy/tools/vulture.py": {
-      "ruff:RUF105": {
-        "count": 1
       }
     }
   }

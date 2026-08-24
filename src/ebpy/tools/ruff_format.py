@@ -71,10 +71,10 @@ class RuffFormatProvisioner:
         """Unique short identifier for the formatter tool."""
         return "formatter"
 
-    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:  # noqa: ARG002
+    def plan_packages(self, setup: ToolSetup) -> tuple[str, ...]:
         """Return empty tuple: ruff covers formatting, no additional package needed."""
         return ()
 
-    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:  # noqa: ARG002
+    def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
         """Return empty list: config and the Format check step are owned by RuffProvisioner."""
         return []
