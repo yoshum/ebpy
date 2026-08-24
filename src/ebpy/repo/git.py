@@ -17,7 +17,8 @@ def is_git_repository(cwd: Path) -> bool:
     """Whether there is a history here at all. A caller that scans one has to ask first:
     ``gitleaks git`` outside a work tree logs an error, scans zero commits, and still
     exits 0 with "no leaks found" — a clean bill of health for a scan that looked at
-    nothing."""
+    nothing.
+    """
     try:
         result = run(["git", "rev-parse", "--is-inside-work-tree"], cwd)
     except OSError:
@@ -39,7 +40,8 @@ def head_commit(cwd: Path) -> str | None:
 def commits_since(cwd: Path, sha: str | None) -> int | None:
     """How far the repository has moved since a diagnosis. None when the recorded commit
     is not in this history at all — after a rebase, a force-push, or a fresh shallow
-    clone — which is itself a reason to re-diagnose rather than a number to guess at."""
+    clone — which is itself a reason to re-diagnose rather than a number to guess at.
+    """
     if not sha:
         return None
     try:

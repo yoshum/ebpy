@@ -37,7 +37,8 @@ def _section(title: str, rows: list[str], total: int, shown: int) -> list[str]:
 def _reach(plan: DrainPlan, file: str) -> str:
     """Only when --fan-in gathered it, and only above zero: printing "imported by 0" on
     every row of a repository never asked for the graph reads as a measurement rather
-    than as an absence."""
+    than as an absence.
+    """
     importers = plan.importers.get(file)
     return "" if not importers else f"  (imported by {importers})"
 

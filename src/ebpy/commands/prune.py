@@ -187,7 +187,8 @@ def run_prune(cwd: Path) -> str:
     """`freeze` pins whatever exists today, so running it a second time would
     grandfather violations added since. `prune` can only ever lower a cell to what
     still exists, which makes it safe to run after a ceiling has been frozen — provided
-    both artifacts holding that ceiling are readable."""
+    both artifacts holding that ceiling are readable.
+    """
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         raise CommandError(invalid_artifacts_message(artifacts))

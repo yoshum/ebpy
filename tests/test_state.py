@@ -96,7 +96,8 @@ def test_a_rule_seen_for_the_first_time_starts_at_todays_count() -> None:
 
 def test_a_version_one_state_reads_as_unreadable() -> None:
     """Version 1 is no longer upgraded in memory; a state still at version 1 is refused so
-    the reader never reconstructs a contract from a format it no longer understands."""
+    the reader never reconstructs a contract from a format it no longer understands.
+    """
     raw = _v1_raw(rules={"F401": {"baseline": 2, "current": 1, "status": "draining"}})
 
     assert state_from_dict(raw) is None
@@ -295,7 +296,8 @@ def test_structurally_invalid_state_is_present_but_unreadable(tmp_path: Path, ra
 def test_a_version_one_ledger_is_tagged_as_a_retired_format(tmp_path: Path) -> None:
     """A state.json that parses as JSON and names version 1 is recorded as a retired format, not
     just an unreadable blob — the tag is what lets a command tell "old ebpy wrote this" apart from
-    "these bytes are corrupt"."""
+    "these bytes are corrupt".
+    """
     path = tmp_path / ".ebpy" / "state.json"
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({"version": 1, "rules": {}, "counters": {}, "log": []}), encoding="utf-8")
@@ -305,7 +307,8 @@ def test_a_version_one_ledger_is_tagged_as_a_retired_format(tmp_path: Path) -> N
 
 def test_a_corrupt_state_carries_no_retired_format_tag(tmp_path: Path) -> None:
     """Bytes that never parse as JSON cannot name a version, so the retired-format tag stays None:
-    corruption and an old format must not be conflated."""
+    corruption and an old format must not be conflated.
+    """
     path = tmp_path / ".ebpy" / "state.json"
     path.parent.mkdir(parents=True)
     path.write_text("{ not json", encoding="utf-8")

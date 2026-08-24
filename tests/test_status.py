@@ -26,7 +26,8 @@ def test_status_lists_the_frozen_analyzers_and_no_regression_count(tmp_path: Pat
     """The roster line names every analyzer the ledger holds a ceiling for, and no line in
     the output reports a regression count anywhere — state v2 stores only held counts, so a
     regression is structurally unrepresentable and the deleted verdict line must not have
-    grown back next to the new one."""
+    grown back next to the new one.
+    """
     write_cells(tmp_path, {"src/app.py": {"ruff:F401": 2, "mypy:arg-type": 1}})
     _frozen_state(tmp_path, {"ruff:F401": 2, "mypy:arg-type": 1}, ("mypy", "ruff"))
 

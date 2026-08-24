@@ -59,7 +59,8 @@ class FreezeDecision:
 def _unattributed_report(analyzer: str, result: AnalysisMeasurement) -> list[str]:
     """Syntax errors are not rule violations the baseline can grandfather: a file that
     does not parse is invisible to every rule, so recording a count for it would be a
-    lie. Naming the files turns a mystery into a task."""
+    lie. Naming the files turns a mystery into a task.
+    """
     if not result.unattributed:
         return []
     files = sorted({item.file for item in result.unattributed})

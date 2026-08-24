@@ -237,7 +237,8 @@ def test_the_excess_message_names_the_file_and_the_rule() -> None:
 def test_the_excess_message_suggests_a_scoped_refreeze_for_that_analyzer() -> None:
     """A rule genuinely reconfigured is recovered by re-pinning only its analyzer. A global
     `freeze --force` would rebaseline every namespace, grandfathering unrelated analyzers'
-    new violations, so the guidance names the analyzer and its scoped freeze."""
+    new violations, so the guidance names the analyzer and its scoped freeze.
+    """
     previous = _state(frozen_analyzers=("mypy",))
     measurement = Measurement(analyzers={"mypy": _measured("mypy", {"src/widget.py": {"mypy:arg-type": 3}})})
 
@@ -364,7 +365,8 @@ def test_no_write_persists_nothing_on_success_or_failure(
 
 def test_a_contract_analyzer_with_no_runner_in_this_build_fails_closed() -> None:
     """A frozen analyzer whose name this ebpy build has no runner for must fail closed: the
-    ceiling is real but unverifiable, so the gate must not report it as held."""
+    ceiling is real but unverifiable, so the gate must not report it as held.
+    """
     previous = _state(frozen_analyzers=("pylint",))
     measurement = Measurement(analyzers={})
 
@@ -377,7 +379,8 @@ def test_a_contract_analyzer_with_no_runner_in_this_build_fails_closed() -> None
 
 def test_a_failed_analyzer_produces_an_unverified_failure_and_still_returns_state() -> None:
     """A failed analyzer still produces a usable state so a complete neighbour's progress
-    is not lost: `check_measurement` always returns state regardless of individual failures."""
+    is not lost: `check_measurement` always returns state regardless of individual failures.
+    """
     previous = _state(frozen_analyzers=("ruff",))
     measurement = Measurement(
         analyzers={"ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff failed")}
@@ -392,7 +395,8 @@ def test_a_failed_analyzer_produces_an_unverified_failure_and_still_returns_stat
 
 def test_an_unmeasured_mypy_leaves_its_ceiling_untouched_while_ruff_is_still_applied() -> None:
     """The gate refuses when one contract analyzer cannot be measured, while a sibling
-    analyzer's measurement is still applied to the ledger rather than withheld."""
+    analyzer's measurement is still applied to the ledger rather than withheld.
+    """
     previous = _state(
         frozen_analyzers=("mypy", "ruff"),
         rules={"mypy:arg-type": RuleBaseline(baseline=4, current=4, status="draining")},
@@ -414,7 +418,8 @@ def test_an_unmeasured_mypy_leaves_its_ceiling_untouched_while_ruff_is_still_app
 
 def test_check_rejects_cells_beyond_the_ceiling() -> None:
     """A cell beyond its ceiling fails the gate; the ledger records only the within-ceiling
-    count, keyed by a namespaced rule id."""
+    count, keyed by a namespaced rule id.
+    """
     previous = _state(frozen_analyzers=("ruff",))
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 1}}
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {"src/a.py": {"ruff:F401": 2}})})
@@ -430,7 +435,8 @@ def test_check_shell_persists_state_and_quality_even_after_a_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """run_check must persist state and QUALITY.md on `write=True` even when the result is a
-    failure, so a complete analyzer's progress is not lost to a neighbour's failure."""
+    failure, so a complete analyzer's progress is not lost to a neighbour's failure.
+    """
     _write_frozen_ceiling(
         tmp_path,
         {"a.py": {"ruff:F401": 1}},
@@ -452,7 +458,8 @@ def test_check_shell_persists_state_and_quality_even_after_a_failure(
 
 def test_an_unmeasured_analyzer_reports_the_tools_detail_and_keeps_its_ceiling_unverified() -> None:
     """An unmeasured contract analyzer quotes the tool's own failure detail and leaves its
-    ceiling rules exactly as they were in the previous state."""
+    ceiling rules exactly as they were in the previous state.
+    """
     previous = _state(
         frozen_analyzers=("mypy",),
         rules={"mypy:arg-type": RuleBaseline(baseline=4, current=4, status="draining")},
@@ -477,7 +484,8 @@ def test_an_unmeasured_analyzer_reports_the_tools_detail_and_keeps_its_ceiling_u
 
 def test_mypy_with_no_ceiling_passes_but_is_never_silent() -> None:
     """An analyzer outside the contract that could not be measured is still named in a clean
-    run's message and never silently dropped."""
+    run's message and never silently dropped.
+    """
     previous = _state(frozen_analyzers=("ruff",))
     measurement = Measurement(
         analyzers={
@@ -494,7 +502,8 @@ def test_mypy_with_no_ceiling_passes_but_is_never_silent() -> None:
 
 def test_a_clean_run_leaves_the_message_unadorned() -> None:
     """A clean run with no notes produces exactly the summary line and nothing more — no
-    stray separators or trailing whitespace."""
+    stray separators or trailing whitespace.
+    """
     previous = _state(frozen_analyzers=("ruff",))
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {})})
 
@@ -522,7 +531,8 @@ def test_check_fails_when_declared_set_diverges_from_roster(
 ) -> None:
     """run_check fails closed before measurement when config.json names a smaller analyzer
     set than the frozen roster — proof: the message contains only reconcile text and the
-    measure_repository stub is never invoked."""
+    measure_repository stub is never invoked.
+    """
     write_cells(tmp_path, {"a.py": {"ruff:F401": 1}})
     write_state(
         tmp_path,

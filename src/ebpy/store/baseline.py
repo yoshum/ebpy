@@ -31,7 +31,8 @@ def baseline_path(cwd: Path) -> Path:
 def _valid_count(entry: object) -> int | None:
     """A cell's stored count: a plain positive int, nothing else. `bool` is a subtype of
     `int` in Python, so `type(count) is not int` is required — `isinstance` would let
-    `true` silently through as `1`."""
+    `true` silently through as `1`.
+    """
     if not isinstance(entry, dict) or set(entry) != {"count"}:
         return None
     count = entry["count"]
@@ -128,7 +129,8 @@ def write_cells(cwd: Path, cells: CellCountsView) -> None:
 
 def prune_cells(baseline: CellCountsView, current: CellCountsView) -> CellCounts:
     """Lower every cell to what still exists, and never raise one — the only sanctioned
-    way for the ceiling to fall. Cells whose violations are all gone disappear."""
+    way for the ceiling to fall. Cells whose violations are all gone disappear.
+    """
     pruned: CellCounts = {}
     for file, rules in baseline.items():
         kept = {rule: min(count, current.get(file, {}).get(rule, 0)) for rule, count in rules.items()}

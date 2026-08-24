@@ -84,7 +84,8 @@ def combine_scans(verdicts: list[SecretVerdict]) -> SecretVerdict:
 
     Every message survives, whichever code wins: a run that both found something and
     could not finish has two things worth acting on, and dropping the finding to
-    report the failure loses the one that names a file."""
+    report the failure loses the one that names a file.
+    """
     bad = [verdict for verdict in verdicts if not verdict.ok]
     if not bad:
         return SecretVerdict(

@@ -180,7 +180,8 @@ def test_configs_are_appended_to_an_existing_pyproject_rather_than_a_new_file(tm
 def test_the_mypy_config_reason_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path) -> None:
     """The reason printed beside the mypy config must describe today's model — errors ratcheted per
     file per rule like Ruff's — not the retired global "counter". Pinned so the wording cannot drift
-    back without a failing test."""
+    back without a failing test.
+    """
     (tmp_path / "pyproject.toml").write_text('[project]\nname = "app"\n', encoding="utf-8")
     plan = plan_for(tmp_path)
     mypy_action = next(action for action in plan.files if "type checking" in action.reason)

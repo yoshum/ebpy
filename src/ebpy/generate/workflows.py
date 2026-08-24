@@ -115,7 +115,8 @@ def gate_workflow(
     moment the repository freezes one. `ebpy check` is the gate — it runs ruff and mypy
     through the measurement seam and fails only on findings above the ceiling. `report`
     runs after `check` with `if: always()`: the run where the gate has just failed is
-    the run where the backlog is worth most."""
+    the run where the backlog is worth most.
+    """
     steps = _steps_for(manager, python_version)
     run = steps.run_prefix
     lines = [

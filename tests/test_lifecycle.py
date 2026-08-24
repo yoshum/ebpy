@@ -1,6 +1,7 @@
 """End to end, against a real repository and a real Ruff: diagnose, bootstrap,
 freeze, check, fix, prune. The ratchet's whole claim is that the number can fall
-but never rise, and only a run over real tools tests that claim."""
+but never rise, and only a run over real tools tests that claim.
+"""
 
 from __future__ import annotations
 

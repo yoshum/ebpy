@@ -11,9 +11,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 2
-      },
       "ruff:D401": {
         "count": 1
       }
@@ -79,9 +76,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:PT018": {
         "count": 1
       },
@@ -113,9 +107,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 11
       }
@@ -133,9 +124,6 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TID252": {
@@ -214,9 +202,6 @@
       "ruff:D205": {
         "count": 4
       },
-      "ruff:D209": {
-        "count": 4
-      },
       "ruff:D401": {
         "count": 1
       },
@@ -254,18 +239,12 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:D401": {
         "count": 2
       }
     },
     "src/ebpy/generate/workflows.py": {
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TID252": {
@@ -305,9 +284,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:D401": {
         "count": 3
       },
@@ -322,9 +298,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:D401": {
         "count": 1
       },
@@ -337,9 +310,6 @@
         "count": 2
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TID252": {
@@ -404,9 +374,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:TID252": {
         "count": 1
       }
@@ -429,9 +396,6 @@
       "ruff:D205": {
         "count": 3
       },
-      "ruff:D209": {
-        "count": 3
-      },
       "ruff:D401": {
         "count": 1
       }
@@ -441,9 +405,6 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D209": {
         "count": 2
       },
       "ruff:TID252": {
@@ -460,9 +421,6 @@
       "ruff:D205": {
         "count": 1
       },
-      "ruff:D209": {
-        "count": 1
-      },
       "ruff:D401": {
         "count": 1
       }
@@ -472,9 +430,6 @@
         "count": 6
       },
       "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D209": {
         "count": 2
       },
       "ruff:D401": {
@@ -630,9 +585,6 @@
       },
       "ruff:D205": {
         "count": 4
-      },
-      "ruff:D209": {
-        "count": 4
       }
     },
     "tests/test_baseline.py": {
@@ -643,9 +595,6 @@
         "count": 19
       },
       "ruff:D205": {
-        "count": 4
-      },
-      "ruff:D209": {
         "count": 4
       },
       "ruff:PLC2701": {
@@ -663,9 +612,6 @@
         "count": 14
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TC003": {
@@ -690,9 +636,6 @@
       "ruff:D205": {
         "count": 5
       },
-      "ruff:D209": {
-        "count": 5
-      },
       "ruff:TC003": {
         "count": 1
       }
@@ -715,9 +658,6 @@
       "ruff:D205": {
         "count": 10
       },
-      "ruff:D209": {
-        "count": 10
-      },
       "ruff:TC002": {
         "count": 1
       },
@@ -733,9 +673,6 @@
         "count": 26
       },
       "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D209": {
         "count": 2
       },
       "ruff:TC003": {
@@ -763,9 +700,6 @@
         "count": 14
       },
       "ruff:D205": {
-        "count": 12
-      },
-      "ruff:D209": {
         "count": 12
       },
       "ruff:D401": {
@@ -812,9 +746,6 @@
     "tests/test_legacy_artifacts.py": {
       "ruff:D205": {
         "count": 7
-      },
-      "ruff:D209": {
-        "count": 7
       }
     },
     "tests/test_lifecycle.py": {
@@ -822,9 +753,6 @@
         "count": 18
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TC003": {
@@ -836,9 +764,6 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TC003": {
@@ -856,9 +781,6 @@
         "count": 15
       },
       "ruff:D205": {
-        "count": 2
-      },
-      "ruff:D209": {
         "count": 2
       },
       "ruff:PLC2701": {
@@ -887,9 +809,6 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 12
-      },
-      "ruff:D209": {
         "count": 12
       },
       "ruff:D401": {
@@ -929,9 +848,6 @@
         "count": 18
       },
       "ruff:D205": {
-        "count": 7
-      },
-      "ruff:D209": {
         "count": 7
       },
       "ruff:D403": {
@@ -976,9 +892,6 @@
       "ruff:D205": {
         "count": 3
       },
-      "ruff:D209": {
-        "count": 3
-      },
       "ruff:TC003": {
         "count": 1
       }
@@ -996,9 +909,6 @@
         "count": 1
       },
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:D209": {
         "count": 1
       },
       "ruff:TC003": {

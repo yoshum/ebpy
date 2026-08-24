@@ -89,7 +89,8 @@ MYPY_INI_CONTENT = "[mypy]\nstrict = True\n"
 
 def python_version_from_requires(requires: str | None, default: str = "py311") -> str:
     """``requires-python = ">=3.11"`` -> ``py311``, so the generated Ruff config allows
-    exactly the syntax the package already promises."""
+    exactly the syntax the package already promises.
+    """
     if not requires:
         return default
     match = re.search(r"3\.(\d+)", requires)

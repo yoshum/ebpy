@@ -60,7 +60,8 @@ def test_prune_refuses_when_the_ledger_is_missing(tmp_path: Path) -> None:
 def test_prune_before_the_first_freeze_writes_nothing(tmp_path: Path) -> None:
     """`diagnose --write` and `log` both create a valid ledger before freeze. Its mere
     existence must not let prune create `{}`, which freeze would mistake for a ceiling
-    pinned on a clean tree."""
+    pinned on a clean tree.
+    """
     write_state(tmp_path, empty_state())
     state_before = state_path(tmp_path).read_text(encoding="utf-8")
 
@@ -74,7 +75,8 @@ def test_prune_before_the_first_freeze_writes_nothing(tmp_path: Path) -> None:
 def test_prune_lowers_a_complete_analyzer_and_preserves_a_failed_ones_cells() -> None:
     """A complete analyzer's namespace is pruned to what still exists; a failed one's
     baseline cells are carried through unchanged, since a ceiling nobody re-measured
-    cannot be lowered."""
+    cannot be lowered.
+    """
     previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(2), "mypy:arg-type": _frozen(3)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
     measurement = Measurement(
@@ -93,7 +95,8 @@ def test_prune_lowers_a_complete_analyzer_and_preserves_a_failed_ones_cells() ->
 
 def test_prune_preserves_a_failed_analyzers_state_rules() -> None:
     """The state rules of an analyzer that could not be measured are left exactly as they
-    were — not drained, not re-frozen — because this run learned nothing about them."""
+    were — not drained, not re-frozen — because this run learned nothing about them.
+    """
     previous = _state(
         ("mypy", "ruff"),
         {"ruff:F401": _frozen(2), "mypy:arg-type": RuleBaseline(baseline=3, current=3, status="draining")},
@@ -114,7 +117,8 @@ def test_prune_preserves_a_failed_analyzers_state_rules() -> None:
 
 def test_prune_reports_reclaimed_totals_per_analyzer() -> None:
     """The message names the total reclaimed and breaks it down by analyzer, so a reader
-    can see which ceiling came down."""
+    can see which ceiling came down.
+    """
     previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(4), "mypy:arg-type": _frozen(3)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 4}, "src/b.py": {"mypy:arg-type": 3}}
     measurement = Measurement(
@@ -160,7 +164,8 @@ def test_prune_reports_a_reclaim_then_appends_the_unmeasured_note() -> None:
 
 def test_prune_with_no_complete_analyzer_changes_nothing_and_says_why() -> None:
     """With not a single analyzer measured, prune is a no-op: both artifacts are left as
-    they were and the message explains why, rather than raising."""
+    they were and the message explains why, rather than raising.
+    """
     previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(2), "mypy:arg-type": _frozen(3)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
     measurement = Measurement(
@@ -182,7 +187,8 @@ def test_prune_no_op_reports_the_same_total_as_the_incomplete_no_op_branch() -> 
     """Both "nothing reclaimed" branches must report the same grandfathered total for the
     same situation. The reported number is `total_violations(previous)` — the pre-mutation
     ledger — not the state after `replace_analyzer_rules` has reset each rule's `current` to
-    the baseline-file total, which would overstate what a prior `check` had already lowered."""
+    the baseline-file total, which would overstate what a prior `check` had already lowered.
+    """
     # A prior `check` observed only 1 finding and lowered `current` to 1, though the ceiling
     # (baseline) is still 3. `total_violations(previous)` is therefore 1.
     previous = _state(
@@ -201,7 +207,8 @@ def test_prune_no_op_reports_the_same_total_as_the_incomplete_no_op_branch() -> 
 
 def test_prune_never_raises_a_cell() -> None:
     """A cell where the current count exceeds the baseline is clamped to the baseline —
-    prune only ever lowers a ceiling, never raises it."""
+    prune only ever lowers a ceiling, never raises it.
+    """
     previous = _state(("ruff",), {"ruff:F401": _frozen(2)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}}
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {"src/a.py": {"ruff:F401": 9}})})
@@ -216,7 +223,8 @@ def test_prune_of_a_fully_fixed_rule_drops_it_from_both_artifacts() -> None:
     """A rule whose every finding is fixed leaves the namespace entirely: it is dropped
     from the cells written to baseline.json and from the ledger's rules. Holding a
     positive baseline for a rule the baseline file no longer carries would make the two
-    artifacts disagree, and the next command would read the pair as invalid."""
+    artifacts disagree, and the next command would read the pair as invalid.
+    """
     previous = _state(("ruff",), {"ruff:F401": _frozen(3), "ruff:E501": _frozen(2)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 3}, "src/b.py": {"ruff:E501": 2}}
     # F401 is entirely fixed; only E501 still has a finding.
@@ -231,7 +239,8 @@ def test_prune_of_a_fully_fixed_rule_drops_it_from_both_artifacts() -> None:
 
 def test_prune_of_a_fully_fixed_rule_keeps_the_pair_readable(tmp_path: Path) -> None:
     """After draining a rule to zero, the written baseline.json and state.json still agree,
-    so the next command classifies the contract as frozen rather than invalid."""
+    so the next command classifies the contract as frozen rather than invalid.
+    """
     write_cells(tmp_path, {"src/a.py": {"ruff:F401": 3}})
     write_state(
         tmp_path,
@@ -261,7 +270,8 @@ def test_prune_of_a_fully_fixed_rule_keeps_the_pair_readable(tmp_path: Path) -> 
 
 def test_prune_measurement_does_not_mutate_its_input_state() -> None:
     """`prune_measurement` is pure over its arguments: the caller's `previous` state must
-    be untouched even as the returned decision carries a lowered ceiling."""
+    be untouched even as the returned decision carries a lowered ceiling.
+    """
     previous = _state(("ruff",), {"ruff:F401": _frozen(2)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}}
     measurement = Measurement(analyzers={"ruff": _measured("ruff", {"src/a.py": {"ruff:F401": 1}})})
@@ -274,7 +284,8 @@ def test_prune_measurement_does_not_mutate_its_input_state() -> None:
 
 def test_prune_records_no_ceiling_for_an_unmeasured_analyzer_with_no_prior_ceiling() -> None:
     """An analyzer in the contract that this run could not measure and that has no baseline
-    cell records nothing — absence stays absence rather than becoming a zero ceiling."""
+    cell records nothing — absence stays absence rather than becoming a zero ceiling.
+    """
     previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(2)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}}
     measurement = Measurement(
@@ -293,7 +304,8 @@ def test_prune_records_no_ceiling_for_an_unmeasured_analyzer_with_no_prior_ceili
 
 def test_prune_carries_an_incomplete_analyzer_through_unchanged() -> None:
     """An analyzer whose run left an unattributed finding is not "complete", so its ceiling
-    is carried through rather than lowered from a partial measurement."""
+    is carried through rather than lowered from a partial measurement.
+    """
     previous = _state(("mypy", "ruff"), {"ruff:F401": _frozen(2), "mypy:arg-type": _frozen(3)})
     baseline: CellCounts = {"src/a.py": {"ruff:F401": 2}, "src/b.py": {"mypy:arg-type": 3}}
     measurement = Measurement(

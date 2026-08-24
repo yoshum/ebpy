@@ -34,7 +34,8 @@ def _headline(report: AnalysisReport) -> list[str]:
 
 def _banner(title: str, failure: str, consequence: str) -> list[str]:
     """A tool's complaint quoted whole. A blockquote can hold every line it wrote, so the
-    reason a run failed does not have to survive being squeezed into one."""
+    reason a run failed does not have to survive being squeezed into one.
+    """
     return [f"> **{title}**", *(f"> {line}" for line in failure.splitlines()), f"> {consequence}", ""]
 
 

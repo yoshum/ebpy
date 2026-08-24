@@ -116,7 +116,8 @@ def test_a_frozen_ledger_without_its_baseline_is_invalid(tmp_path: Path) -> None
 def test_a_pre_freeze_ledger_with_a_recorded_roster_is_invalid(tmp_path: Path) -> None:
     """A ledger's roster is ceiling data: carrying one before `frozen_at` is set means the
     ledger claims an analyzer was frozen while no freeze happened, which the missing
-    baseline.json cannot possibly back up."""
+    baseline.json cannot possibly back up.
+    """
     state = empty_state()
     state.frozen_analyzers = ("mypy",)
     write_state(tmp_path, state)
@@ -167,7 +168,8 @@ def test_a_frozen_ledger_with_an_empty_roster_is_invalid(tmp_path: Path) -> None
 def test_aligning_a_written_pair_reads_back_as_frozen(tmp_path: Path) -> None:
     """The write-side counterpart to `_validate_frozen_pair`: deriving the ledger totals with
     the helper and writing them alongside the same cells must leave a pair that reads as
-    frozen, never invalid — the read-side check the helper exists to satisfy."""
+    frozen, never invalid — the read-side check the helper exists to satisfy.
+    """
     cells = {"src/app.py": {"ruff:F401": 2}, "src/lib.py": {"mypy:arg-type": 3}}
     state = empty_state()
     state.frozen_analyzers = ("mypy", "ruff")
@@ -182,7 +184,8 @@ def test_aligning_a_written_pair_reads_back_as_frozen(tmp_path: Path) -> None:
 
 def test_aligning_drops_a_rule_whose_cells_are_gone() -> None:
     """A rule the fresh cells no longer carry must leave the ledger namespace, not linger at a
-    stale baseline — otherwise the pair the read side sees would disagree and read as invalid."""
+    stale baseline — otherwise the pair the read side sees would disagree and read as invalid.
+    """
     state = empty_state()
     state.rules = {
         "ruff:F401": RuleBaseline(baseline=2, current=2, status="draining"),
@@ -197,7 +200,8 @@ def test_aligning_drops_a_rule_whose_cells_are_gone() -> None:
 
 def test_aligning_one_analyzer_leaves_other_namespaces_untouched() -> None:
     """Scoped alignment must rewrite only its own analyzer's rules, mirroring the scoped
-    freeze that writes one namespace while preserving every other."""
+    freeze that writes one namespace while preserving every other.
+    """
     state = empty_state()
     state.rules = {"mypy:arg-type": RuleBaseline(baseline=3, current=3, status="draining")}
 
@@ -209,7 +213,8 @@ def test_aligning_one_analyzer_leaves_other_namespaces_untouched() -> None:
 
 def test_a_ledger_with_rules_but_no_frozen_at_is_invalid_not_fresh(tmp_path: Path) -> None:
     """A ledger holding ceiling rules but missing `frozenAt` records no valid freeze, so it
-    is neither fresh (a fresh state has no rules) nor a usable contract — it is invalid."""
+    is neither fresh (a fresh state has no rules) nor a usable contract — it is invalid.
+    """
     state_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
     state_path(tmp_path).write_text(
         json.dumps(

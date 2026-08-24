@@ -28,7 +28,8 @@ _SENTENCE = re.compile(r"^(.*?[.!?])(\s|$)", re.DOTALL)
 
 def _first_sentence(doc: str | None) -> str | None:
     """The first sentence, not the first line: docstrings are written to wrap, so a
-    first line alone usually stops mid-clause."""
+    first line alone usually stops mid-clause.
+    """
     if not doc:
         return None
     text = " ".join(doc.strip().split())
@@ -42,7 +43,8 @@ def extract_exports(source: str, file: str) -> list[CatalogEntry]:
     """Pure: given a file's text, the public module-level callables in it.
 
     A file that does not parse contributes nothing — the catalogue's job is what
-    exists to reuse, and a broken file is not that."""
+    exists to reuse, and a broken file is not that.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:

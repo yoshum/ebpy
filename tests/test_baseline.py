@@ -45,7 +45,8 @@ def test_a_v2_baseline_round_trips_through_write_and_read(tmp_path: Path) -> Non
 
 def test_a_clean_v2_baseline_is_distinguishable_from_a_missing_one(tmp_path: Path) -> None:
     """`freeze` decides from this: a repository frozen while clean has a baseline holding
-    nothing, and re-freezing it would grandfather everything written since."""
+    nothing, and re-freezing it would grandfather everything written since.
+    """
     assert read_ceiling(tmp_path) == Ceiling(exists=False, cells=None)
     write_cells(tmp_path, {})
     assert read_ceiling(tmp_path) == Ceiling(exists=True, cells={})
@@ -71,7 +72,8 @@ def test_a_v2_rule_without_a_namespace_makes_the_whole_baseline_unreadable(tmp_p
 def test_a_malformed_rule_key_makes_the_baseline_unreadable_not_a_crash(tmp_path: Path, rule: str) -> None:
     """A rule key that is not a well-formed namespaced id — carrying a newline, an empty
     half, or no namespace at all — must make the reader return None for corrupt input, never
-    a key that makes a later `analyzer_of` raise mid-command."""
+    a key that makes a later `analyzer_of` raise mid-command.
+    """
     raw = {"version": 2, "cells": {"src/a.py": {rule: {"count": 1}}}}
     assert parse_cells(raw, tmp_path) is None
 
@@ -150,7 +152,8 @@ def test_cells_excluding_is_the_complement_of_cells_for() -> None:
 
 def test_cells_excluding_drops_a_file_left_with_no_cells() -> None:
     """A file whose only rules all belong to the dropped analyzer vanishes, rather than
-    lingering as an empty rule map the merge would then have to reject."""
+    lingering as an empty rule map the merge would then have to reject.
+    """
     cells = {"only_mypy.py": {"mypy:arg-type": 3}}
     assert cells_excluding(cells, "mypy") == {}
 
@@ -241,7 +244,8 @@ def test_rule_totals_sum_across_files() -> None:
 def test_ruff_runner_and_baseline_reader_agree_on_the_cell_key_for_an_absolute_path(tmp_path: Path) -> None:
     """Ruling F: the runner normalizes through `normalize_analyzer_path`, and so must the
     reader, or the same raw finding would land as two different cells depending on which
-    side of the ratchet read it."""
+    side of the ratchet read it.
+    """
     absolute_file = str(tmp_path / "src" / "a.py")
     stdout = json.dumps(
         [
