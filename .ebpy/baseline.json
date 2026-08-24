@@ -223,9 +223,6 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:FURB118": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       },
@@ -310,9 +307,6 @@
     },
     "src/ebpy/decide/worklist.py": {
       "ruff:D103": {
-        "count": 1
-      },
-      "ruff:FURB118": {
         "count": 1
       },
       "ruff:TC001": {

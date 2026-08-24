@@ -80,6 +80,18 @@ def test_smallest_backlogs_are_ranked_least_remaining_first_as_rule_count_pairs(
     assert verdict.smallest_backlogs == (("F401", 2), ("E501", 9))
 
 
+def test_smallest_backlogs_break_ties_on_equal_counts_by_rule_name() -> None:
+    """Equal remaining counts sort by rule name, not dict insertion order."""
+    state = empty_state()
+    state.rules = {
+        "F401": RuleBaseline(baseline=3, current=3, status="draining"),
+        "B008": RuleBaseline(baseline=3, current=3, status="draining"),
+        "E501": RuleBaseline(baseline=3, current=3, status="draining"),
+    }
+    verdict = build_worklist(state)
+    assert verdict.smallest_backlogs == (("B008", 3), ("E501", 3), ("F401", 3))
+
+
 def test_the_smallest_backlog_list_is_capped_at_the_number_of_rows_shown() -> None:
     state = empty_state()
     state.rules = {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from operator import itemgetter
 from pathlib import Path
 
 from ..errors import CommandError
@@ -26,7 +27,7 @@ def run_status(cwd: Path, as_json: bool) -> str:
     freshness = freshness_of(cwd, state)
     draining = sorted(
         ((name, rule.current) for name, rule in state.rules.items() if rule.current > 0),
-        key=lambda item: (item[1], item[0]),
+        key=itemgetter(1, 0),
     )[:_NEXT_RULE_SAMPLE]
 
     analyzers = ", ".join(sorted(state.frozen_analyzers)) if state.frozen_analyzers else "none"

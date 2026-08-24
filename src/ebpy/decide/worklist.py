@@ -9,6 +9,7 @@ leaves the prose that presents them to `render/worklist.py`.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from operator import itemgetter
 
 from ..models import State
 from ..store.state import total_violations
@@ -47,7 +48,7 @@ def _open_bootstrap_gaps(state: State) -> int:
 def _smallest_backlogs(state: State) -> tuple[tuple[str, int], ...]:
     draining = sorted(
         ((name, rule.current) for name, rule in state.rules.items() if rule.current > 0),
-        key=lambda item: (item[1], item[0]),
+        key=itemgetter(1, 0),
     )
     return tuple(draining[:NEXT_RULES_SHOWN])
 
