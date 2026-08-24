@@ -2,6 +2,59 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-08-24)
+
+### Bug Fixes
+
+- Import ToolSetup from models after its relocation out of the detector seam
+  ([`b610963`](https://github.com/yoshum/ebpy/commit/b610963fc820c85c245d01f56fe6543b2fdbd1f7))
+
+### Documentation
+
+- Correct build_global_freeze's drop invariant for config-narrowed scope
+  ([`6ec293c`](https://github.com/yoshum/ebpy/commit/6ec293cdb8a95d17d9c2db0ca7b8886e581938e2))
+
+### Features
+
+- Add pytest/vulture/gitleaks provisioners
+  ([`436c223`](https://github.com/yoshum/ebpy/commit/436c22307fc68144906ee859f1ef49c210dc5e06))
+
+- Add ruff/formatter/mypy provisioners
+  ([`c9aef8d`](https://github.com/yoshum/ebpy/commit/c9aef8dfd3eb03c89527061d7a2e6035be3a207f))
+
+- Add the Provisioner protocol and shared action types
+  ([`703e48b`](https://github.com/yoshum/ebpy/commit/703e48b354cbb2d224be1c4c8c8179fcbf615992))
+
+- Assemble the PROVISIONERS registry
+  ([`f5b8843`](https://github.com/yoshum/ebpy/commit/f5b884338d0919778156260ade24dfa32f3398be))
+
+- Drive freeze scope from .ebpy/config.json
+  ([`e0890ab`](https://github.com/yoshum/ebpy/commit/e0890ab8c9afc852058d978d5acdd317fa928c2c))
+
+- Fail check when the declared analyzer set diverges from the frozen roster
+  ([`769ceb2`](https://github.com/yoshum/ebpy/commit/769ceb2d0ff7e097c46cc0958046cba8c9ada6c4))
+
+- Read and validate .ebpy/config.json analyzer declaration
+  ([`1678468`](https://github.com/yoshum/ebpy/commit/1678468e8e70a7b4085dffce93328d0cacc10078))
+
+- Reconcile declared analyzer set against the frozen roster
+  ([`c43e161`](https://github.com/yoshum/ebpy/commit/c43e161a51a1001219e25d1733bbb4cfd1a8b264))
+
+### Refactoring
+
+- Assemble gate workflow steps from PROVISIONERS
+  ([`3e4119c`](https://github.com/yoshum/ebpy/commit/3e4119ca9f65ca7f36968422ee8d1ef61e467f07))
+
+- Drive bootstrap install/config from PROVISIONERS
+  ([`c1aa205`](https://github.com/yoshum/ebpy/commit/c1aa2056ee942838f209a161d4d70f53454e31d8))
+
+- Normalize inert provisioner params and dedupe bootstrap packages
+  ([`d4a17a3`](https://github.com/yoshum/ebpy/commit/d4a17a39000f3833b4dfb3676d25a50481e417cc))
+
+- Reshape the Provisioner seam so secret-scanning stops leaking
+  ([`42b6ac9`](https://github.com/yoshum/ebpy/commit/42b6ac9f6623e1a0a52779531c60f7011b46425a))
+
+
 ## v0.7.0 (2026-08-24)
 
 ### Bug Fixes
