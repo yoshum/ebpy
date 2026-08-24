@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T11:15:13Z",
+  "updatedAt": "2026-08-24T11:15:14Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -349,6 +349,13 @@
       "kind": "drained",
       "rule": "ruff:TC003",
       "text": "20 violations across 17 test files, freeze.py and store/state.py; type-only stdlib imports moved behind TYPE_CHECKING. Mechanical, no behaviour change, no bug."
+    },
+    {
+      "at": "2026-08-24T11:15:14Z",
+      "commit": "c549e499862f0990ecafbae8e8c1cf547f0d9605",
+      "kind": "drained",
+      "rule": "ruff:TC001",
+      "text": "4 violations in freeze.py; first-party type-only imports guarded by TYPE_CHECKING. Mechanical, no bug."
     }
   ]
 }

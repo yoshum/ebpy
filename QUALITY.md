@@ -3,7 +3,7 @@
 Maintained by [ebpy](https://github.com/yoshum/ebpy). Numbers are rendered from
 `.ebpy/state.json`; edits outside the notes block are overwritten on the next run.
 
-> **The diagnosis below is stale** — 280 commits since the diagnosis; re-run diagnose before trusting it.
+> **The diagnosis below is stale** — 281 commits since the diagnosis; re-run diagnose before trusting it.
 > Numbers and file names may describe code that has since moved.
 
 - Phase: **drain**
@@ -68,6 +68,7 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 
 | Date | Commit | Kind | Rule | What |
 | --- | --- | --- | --- | --- |
+| 2026-08-24 | c549e499 | drained | ruff:TC001 | 4 violations in freeze.py; first-party type-only imports guarded by TYPE_CHECKING. Mechanical, no bug. |
 | 2026-08-24 | c228771b | drained | ruff:TC003 | 20 violations across 17 test files, freeze.py and store/state.py; type-only stdlib imports moved behind TYPE_CHECKING. Mechanical, no behaviour change, no bug. |
 | 2026-08-24 | e2a9e19e | drained | ruff:D103 | 72 src-side functions documented; tests exempted separately. No behaviour change; rule graduated. |
 | 2026-08-24 | a86da30e | drained | ruff:TID252 | 340 across 47 files; migrated relative imports to absolute per #54. Mechanical, no behaviour change; rule graduated. |
@@ -87,7 +88,6 @@ Ceiling is the count at the last freeze. It may fall and must never rise.
 | 2026-08-24 | 808114ee | drained | ruff:FURB118 | 2 of 3 violations (status.py, worklist.py); replaced (count,name) lambda sort key with operator.itemgetter(1,0); not a bug — clarity; 1 left in store/state.py (leave-until-last) |
 | 2026-08-24 | ebe95816 | drained | ruff:RUF201 | 10 violations in pyproject.toml; replaced rule codes with names in ruff ignore lists; not a bug — config readability, behaviour unchanged |
 | 2026-08-24 | 8db9fb39 | drained | ruff:D107 | 1 violation; documented ToolError.__init__ in errors.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
-| 2026-08-24 | 47eeae33 | drained | ruff:D105 | 1 violation; documented AnalysisMeasurement.__post_init__ in models.py; not a bug, docstring-only, rule fully graduates for src/ebpy |
 
 ## Notes
 
