@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from ebpy.commands import report as report_command
 from ebpy.commands.report import run_report
@@ -10,6 +9,9 @@ from ebpy.decide.analysis_report import report_from_measurement
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
 from ebpy.models import AnalysisMeasurement
 from ebpy.render.analysis_report import render_analysis_report
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_report_keeps_contract_backlog_when_one_analyzer_fails() -> None:

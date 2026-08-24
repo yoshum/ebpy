@@ -995,9 +995,6 @@
       "ruff:D103": {
         "count": 1
       },
-      "ruff:TC002": {
-        "count": 1
-      },
       "ruff:TC003": {
         "count": 1
       }
