@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:40:05Z",
+  "updatedAt": "2026-08-24T07:41:21Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -58,11 +58,6 @@
     "ruff:D101": {
       "baseline": 36,
       "current": 36,
-      "status": "draining"
-    },
-    "ruff:D102": {
-      "baseline": 5,
-      "current": 5,
       "status": "draining"
     },
     "ruff:D103": {
@@ -284,6 +279,13 @@
       "kind": "drained",
       "rule": "ruff:D104",
       "text": "4 violations across 4 subpackage __init__ files; added package docstrings naming each responsibility; not a bug \u2014 fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:41:21Z",
+      "commit": "3cd6be2c12ea122ff542709921ea17e078ca8cb5",
+      "kind": "drained",
+      "rule": "ruff:D102",
+      "text": "5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug \u2014 fully graduates"
     }
   ]
 }
