@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.cell_key import analyzer_of
 from ebpy.models import RuleBaseline, State
@@ -16,6 +16,9 @@ from ebpy.store.ceiling_artifacts import (
 )
 from ebpy.store.config import EbpyConfig
 from ebpy.store.state import empty_state, state_path, write_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _state(*analyzers: str) -> State:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
@@ -23,6 +23,9 @@ from ebpy.models import PackageManager, WorkflowFile
 from ebpy.repo.detect.ci import unpinned_actions
 from ebpy.repo.facts import gather_facts
 from ebpy.tools.gitleaks import GITLEAKS_SHA256, secret_scan_workflow
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _tool_steps(manager: PackageManager) -> list[str]:

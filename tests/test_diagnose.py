@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import replace
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.decide.diagnose import diagnose
 from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
@@ -19,6 +19,9 @@ from ebpy.tools.pytest import pytest_configured
 from ebpy.tools.ruff import has_ruff_config
 from ebpy.tools.ruff_format import formatter_configured
 from ebpy.tools.vulture import vulture_configured
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def toml(text: str) -> dict[str, object]:

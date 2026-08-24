@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from importlib import metadata as importlib_metadata
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,6 +14,8 @@ from ebpy.commands.install import REPOSITORY_URL, run_install
 from ebpy.util import ExecResult
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ebpy.models import PackageManager
 
 

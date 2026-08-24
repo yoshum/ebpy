@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -23,6 +23,9 @@ from ebpy.models import (
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
 from ebpy.tools.mypy import MypySetup
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _state(

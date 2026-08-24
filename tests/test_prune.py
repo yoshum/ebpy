@@ -10,7 +10,7 @@ measured carries its ceiling through untouched rather than losing it.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -21,6 +21,9 @@ from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State, Un
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import read_ceiling_artifacts
 from ebpy.store.state import empty_state, state_path, write_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _state(frozen_analyzers: tuple[str, ...], rules: dict[str, RuleBaseline]) -> State:

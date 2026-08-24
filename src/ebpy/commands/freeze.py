@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
@@ -33,6 +33,9 @@ from ebpy.store.ceiling_artifacts import (
 from ebpy.store.config import read_config
 from ebpy.store.state import copy_state, empty_state, with_phase, write_state
 from ebpy.tools import ANALYZER_NAMES, measure_repository
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _UNATTRIBUTED_SHOWN = 5
 

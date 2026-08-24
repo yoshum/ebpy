@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +17,9 @@ from ebpy.tools.mypy._runner import (
 )
 from ebpy.tools.ruff._runner import RuffInvalidOutputError, parse_ruff_json
 from ebpy.util import ExecResult
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def diagnostic(filename: str, code: str | None, row: int = 1, message: str = "boom") -> dict[str, object]:

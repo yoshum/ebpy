@@ -7,12 +7,10 @@ the work log, and the diagnosis provenance. Everything QUALITY.md shows is rende
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any, Literal, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 from ebpy.cell_key import analyzer_of, is_analyzer_name, is_rule_id
 from ebpy.models import (
@@ -27,6 +25,10 @@ from ebpy.models import (
     State,
     diagnosis_from_dict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from pathlib import Path
 
 STATE_DIR = ".ebpy"
 STATE_FILE = "state.json"

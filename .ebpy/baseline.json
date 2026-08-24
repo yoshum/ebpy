@@ -23,9 +23,6 @@
       },
       "ruff:TC001": {
         "count": 4
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "src/ebpy/commands/log.py": {
@@ -144,9 +141,6 @@
       },
       "ruff:PLR2004": {
         "count": 2
-      },
-      "ruff:TC003": {
-        "count": 2
       }
     },
     "src/ebpy/tools/__init__.py": {
@@ -216,25 +210,16 @@
       },
       "ruff:PLC2701": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_bootstrap.py": {
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:TC003": {
         "count": 1
       }
     },
     "tests/test_ceiling_artifacts.py": {
       "ruff:D205": {
         "count": 5
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_check.py": {
@@ -243,17 +228,11 @@
       },
       "ruff:TC002": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_diagnose.py": {
       "ruff:D205": {
         "count": 2
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_freeze.py": {
@@ -271,9 +250,6 @@
       },
       "ruff:SLF001": {
         "count": 4
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_install.py": {
@@ -281,9 +257,6 @@
         "count": 1
       },
       "ruff:SLF001": {
-        "count": 1
-      },
-      "ruff:TC003": {
         "count": 1
       }
     },
@@ -295,16 +268,10 @@
     "tests/test_lifecycle.py": {
       "ruff:D205": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_log.py": {
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:TC003": {
         "count": 1
       }
     },
@@ -320,17 +287,11 @@
       },
       "ruff:SLF001": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_mypy_lifecycle.py": {
       "ruff:D205": {
         "count": 2
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_prune.py": {
@@ -339,19 +300,11 @@
       },
       "ruff:D401": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_render.py": {
       "ruff:PLC1901": {
         "count": 2
-      }
-    },
-    "tests/test_report.py": {
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_runners.py": {
@@ -366,9 +319,6 @@
       },
       "ruff:PT018": {
         "count": 1
-      },
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_skills_install.py": {
@@ -379,21 +329,10 @@
     "tests/test_state.py": {
       "ruff:D205": {
         "count": 3
-      },
-      "ruff:TC003": {
-        "count": 1
-      }
-    },
-    "tests/test_state_writers.py": {
-      "ruff:TC003": {
-        "count": 1
       }
     },
     "tests/test_status.py": {
       "ruff:D205": {
-        "count": 1
-      },
-      "ruff:TC003": {
         "count": 1
       }
     }

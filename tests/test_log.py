@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ebpy.commands.log import run_log
 from ebpy.errors import CommandError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_log_refuses_an_unnamespaced_rule(tmp_path: Path) -> None:

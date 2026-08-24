@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ebpy.commands.status import run_status
 from ebpy.models import RuleBaseline
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import empty_state, write_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _frozen_state(cwd: Path, rules: dict[str, int], analyzers: tuple[str, ...]) -> None:

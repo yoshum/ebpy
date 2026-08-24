@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -26,6 +25,8 @@ from ebpy.store.baseline import (
 from ebpy.tools.ruff._runner import parse_ruff_json
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ebpy.models import CellCountsView
 
 

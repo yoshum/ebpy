@@ -11,8 +11,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -20,6 +19,9 @@ from ebpy.cli import main
 from ebpy.models import RuleBaseline, State
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 pytestmark = pytest.mark.skipif(
     shutil.which("ruff") is None or shutil.which("mypy") is None,

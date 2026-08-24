@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -32,6 +31,9 @@ from ebpy.store.state import (
     write_state,
 )
 from ebpy.tools.mypy import MypySetup
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _v1_raw(

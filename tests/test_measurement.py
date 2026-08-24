@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
@@ -21,6 +20,9 @@ from ebpy.tools import mypy as mypy_tool
 from ebpy.tools import ruff as ruff_tool
 from ebpy.tools.mypy._runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 from ebpy.tools.ruff._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

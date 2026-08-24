@@ -7,7 +7,7 @@ that must not be frozen cannot have its ceiling raised by the run that discovers
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -28,6 +28,9 @@ from ebpy.store.state import (
     write_state,
 )
 from ebpy.tools import ANALYZER_NAMES
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Helpers

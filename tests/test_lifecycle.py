@@ -8,11 +8,14 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ebpy.cli import main
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 pytestmark = pytest.mark.skipif(shutil.which("ruff") is None, reason="needs a real ruff on PATH")
 

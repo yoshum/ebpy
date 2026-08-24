@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ebpy.commands import report as report_command
@@ -13,6 +12,8 @@ from ebpy.models import AnalysisMeasurement
 from ebpy.render.analysis_report import render_analysis_report
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pytest
 
 
