@@ -2,7 +2,7 @@
   "version": 2,
   "tool": "ebpy",
   "phase": "drain",
-  "updatedAt": "2026-08-24T07:41:21Z",
+  "updatedAt": "2026-08-24T07:44:49Z",
   "frozenAt": "2026-08-24T06:07:06Z",
   "diagnosedAt": "2026-08-18T00:08:49Z",
   "diagnosedCommit": "8decde14e3dec83e9331fb67dda432aa3dcfe421",
@@ -141,8 +141,8 @@
       "status": "draining"
     },
     "ruff:TC001": {
-      "baseline": 38,
-      "current": 38,
+      "baseline": 4,
+      "current": 4,
       "status": "draining"
     },
     "ruff:TC002": {
@@ -286,6 +286,13 @@
       "kind": "drained",
       "rule": "ruff:D102",
       "text": "5 violations across 5 files (to_dict serializers, PinnedAction.uses, test bundle load); added method docstrings; not a bug \u2014 fully graduates"
+    },
+    {
+      "at": "2026-08-24T07:44:49Z",
+      "commit": "17c4efdc55d3875e1156e65a4d12a31bf51e487a",
+      "kind": "drained",
+      "rule": "ruff:TC001",
+      "text": "34 of 38 violations across 20 files; moved annotation-only first-party imports into TYPE_CHECKING blocks; not a bug \u2014 import hygiene; 4 left in commands/freeze.py (leave-until-last)"
     }
   ]
 }
