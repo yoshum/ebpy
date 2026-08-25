@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT, python_version_from_requires
+from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import gate_workflow, run_prefix_for
 from ebpy.models import Diagnosis, ToolSetup
 from ebpy.package_manager import DEV_INSTALL_PREFIXES
@@ -63,7 +63,7 @@ def build_plan(
 
     ctx = ProvisionContext(
         has_pyproject=has_pyproject,
-        target_version=python_version_from_requires(diagnosis.requires_python),
+        requires_python=diagnosis.requires_python,
         run_prefix=run_prefix_for(diagnosis.package_manager),
     )
     gate_steps: list[str] = []

@@ -6,169 +6,197 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-120 public functions.
+133 public functions.
 
 ## src/ebpy
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `analyzer_of` | src/ebpy/cell_key.py:52 |  |
-| `build_parser` | src/ebpy/cli.py:62 |  |
-| `catalog_sources` | src/ebpy/catalog.py:107 |  |
-| `combine_scans` | src/ebpy/secret_scan.py:81 | The worst verdict wins, and a scan that failed outranks a clean one: two scans run, and "one of them could not look" must not be reported as "nothing found". |
-| `diagnosis_from_dict` | src/ebpy/models.py:158 |  |
-| `extract_exports` | src/ebpy/catalog.py:41 | Pure: given a file's text, the public module-level callables in it. |
-| `freshness_of` | src/ebpy/quality_file.py:14 |  |
-| `interpret_gitleaks` | src/ebpy/secret_scan.py:65 |  |
-| `is_analyzer_name` | src/ebpy/cell_key.py:19 |  |
-| `is_rule_id` | src/ebpy/cell_key.py:56 | The total predicate persistence readers use on untrusted JSON: never raises. |
-| `main` | src/ebpy/cli.py:214 |  |
-| `normalize_analyzer_path` | src/ebpy/cell_key.py:61 | Normalize a path an analyzer reported into the form a stored cell key uses. |
-| `qualify_rule` | src/ebpy/cell_key.py:23 |  |
-| `render_catalog` | src/ebpy/catalog.py:81 |  |
-| `run` | src/ebpy/util.py:17 |  |
-| `split_rule` | src/ebpy/cell_key.py:44 | Split on the first colon only, so a local code may itself contain colons. |
-| `write_quality_file` | src/ebpy/quality_file.py:27 |  |
+| `analyzer_of` | src/ebpy/cell_key.py:54 | Return the analyzer namespace of a rule ID. |
+| `build_parser` | src/ebpy/cli.py:67 | Build the ebpy argument parser, repeating the global --cwd/--json flags after each subcommand. |
+| `catalog_sources` | src/ebpy/catalog.py:111 | Return the Python source paths worth cataloguing, excluding test files and test directories. |
+| `combine_scans` | src/ebpy/secret_scan.py:84 | Combine two secret-scan verdicts so the worst one wins. |
+| `diagnosis_from_dict` | src/ebpy/models.py:182 | Rebuild a Diagnosis from its stored JSON form. |
+| `extract_exports` | src/ebpy/catalog.py:45 | Pure: given a file's text, the public module-level callables in it. |
+| `freshness_of` | src/ebpy/quality_file.py:18 | Assess whether the recorded diagnosis still describes the working tree's current HEAD. |
+| `interpret_gitleaks` | src/ebpy/secret_scan.py:67 | Map a gitleaks exit code and output to a SecretVerdict, treating a failed scan as not clean. |
+| `is_analyzer_name` | src/ebpy/cell_key.py:19 | Report whether a string is a well-formed analyzer namespace. |
+| `is_rule_id` | src/ebpy/cell_key.py:59 | Report whether the value is a namespaced rule id; never raises on untrusted JSON. |
+| `main` | src/ebpy/cli.py:220 | Parse argv, dispatch the subcommand, and return the process exit code. |
+| `normalize_analyzer_path` | src/ebpy/cell_key.py:64 | Normalize a path an analyzer reported into the form a stored cell key uses. |
+| `qualify_rule` | src/ebpy/cell_key.py:24 | Join an analyzer name and its local code into a namespaced rule ID, rejecting malformed halves. |
+| `render_catalog` | src/ebpy/catalog.py:84 | Render the shared-helpers catalog as Markdown, grouped by directory. |
+| `run` | src/ebpy/util.py:22 | Run a subprocess to completion, capturing its output; a nonzero exit is returned, not raised. |
+| `split_rule` | src/ebpy/cell_key.py:46 | Split on the first colon only, so a local code may itself contain colons. |
+| `write_quality_file` | src/ebpy/quality_file.py:32 | Re-render QUALITY.md from state, carrying the owner's notes block across unchanged. |
 
 ## src/ebpy/commands
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `build_global_freeze` | src/ebpy/commands/freeze.py:189 | Merge every in-scope analyzer's cells into one contract, requiring all to be complete. |
-| `build_scoped_freeze` | src/ebpy/commands/freeze.py:249 | Add or replace one analyzer's namespace without touching any other. |
-| `check_measurement` | src/ebpy/commands/check.py:183 | Apply one repository measurement without reading tools or writing artifacts. |
-| `is_log_kind` | src/ebpy/commands/log.py:24 |  |
-| `prune_measurement` | src/ebpy/commands/prune.py:67 | Lower each complete analyzer's ceiling from measured facts without writing it. |
-| `run_bootstrap` | src/ebpy/commands/bootstrap.py:32 |  |
-| `run_catalog` | src/ebpy/commands/catalog.py:13 |  |
-| `run_check` | src/ebpy/commands/check.py:208 |  |
-| `run_diagnose` | src/ebpy/commands/diagnose.py:18 |  |
-| `run_freeze` | src/ebpy/commands/freeze.py:303 |  |
-| `run_install` | src/ebpy/commands/install.py:444 |  |
-| `run_log` | src/ebpy/commands/log.py:28 | `deferred` is the one that earns its keep: a refactor consciously not made, stamped with the commit it was seen at, so the next session can tell whether the observation still describes the code. |
-| `run_next` | src/ebpy/commands/next_command.py:22 |  |
-| `run_prune` | src/ebpy/commands/prune.py:151 | `freeze` pins whatever exists today, so running it a second time would grandfather violations added since. |
-| `run_report` | src/ebpy/commands/report.py:34 |  |
-| `run_secrets` | src/ebpy/commands/secrets.py:35 |  |
-| `run_skills_install` | src/ebpy/commands/install.py:332 |  |
-| `run_status` | src/ebpy/commands/status.py:16 |  |
+| `build_global_freeze` | src/ebpy/commands/freeze.py:192 | Merge every in-scope analyzer's cells into one contract, requiring all to be complete. |
+| `build_scoped_freeze` | src/ebpy/commands/freeze.py:252 | Add or replace one analyzer's namespace without touching any other. |
+| `check_measurement` | src/ebpy/commands/check.py:149 | Apply one repository measurement without reading tools or writing artifacts. |
+| `is_log_kind` | src/ebpy/commands/log.py:27 | Report whether a string is a recognised work-log kind. |
+| `load_bundle` | src/ebpy/commands/skills_install.py:63 | Load the skills bundled inside the ebpy package, raising when none are present. |
+| `prune_measurement` | src/ebpy/commands/prune.py:114 | Lower each complete analyzer's ceiling from measured facts without writing it. |
+| `run_bootstrap` | src/ebpy/commands/bootstrap.py:36 | Run ``ebpy bootstrap``: plan the toolchain setup and, unless a dry run, apply it. |
+| `run_catalog` | src/ebpy/commands/catalog.py:16 | Run ``ebpy catalog``: regenerate docs/shared-helpers.md from the public functions in source. |
+| `run_check` | src/ebpy/commands/check.py:174 | Run ``ebpy check``: gate the repository, failing if any count rose above its ceiling. |
+| `run_diagnose` | src/ebpy/commands/diagnose.py:21 | Run ``ebpy diagnose``: measure the repository and, when writing, record the diagnosis in the ledger. |
+| `run_freeze` | src/ebpy/commands/freeze.py:305 | Run ``ebpy freeze``: pin today's counts as the ceiling for one analyzer or the whole roster. |
+| `run_install` | src/ebpy/commands/install.py:163 | Run ``ebpy install``: pin ebpy into the project's dev dependencies at a matching Git ref. |
+| `run_log` | src/ebpy/commands/log.py:32 | Append a work-log entry of the given kind, stamped with the current commit. |
+| `run_next` | src/ebpy/commands/next_command.py:25 | Run ``ebpy next``: rank the remaining backlog into the cheapest drain work to do next. |
+| `run_prune` | src/ebpy/commands/prune.py:176 | Lower every cell to what still exists — the safe, repeatable way to drain the ceiling. |
+| `run_report` | src/ebpy/commands/report.py:37 | Run ``ebpy report``: render every rule's standing against the frozen contract. |
+| `run_secrets` | src/ebpy/commands/secrets.py:38 | Run ``ebpy secrets``: scan history and the working tree with gitleaks. |
+| `run_skills_install` | src/ebpy/commands/skills_install.py:290 | Run ``ebpy skills install``: copy the bundled skills into the project's .claude/skills. |
+| `run_status` | src/ebpy/commands/status.py:20 | Run ``ebpy status``: report the ledger's current phase, freshness and backlog. |
 
 ## src/ebpy/decide
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `area_of` | src/ebpy/decide/analysis_report.py:33 |  |
-| `assess_freshness` | src/ebpy/decide/freshness.py:45 |  |
-| `build_drain_plan` | src/ebpy/decide/drain_order.py:157 |  |
-| `build_plan` | src/ebpy/decide/bootstrap_plan.py:103 |  |
-| `cheapest_first` | src/ebpy/decide/drain_order.py:93 | The cheapest cells are not merely small — each one converts a file from grandfathered to enforced, permanently, for the cost of one or two edits. |
-| `diagnose` | src/ebpy/decide/diagnose.py:177 |  |
-| `directory_tails` | src/ebpy/decide/drain_order.py:119 | Directories where a rule survives in a handful of files. |
-| `heaviest_files` | src/ebpy/decide/drain_order.py:140 | Heavy means ONE rule the file cannot clear in a couple of edits, not a large total: a file holding two rules at one violation each sums past any cheap threshold while every cell in it is a quick win. |
-| `matrix_from_cells` | src/ebpy/decide/analysis_report.py:112 |  |
-| `render_plan` | src/ebpy/decide/bootstrap_plan.py:142 |  |
-| `report_from_measurement` | src/ebpy/decide/analysis_report.py:190 | Build a report from facts; tool failure changes its detail, never its exit status. |
-| `rule_spread` | src/ebpy/decide/drain_order.py:100 | Ranked by files to touch rather than by violations. |
-| `totals_of` | src/ebpy/decide/drain_order.py:85 |  |
+| `area_of` | src/ebpy/decide/analysis_report.py:35 | Return the top-level area a file belongs to — its first path segment, or the root marker. |
+| `assess_freshness` | src/ebpy/decide/freshness.py:49 | Decide whether a recorded diagnosis can still be trusted given its age and the commits since. |
+| `build_drain_plan` | src/ebpy/decide/drain_order.py:180 | Rank the backlog into a drain plan: cheapest targets, rule spread, directory tails, heaviest files. |
+| `build_plan` | src/ebpy/decide/bootstrap_plan.py:49 | Decide the bootstrap plan — packages to install and files to create — from a diagnosis. |
+| `build_worklist` | src/ebpy/decide/worklist.py:59 | Derive from the ledger which phase the user is in and what step comes next. |
+| `cheapest_first` | src/ebpy/decide/drain_order.py:106 | Rank the cheapest cells first — the ones one or two edits from clearing a file. |
+| `diagnose` | src/ebpy/decide/diagnose.py:140 | Survey the repository, naming every gap. |
+| `directory_tails` | src/ebpy/decide/drain_order.py:137 | Find directories where a rule survives in only a handful of files. |
+| `heaviest_files` | src/ebpy/decide/drain_order.py:160 | Rank files heavy with a rule too large to clear in a couple of edits. |
+| `matrix_from_cells` | src/ebpy/decide/analysis_report.py:124 | Fold cells into a rule-by-area matrix, summing each rule's counts within an area. |
+| `render_plan` | src/ebpy/decide/bootstrap_plan.py:107 | Render a bootstrap plan as the text shown for a real run or a dry run. |
+| `report_from_measurement` | src/ebpy/decide/analysis_report.py:203 | Build a report from facts; tool failure changes its detail, never its exit status. |
+| `rule_spread` | src/ebpy/decide/drain_order.py:116 | Rank rules by the number of files to touch rather than by violation count. |
+| `totals_of` | src/ebpy/decide/drain_order.py:97 | Sum a set of suppressions into their violation, file and rule totals. |
 
 ## src/ebpy/generate
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `gate_workflow` | src/ebpy/generate/workflows.py:97 | Lint, typecheck, test and the ratchet gate, on all three platforms — path handling breaks per platform, and only per platform. |
-| `python_version_from_requires` | src/ebpy/generate/configs.py:58 | ``requires-python = ">=3.11"`` -> ``py311``, so the generated Ruff config allows exactly the syntax the package already promises. |
-| `ruff_pyproject_section` | src/ebpy/generate/configs.py:35 | Appended to an existing pyproject.toml that has no [tool.ruff] table. |
-| `ruff_toml_content` | src/ebpy/generate/configs.py:44 | A standalone ruff.toml, for a repository with no pyproject.toml to append to. |
-| `secret_scan_workflow` | src/ebpy/generate/workflows.py:145 | fetch-depth: 0 because a shallow clone misses the commit that leaked, and --redact so the secret does not land in a public log. |
+| `gate_workflow` | src/ebpy/generate/workflows.py:109 | Build the CI workflow running format check, tests and the ratchet gate on all platforms. |
+| `run_prefix_for` | src/ebpy/generate/workflows.py:55 | Return the command prefix that resolves a dev tool under the manager (e.g. |
 
 ## src/ebpy/measurement
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `classify` | src/ebpy/measurement/__init__.py:81 |  |
-| `config_selects_target` | src/ebpy/measurement/_mypy.py:109 | Whether the repo's own mypy config already names the files, packages or modules to check. |
-| `find_mypy` | src/ebpy/measurement/_mypy.py:65 |  |
-| `find_ruff` | src/ebpy/measurement/_ruff.py:50 |  |
-| `measure_repository` | src/ebpy/measurement/__init__.py:223 | Measure every independent capability, retaining partial success as data. |
-| `parse_mypy_output` | src/ebpy/measurement/_mypy.py:136 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
-| `parse_ruff_json` | src/ebpy/measurement/_ruff.py:60 |  |
-| `run_mypy_check` | src/ebpy/measurement/_mypy.py:191 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
-| `run_ruff_check` | src/ebpy/measurement/_ruff.py:104 |  |
+| `classify` | src/ebpy/measurement/observation.py:99 | Reduce an observation (or its absence) to the status a caller reasons about. |
 
 ## src/ebpy/render
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `build_worklist` | src/ebpy/render/worklist.py:39 |  |
-| `extract_notes` | src/ebpy/render/quality.py:165 |  |
-| `render_analysis_report` | src/ebpy/render/analysis_report.py:149 |  |
-| `render_diagnosis` | src/ebpy/render/report.py:73 |  |
-| `render_next` | src/ebpy/render/next.py:76 |  |
-| `render_quality` | src/ebpy/render/quality.py:175 |  |
-| `render_worklist` | src/ebpy/render/worklist.py:78 |  |
+| `build_worklist_items` | src/ebpy/render/worklist.py:31 | Build the ordered P0-P5 worklist items, each marked done and annotated for the current state. |
+| `extract_notes` | src/ebpy/render/quality.py:176 | Extract the owner's notes block from an existing QUALITY.md so a re-render can preserve it. |
+| `render_analysis_report` | src/ebpy/render/analysis_report.py:156 | Render the analysis report as Markdown. |
+| `render_diagnosis` | src/ebpy/render/report.py:73 | Render the ``ebpy diagnose`` report as text. |
+| `render_next` | src/ebpy/render/next.py:81 | Render the ``ebpy next`` drain guidance for a drain plan. |
+| `render_quality` | src/ebpy/render/quality.py:187 | Render the full QUALITY.md body from state, the owner's notes and the freshness verdict. |
+| `render_worklist` | src/ebpy/render/worklist.py:72 | Render worklist items as the Markdown checklist lines shown in reports. |
 
 ## src/ebpy/repo
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `build_graph` | src/ebpy/repo/fan_in.py:94 | File -> the project files it imports. |
-| `commits_since` | src/ebpy/repo/git.py:36 | How far the repository has moved since a diagnosis. |
-| `count_importers` | src/ebpy/repo/fan_in.py:114 |  |
-| `gather_facts` | src/ebpy/repo/facts.py:111 |  |
-| `head_commit` | src/ebpy/repo/git.py:25 |  |
-| `importers_of` | src/ebpy/repo/fan_in.py:122 | Only the files in the backlog, so --json carries what the ranking is about and not the whole repository. |
-| `is_git_repository` | src/ebpy/repo/git.py:13 | Whether there is a history here at all. |
-| `list_all_files` | src/ebpy/repo/facts.py:64 |  |
-| `list_source_paths` | src/ebpy/repo/facts.py:78 |  |
-| `read_sources` | src/ebpy/repo/facts.py:82 |  |
-| `tracked_files` | src/ebpy/repo/git.py:54 | Every tracked, non-ignored file, or None outside a repository. |
+| `build_graph` | src/ebpy/repo/fan_in.py:100 | File -> the project files it imports. |
+| `commits_since` | src/ebpy/repo/git.py:42 | Count how far the repository has moved since a diagnosis. |
+| `count_importers` | src/ebpy/repo/fan_in.py:120 | Count how many distinct files import each file — the fan-in that ranks drain targets. |
+| `gather_facts` | src/ebpy/repo/facts.py:117 | Read everything a diagnosis needs from disk once, so the decision functions stay pure. |
+| `head_commit` | src/ebpy/repo/git.py:30 | Return the current HEAD sha, or None when it cannot be resolved or is malformed. |
+| `importers_of` | src/ebpy/repo/fan_in.py:129 | Restrict the importer counts to the files in the backlog. |
+| `is_git_repository` | src/ebpy/repo/git.py:16 | Report whether there is a git history here at all. |
+| `list_all_files` | src/ebpy/repo/facts.py:67 | Return every tracked, non-ignored file, falling back to a filesystem walk outside a git repo. |
+| `list_source_paths` | src/ebpy/repo/facts.py:82 | Return the repo-relative paths of every Python source file. |
+| `read_sources` | src/ebpy/repo/facts.py:87 | Read the given paths' text, skipping any that cannot be read. |
+| `tracked_files` | src/ebpy/repo/git.py:63 | Every tracked, non-ignored file, or None outside a repository. |
 
 ## src/ebpy/repo/detect
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `detect_ci` | src/ebpy/repo/detect/ci.py:41 |  |
-| `detect_framework` | src/ebpy/repo/detect/tooling.py:135 |  |
-| `detect_package_manager` | src/ebpy/repo/detect/package_manager.py:20 |  |
-| `detect_tooling` | src/ebpy/repo/detect/tooling.py:89 |  |
-| `has_ruff_config` | src/ebpy/repo/detect/tooling.py:70 |  |
-| `missing_runners` | src/ebpy/repo/detect/ci.py:57 |  |
-| `mypy_strict_configured` | src/ebpy/repo/detect/tooling.py:78 |  |
-| `requires_python` | src/ebpy/repo/detect/tooling.py:143 |  |
-| `summarize_sizes` | src/ebpy/repo/detect/sizes.py:16 |  |
-| `unpinned_actions` | src/ebpy/repo/detect/ci.py:25 | The `uses:` references that name a tag or branch instead of a commit. |
+| `detect_agent_instructions` | src/ebpy/repo/detect/tooling.py:84 | List the agent instruction files present at the root, in the order ebpy recognises them. |
+| `detect_ci` | src/ebpy/repo/detect/ci.py:41 | Summarise what the CI workflows actually run into a CiCoverage. |
+| `detect_framework` | src/ebpy/repo/detect/tooling.py:96 | Identify the web framework from the project's dependencies, or 'none'. |
+| `detect_package_manager` | src/ebpy/repo/detect/package_manager.py:21 | Identify the package manager in use, trusting a lockfile over a pyproject tool table. |
+| `missing_runners` | src/ebpy/repo/detect/ci.py:66 | Report the OS runner families (ubuntu, macos, windows) that CI does not cover. |
+| `pre_commit_configured` | src/ebpy/repo/detect/tooling.py:76 | Return True when a pre-commit config sits at the repository root. |
+| `requires_python` | src/ebpy/repo/detect/tooling.py:105 | Return the project's declared requires-python, or None when absent or not a string. |
+| `summarize_sizes` | src/ebpy/repo/detect/sizes.py:16 | Summarise the source file-size distribution and the largest files over the limit. |
+| `unpinned_actions` | src/ebpy/repo/detect/ci.py:25 | Find the `uses:` references that name a tag or branch instead of a commit. |
 
 ## src/ebpy/store
 
 | Helper | Where | What it does |
 | --- | --- | --- |
-| `analyzers_in` | src/ebpy/store/baseline.py:172 |  |
-| `append_log` | src/ebpy/store/state.py:256 |  |
-| `apply_analyzer_rule_counts` | src/ebpy/store/state.py:288 | Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched. |
-| `baseline_path` | src/ebpy/store/baseline.py:24 |  |
-| `cells_excluding` | src/ebpy/store/baseline.py:186 | Every cell except one analyzer's namespace, files left with none omitted. |
-| `cells_for` | src/ebpy/store/baseline.py:176 | Only the cells belonging to one analyzer's namespace, files with none omitted. |
-| `copy_state` | src/ebpy/store/state.py:277 | A caller's own State, safe to hand to the helpers below. |
-| `empty_state` | src/ebpy/store/state.py:70 |  |
-| `finding_total` | src/ebpy/store/baseline.py:219 |  |
-| `improvements` | src/ebpy/store/state.py:335 |  |
-| `invalid_artifacts_message` | src/ebpy/store/ceiling_artifacts.py:35 |  |
-| `log_of_kind` | src/ebpy/store/state.py:262 |  |
-| `merge_cells` | src/ebpy/store/baseline.py:200 | Union several analyzers' cells into one baseline shape. |
-| `next_baseline` | src/ebpy/store/state.py:271 |  |
-| `parse_cells` | src/ebpy/store/baseline.py:72 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
-| `prune_cells` | src/ebpy/store/baseline.py:126 | Lower every cell to what still exists, and never raise one — the only sanctioned way for the ceiling to fall. |
-| `read_ceiling` | src/ebpy/store/baseline.py:97 |  |
-| `read_ceiling_artifacts` | src/ebpy/store/ceiling_artifacts.py:134 | Read and classify both files without inferring missing contract data. |
-| `read_ledger` | src/ebpy/store/state.py:210 |  |
-| `replace_analyzer_rules` | src/ebpy/store/state.py:319 | Drop every rule in `analyzer`'s namespace and install `counts` as a fresh ceiling. |
-| `rule_totals` | src/ebpy/store/baseline.py:164 |  |
-| `split_against_baseline` | src/ebpy/store/baseline.py:138 | Divide today's cells into (excess, held) against the ceiling. |
-| `state_from_dict` | src/ebpy/store/state.py:157 |  |
-| `state_path` | src/ebpy/store/state.py:66 |  |
-| `state_to_dict` | src/ebpy/store/state.py:182 |  |
-| `total_violations` | src/ebpy/store/state.py:343 |  |
-| `with_diagnosis` | src/ebpy/store/state.py:249 |  |
-| `with_phase` | src/ebpy/store/state.py:266 |  |
-| `write_cells` | src/ebpy/store/baseline.py:110 |  |
-| `write_state` | src/ebpy/store/state.py:238 |  |
+| `align_all_analyzer_rules_to_cells` | src/ebpy/store/ceiling_artifacts.py:158 | Align every listed analyzer's ledger totals to its slice of one combined baseline. |
+| `align_analyzer_rules_to_cells` | src/ebpy/store/ceiling_artifacts.py:143 | Reinstall `analyzer`'s ledger rule totals from the very cells being written for it. |
+| `analyzers_in` | src/ebpy/store/baseline.py:191 | Return the set of analyzer namespaces present among the cells' rules. |
+| `append_log` | src/ebpy/store/state.py:280 | Append a work-log entry, keeping only the most recent ``MAX_LOG_ENTRIES``. |
+| `apply_analyzer_rule_counts` | src/ebpy/store/state.py:321 | Rewrite one analyzer's namespace in `state.rules`, leaving every other rule untouched. |
+| `baseline_path` | src/ebpy/store/baseline.py:27 | Locate ``.ebpy/baseline.json`` under a repository root. |
+| `cells_excluding` | src/ebpy/store/baseline.py:206 | Every cell except one analyzer's namespace, files left with none omitted. |
+| `cells_for` | src/ebpy/store/baseline.py:196 | Only the cells belonging to one analyzer's namespace, files with none omitted. |
+| `config_path` | src/ebpy/store/config.py:31 | Return the absolute path to the config file under ``cwd``. |
+| `copy_state` | src/ebpy/store/state.py:310 | Return a caller's own copy of State, safe to hand to the helpers below. |
+| `empty_state` | src/ebpy/store/state.py:80 | Build the ledger a repository has before its first freeze records any rule. |
+| `finding_total` | src/ebpy/store/baseline.py:239 | Return the total violation count across every cell. |
+| `improvements` | src/ebpy/store/state.py:368 | Return the rules whose current count sits below their ceiling — the drain a freeze can bank. |
+| `invalid_artifacts_message` | src/ebpy/store/ceiling_artifacts.py:69 | Build the operator-facing message for an invalid ceiling pair. |
+| `log_of_kind` | src/ebpy/store/state.py:287 | Return the log entries of a single kind, in the order they were recorded. |
+| `merge_cells` | src/ebpy/store/baseline.py:220 | Union several analyzers' cells into one baseline shape. |
+| `next_baseline` | src/ebpy/store/state.py:298 | Compute a rule's next ceiling for a baseline mode. |
+| `parse_cells` | src/ebpy/store/baseline.py:78 | Parse the complete baseline, rejecting rather than skipping any bad cell. |
+| `prune_cells` | src/ebpy/store/baseline.py:141 | Lower every cell to what still exists, and never raise one. |
+| `read_ceiling` | src/ebpy/store/baseline.py:103 | Read the ratchet file as a Ceiling that separates a missing file from unreadable bytes. |
+| `read_ceiling_artifacts` | src/ebpy/store/ceiling_artifacts.py:200 | Read and classify both files without inferring missing contract data. |
+| `read_config` | src/ebpy/store/config.py:36 | Return the declared analyzer set, or None if no config file exists. |
+| `read_ledger` | src/ebpy/store/state.py:227 | Read the ledger from disk as a Ledger that separates absence from corruption. |
+| `reconcile_scope` | src/ebpy/store/ceiling_artifacts.py:30 | Return an error message if config and the frozen roster disagree on the analyzer set. |
+| `replace_analyzer_rules` | src/ebpy/store/state.py:352 | Drop every rule in `analyzer`'s namespace and install `counts` as a fresh ceiling. |
+| `rule_totals` | src/ebpy/store/baseline.py:182 | Sum each rule's counts across all files — the per-rule totals the ledger stores. |
+| `split_against_baseline` | src/ebpy/store/baseline.py:156 | Divide today's cells into (excess, held) against the ceiling. |
+| `state_from_dict` | src/ebpy/store/state.py:168 | Build a State from raw JSON, or None when it is not a valid version-2 ledger. |
+| `state_path` | src/ebpy/store/state.py:75 | Locate ``.ebpy/state.json`` under a repository root. |
+| `state_to_dict` | src/ebpy/store/state.py:194 | Render a State as the version-2 JSON written to state.json. |
+| `total_violations` | src/ebpy/store/state.py:377 | Return the total number of live violations across every rule. |
+| `with_diagnosis` | src/ebpy/store/state.py:272 | Attach a diagnosis to the ledger with the time and commit it was taken at. |
+| `with_phase` | src/ebpy/store/state.py:292 | Move the ledger to a workflow phase. |
+| `write_cells` | src/ebpy/store/baseline.py:121 | Write cells to baseline.json, dropping zero counts and sorting files and rules for stable diffs. |
+| `write_state` | src/ebpy/store/state.py:260 | Write state to state.json, stamping ``updatedAt`` and replacing any symlink at the path. |
+
+## src/ebpy/tools
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `formatter_configured` | src/ebpy/tools/ruff_format.py:18 | Return True when a formatter (ruff or black) is configured. |
+| `measure_repository` | src/ebpy/tools/registry.py:76 | Measure every registered analyzer, retaining partial success as data. |
+| `secret_scan_configured` | src/ebpy/tools/gitleaks.py:73 | Return True when a known secret-scanning tool is referenced in workflows or pre-commit config. |
+| `secret_scan_workflow` | src/ebpy/tools/gitleaks.py:25 | Scan committed history and the working tree for leaked secrets. |
+| `vulture_configured` | src/ebpy/tools/vulture.py:16 | Return True when vulture is configured or declared as a dependency. |
+
+## src/ebpy/tools/mypy
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `config_selects_target` | src/ebpy/tools/mypy/_runner.py:114 | Whether the repo's own mypy config already names the files, packages or modules to check. |
+| `find_mypy` | src/ebpy/tools/mypy/_runner.py:70 |  |
+| `mypy_configured` | src/ebpy/tools/mypy/detector.py:16 | Return True if any mypy configuration is present in standard locations. |
+| `mypy_strict_configured` | src/ebpy/tools/mypy/detector.py:30 | Return True when mypy's strict mode is enabled in pyproject or an ini config. |
+| `parse_mypy_output` | src/ebpy/tools/mypy/_runner.py:141 | Turn mypy's text output into cells keyed like Ruff's, under the `mypy:` namespace. |
+| `run_mypy_check` | src/ebpy/tools/mypy/_runner.py:192 | Today's mypy findings, as cells keyed like Ruff's, raising when none could be measured. |
+
+## src/ebpy/tools/ruff
+
+| Helper | Where | What it does |
+| --- | --- | --- |
+| `find_ruff` | src/ebpy/tools/ruff/_runner.py:53 |  |
+| `has_ruff_config` | src/ebpy/tools/ruff/detector.py:15 | Return True when a ruff config sits at the root or in a [tool.ruff] table. |
+| `parse_ruff_json` | src/ebpy/tools/ruff/_runner.py:104 |  |
+| `ruff_pyproject_section` | src/ebpy/tools/ruff/config.py:77 | Build the [tool.ruff] section to append to a pyproject.toml that lacks one. |
+| `ruff_target_version` | src/ebpy/tools/ruff/config.py:66 | Translate ``requires-python`` into Ruff's ``target-version`` code (``>=3.11`` -> ``py311``). |
+| `ruff_toml_content` | src/ebpy/tools/ruff/config.py:86 | Build a standalone ruff.toml for a repository with no pyproject.toml to append to. |
+| `run_ruff_check` | src/ebpy/tools/ruff/_runner.py:133 |  |

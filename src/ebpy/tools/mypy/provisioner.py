@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ebpy.decide.provisioner import AppendText, CreateFile
-from ebpy.generate.configs import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
+
+from .config import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
