@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ebpy.decide.provisioner import AddWorkflowStep, AppendText, CreateFile
-from ebpy.generate.configs import ruff_pyproject_section, ruff_toml_content
+
+from .config import ruff_pyproject_section, ruff_target_version, ruff_toml_content
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
@@ -30,11 +31,12 @@ class RuffProvisioner:
         """Write the config when unconfigured, then always the Format check gate step."""
         actions: list[FileAction] = []
         if not setup.configured:
+            target_version = ruff_target_version(ctx.requires_python)
             if ctx.has_pyproject:
                 actions.append(
                     AppendText(
                         path="pyproject.toml",
-                        content="\n" + ruff_pyproject_section(ctx.target_version),
+                        content="\n" + ruff_pyproject_section(target_version),
                         reason="lint + format config; the rule tiers the ratchet will freeze",
                     )
                 )
@@ -42,7 +44,7 @@ class RuffProvisioner:
                 actions.append(
                     CreateFile(
                         path="ruff.toml",
-                        content=ruff_toml_content(ctx.target_version),
+                        content=ruff_toml_content(target_version),
                         reason="lint + format config (no pyproject.toml to append to)",
                     )
                 )

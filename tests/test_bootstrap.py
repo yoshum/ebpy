@@ -8,12 +8,7 @@ from typing import TYPE_CHECKING
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
-from ebpy.generate.configs import (
-    DEPENDABOT_CONTENT,
-    python_version_from_requires,
-    ruff_pyproject_section,
-    ruff_toml_content,
-)
+from ebpy.generate.configs import DEPENDABOT_CONTENT
 from ebpy.generate.workflows import (
     PinnedAction,
     gate_workflow,
@@ -23,6 +18,7 @@ from ebpy.models import PackageManager, WorkflowFile
 from ebpy.repo.detect.ci import unpinned_actions
 from ebpy.repo.facts import gather_facts
 from ebpy.tools.gitleaks import GITLEAKS_SHA256, secret_scan_workflow
+from ebpy.tools.ruff.config import ruff_pyproject_section, ruff_target_version, ruff_toml_content
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,10 +41,10 @@ def plan_for(tmp_path: Path) -> BootstrapPlan:
 
 
 def test_the_target_version_follows_requires_python() -> None:
-    assert python_version_from_requires(">=3.12") == "py312"
-    assert python_version_from_requires(">=3.9,<4") == "py39"
-    assert python_version_from_requires(None) == "py311"
-    assert python_version_from_requires("nonsense") == "py311"
+    assert ruff_target_version(">=3.12") == "py312"
+    assert ruff_target_version(">=3.9,<4") == "py39"
+    assert ruff_target_version(None) == "py311"
+    assert ruff_target_version("nonsense") == "py311"
 
 
 def test_the_generated_ruff_config_parses_as_toml() -> None:

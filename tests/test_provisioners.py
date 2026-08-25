@@ -14,28 +14,28 @@ from ebpy.decide.provisioner import (
     ProvisionContext,
     Provisioner,
 )
-from ebpy.generate import workflows
-from ebpy.generate.configs import (
-    MYPY_INI_CONTENT,
-    MYPY_PYPROJECT_SECTION,
-    ruff_pyproject_section,
-    ruff_toml_content,
-)
+from ebpy.generate import configs, workflows
 from ebpy.generate.workflows import CHECKOUT_ACTION
 from ebpy.models import ToolSetup
 from ebpy.tools import gitleaks
 from ebpy.tools.gitleaks import GitleaksProvisioner, secret_scan_workflow
 from ebpy.tools.mypy import MypyProvisioner
+from ebpy.tools.mypy import config as mypy_config
+from ebpy.tools.mypy.config import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 from ebpy.tools.pytest import PytestProvisioner
 from ebpy.tools.ruff import RuffProvisioner
+from ebpy.tools.ruff import config as ruff_config
+from ebpy.tools.ruff.config import ruff_pyproject_section, ruff_toml_content
 from ebpy.tools.ruff_format import RuffFormatProvisioner
 from ebpy.tools.vulture import VultureProvisioner
 
 
 def _ctx(
-    *, has_pyproject: bool = True, target_version: str = "py312", run_prefix: str = "uv run "
+    *, has_pyproject: bool = True, requires_python: str | None = ">=3.12", run_prefix: str = "uv run "
 ) -> ProvisionContext:
-    return ProvisionContext(has_pyproject=has_pyproject, target_version=target_version, run_prefix=run_prefix)
+    return ProvisionContext(
+        has_pyproject=has_pyproject, requires_python=requires_python, run_prefix=run_prefix
+    )
 
 
 def test_provisioner_protocol_shape() -> None:
@@ -130,6 +130,20 @@ def test_ruff_provisioner_creates_ruff_toml_then_adds_format_step_without_pyproj
         ),
         AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
     ]
+
+
+def test_ruff_provisioner_translates_requires_python_into_its_own_target_version() -> None:
+    """The context carries requires-python raw; spelling it as py39 is ruff's own business."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(requires_python=">=3.9"))
+    assert isinstance(actions[0], AppendText)
+    assert 'target-version = "py39"' in actions[0].content
+
+
+def test_ruff_provisioner_falls_back_to_the_default_target_version_when_unspecified() -> None:
+    """A repository that declares no requires-python still gets a config, at ruff's default."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=False), _ctx(requires_python=None))
+    assert isinstance(actions[0], AppendText)
+    assert 'target-version = "py311"' in actions[0].content
 
 
 def test_ruff_provisioner_configured_still_adds_the_format_step() -> None:
@@ -308,3 +322,27 @@ def test_gitleaks_knowledge_lives_only_under_tools() -> None:
 def test_the_gitleaks_workflow_uses_the_generic_checkout_pin() -> None:
     """The gitleaks workflow reuses the generic CHECKOUT_ACTION pin kept in generate.workflows."""
     assert CHECKOUT_ACTION.uses in secret_scan_workflow()
+
+
+# ---- Where tool knowledge lives --------------------------------------------
+
+
+def test_ruff_config_knowledge_lives_only_under_tools() -> None:
+    """Concrete ruff config knowledge sits under tools/, never in the generic configs module."""
+    for attr in ("ruff_pyproject_section", "ruff_toml_content", "ruff_target_version"):
+        assert not hasattr(configs, attr), f"{attr} must not live in generate.configs"
+        assert hasattr(ruff_config, attr), f"{attr} must live in tools.ruff.config"
+
+
+def test_mypy_config_knowledge_lives_only_under_tools() -> None:
+    """Concrete mypy config knowledge sits under tools/, never in the generic configs module."""
+    for attr in ("MYPY_PYPROJECT_SECTION", "MYPY_INI_CONTENT"):
+        assert not hasattr(configs, attr), f"{attr} must not live in generate.configs"
+        assert hasattr(mypy_config, attr), f"{attr} must live in tools.mypy.config"
+
+
+def test_the_provision_context_carries_requires_python_raw() -> None:
+    """The shared context holds the repository's own declaration, not ruff's spelling of it."""
+    fields = {f.name for f in dataclasses.fields(ProvisionContext)}
+    assert "requires_python" in fields
+    assert "target_version" not in fields, "a ruff-only dialect must not reappear in the shared context"

@@ -4,8 +4,10 @@ Everything [`ebpy bootstrap`](cli/bootstrap.md) puts into a repository, and why 
 it is. Nothing here is written over a file that already exists — see
 [what bootstrap will not do](cli/bootstrap.md#it-never-overwrites-a-config-that-already-exists).
 
-The source of truth is `src/ebpy/generate/configs.py` and `src/ebpy/generate/workflows.py`; this page
-is the reading of it.
+The source of truth is the code: `src/ebpy/generate/` for the repository-level files (the gate
+workflow, dependabot, `.gitattributes`) and each tool's own module under `src/ebpy/tools/` for the
+config that tool owns — `tools/ruff/config.py`, `tools/mypy/config.py`, `tools/gitleaks.py`. This
+page is the reading of it.
 
 ## At a glance
 
@@ -198,8 +200,9 @@ Dependabot reads to learn which release a SHA stands for, so it rewrites the two
 | `astral-sh/setup-uv` | v5.4.2 |
 | gitleaks CLI (download + digest) | 8.30.1 |
 
-The SHAs and the digest themselves live in `src/ebpy/generate/workflows.py`, which is where to look
-when checking what a generated repository actually received.
+The action SHAs live in `src/ebpy/generate/workflows.py` and the gitleaks digest in
+`src/ebpy/tools/gitleaks.py`, which is where to look when checking what a generated repository
+actually received.
 
 ## `.github/dependabot.yml`
 

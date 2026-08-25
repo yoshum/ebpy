@@ -48,10 +48,15 @@ FileAction = CreateFile | AppendText | AddWorkflowStep
 
 @dataclass(frozen=True)
 class ProvisionContext:
-    """Repo/composition facts a provisioner needs to build its actions."""
+    """Repo/composition facts a provisioner needs to build its actions.
+
+    Facts, not any one tool's dialect: ``requires_python`` is carried raw, exactly as the
+    repository declares it, and a provisioner that needs it in its own tool's spelling
+    translates it itself.
+    """
 
     has_pyproject: bool
-    target_version: str
+    requires_python: str | None
     run_prefix: str  # e.g. "uv run " / "poetry run " / "" for plain pip
 
 
