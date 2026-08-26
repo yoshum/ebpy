@@ -1,7 +1,8 @@
 # Default configuration
 
 Everything [`ebpy bootstrap`](cli/bootstrap.md) puts into a repository, and why each value is what
-it is. Nothing here is written over a file that already exists — see
+it is. Nothing here is written over a file that already exists; it is printed instead, to compare
+against what is there — see
 [what bootstrap will not do](cli/bootstrap.md#it-never-overwrites-a-config-that-already-exists).
 
 The source of truth is the code: `src/ebpy/generate/` for the repository-level files (the gate

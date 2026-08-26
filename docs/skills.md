@@ -86,12 +86,14 @@ checking or CI in a repository that has none.
 
 **What it insists on**
 
-- **Read the dry run first.** `ebpy bootstrap --dry-run` names every file it will write and every
-  config it will skip. In a repository you did not set up, that reading is the whole safety margin.
+- **Read the dry run first.** `ebpy bootstrap --dry-run` names every file it will write and prints
+  in full every config it holds back. In a repository you did not set up, that is the whole safety
+  margin.
 - **The formatting commit goes first, alone.** Before the tooling commit, so both stay reviewable.
 - **It never overwrites an existing config.** The exceptions in a config that is already there have
   reasons that are not in the file. Widening a too-narrow Ruff config is a *tighten* decision to
-  discuss, not a silent replacement.
+  discuss, not a silent replacement. What bootstrap held back is printed to compare against: propose
+  the difference and let the user decide, rather than pasting it over the file.
 - **It does not turn on `mypy strict` over an existing loose config.** That can produce hundreds of
   errors which cannot be grandfathered per file — a deliberate step, with the count measured first.
 - **It verifies the tools actually run afterwards.** `ruff check .` must fail with *violations*, not
