@@ -136,7 +136,10 @@ def _withheld_section(skipped: tuple[WithheldConfig, ...]) -> list[str]:
     """
     if not skipped:
         return []
-    lines = ["", "Not written, because the repository has its own. Merge by hand what yours lacks:"]
+    lines = [
+        "",
+        "Not written, because the repository has its own. Merge by hand what yours lacks and should have:",
+    ]
     for config in skipped:
         lines.extend(
             [

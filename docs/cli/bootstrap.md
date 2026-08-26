@@ -50,7 +50,7 @@ and the table it would have appended to a `pyproject.toml` that already has one:
 ```
      skipped pyproject.toml — ruff is already configured, not touched
 
-Not written, because the repository has its own. Merge by hand what yours lacks:
+Not written, because the repository has its own. Merge by hand what yours lacks and should have:
 
 ----- pyproject.toml (lint + format config; the rule tiers the ratchet will freeze) -----
 [tool.ruff]
