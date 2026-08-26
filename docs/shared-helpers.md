@@ -61,14 +61,14 @@ notices once the copies are textually similar — and independently written ones
 | `area_of` | src/ebpy/decide/analysis_report.py:35 | Return the top-level area a file belongs to — its first path segment, or the root marker. |
 | `assess_freshness` | src/ebpy/decide/freshness.py:49 | Decide whether a recorded diagnosis can still be trusted given its age and the commits since. |
 | `build_drain_plan` | src/ebpy/decide/drain_order.py:180 | Rank the backlog into a drain plan: cheapest targets, rule spread, directory tails, heaviest files. |
-| `build_plan` | src/ebpy/decide/bootstrap_plan.py:49 | Decide the bootstrap plan — packages to install and files to create — from a diagnosis. |
+| `build_plan` | src/ebpy/decide/bootstrap_plan.py:52 | Decide the bootstrap plan — packages to install and files to create — from a diagnosis. |
 | `build_worklist` | src/ebpy/decide/worklist.py:59 | Derive from the ledger which phase the user is in and what step comes next. |
 | `cheapest_first` | src/ebpy/decide/drain_order.py:106 | Rank the cheapest cells first — the ones one or two edits from clearing a file. |
 | `diagnose` | src/ebpy/decide/diagnose.py:140 | Survey the repository, naming every gap. |
 | `directory_tails` | src/ebpy/decide/drain_order.py:137 | Find directories where a rule survives in only a handful of files. |
 | `heaviest_files` | src/ebpy/decide/drain_order.py:160 | Rank files heavy with a rule too large to clear in a couple of edits. |
 | `matrix_from_cells` | src/ebpy/decide/analysis_report.py:124 | Fold cells into a rule-by-area matrix, summing each rule's counts within an area. |
-| `render_plan` | src/ebpy/decide/bootstrap_plan.py:107 | Render a bootstrap plan as the text shown for a real run or a dry run. |
+| `render_plan` | src/ebpy/decide/bootstrap_plan.py:112 | Render a bootstrap plan as the text shown for a real run or a dry run. |
 | `report_from_measurement` | src/ebpy/decide/analysis_report.py:203 | Build a report from facts; tool failure changes its detail, never its exit status. |
 | `rule_spread` | src/ebpy/decide/drain_order.py:116 | Rank rules by the number of files to touch rather than by violation count. |
 | `totals_of` | src/ebpy/decide/drain_order.py:97 | Sum a set of suppressions into their violation, file and rule totals. |
