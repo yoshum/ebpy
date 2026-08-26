@@ -33,6 +33,21 @@ class AppendText:
 
 
 @dataclass(frozen=True)
+class WithheldConfig:
+    """The config a tool wanted, held back because the repository already configures that tool.
+
+    Carried with its full content rather than reduced to a note: bootstrap will not overwrite,
+    so the text it declined to write is the only thing that keeps the same configuration
+    reachable — by hand, later, by whoever reads the output.
+    """
+
+    path: str  # where the config would have gone
+    content: str
+    reason: str  # why the config is wanted
+    note: str  # why it was not written
+
+
+@dataclass(frozen=True)
 class AddWorkflowStep:
     """Contribute step lines into the ebpy-owned gate workflow (quality.yml).
 
@@ -43,7 +58,7 @@ class AddWorkflowStep:
     lines: tuple[str, ...]
 
 
-FileAction = CreateFile | AppendText | AddWorkflowStep
+FileAction = CreateFile | AppendText | AddWorkflowStep | WithheldConfig
 
 
 @dataclass(frozen=True)

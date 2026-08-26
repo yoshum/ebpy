@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ebpy.decide.provisioner import AppendText, CreateFile
+from ebpy.decide.provisioner import AppendText, CreateFile, WithheldConfig
 
 from .config import MYPY_INI_CONTENT, MYPY_PYPROJECT_SECTION
 
@@ -28,21 +28,20 @@ class MypyProvisioner:
         return ("mypy",) if not setup.configured else ()
 
     def plan_file_actions(self, setup: ToolSetup, ctx: ProvisionContext) -> list[FileAction]:
-        """Write strict type-checking config when unconfigured; no gate step (mypy runs via ebpy check)."""
-        if setup.configured:
-            return []
+        """Write strict type-checking config when unconfigured, withhold it when configured.
+
+        No gate step either way: mypy runs through `ebpy check`. A repository that already
+        configures mypy is shown the config rather than having it written over.
+        """
         if ctx.has_pyproject:
-            return [
-                AppendText(
-                    path="pyproject.toml",
-                    content="\n" + MYPY_PYPROJECT_SECTION,
-                    reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
-                )
-            ]
-        return [
-            CreateFile(
-                path="mypy.ini",
-                content=MYPY_INI_CONTENT,
-                reason="type checking, strict (no pyproject.toml to append to)",
-            )
-        ]
+            path, content = "pyproject.toml", "\n" + MYPY_PYPROJECT_SECTION
+            reason = "type checking, strict — errors are ratcheted per file per rule, like Ruff's"
+        else:
+            path, content = "mypy.ini", MYPY_INI_CONTENT
+            reason = "type checking, strict (no pyproject.toml to append to)"
+
+        if setup.configured:
+            return [WithheldConfig(path, content, reason, note="mypy is already configured")]
+        if ctx.has_pyproject:
+            return [AppendText(path=path, content=content, reason=reason)]
+        return [CreateFile(path=path, content=content, reason=reason)]

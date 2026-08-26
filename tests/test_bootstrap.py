@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
-from ebpy.generate.configs import DEPENDABOT_CONTENT
+from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import (
     PinnedAction,
     gate_workflow,
@@ -198,7 +198,7 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
     workflow.write_text("name: ours\n", encoding="utf-8")
     plan = plan_for(tmp_path)
     assert ".github/workflows/quality.yml" not in {a.path for a in plan.files}
-    assert any("quality.yml" in note for note in plan.skipped)
+    assert any("quality.yml" in action.path for action in plan.skipped)
 
 
 def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:
@@ -225,3 +225,44 @@ def test_a_dry_run_says_what_it_would_do_and_nothing_else(tmp_path: Path) -> Non
     assert "would run:" in rendered
     assert "would write" in rendered
     assert "Next:" not in rendered
+
+
+def test_a_skipped_config_prints_the_content_it_would_have_written(tmp_path: Path) -> None:
+    """A file left alone is still a config the repository may want; hiding it makes it unmergeable.
+
+    Bootstrap refuses to overwrite, so the only way the user (or an agent reading the output)
+    can reach the same configuration is to see the text bootstrap held back.
+    """
+    workflow = tmp_path / ".github" / "workflows" / "quality.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("name: ours\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    skipped = next(action for action in plan.skipped if action.path == ".github/workflows/quality.yml")
+    assert "ebpy check" in skipped.content
+    rendered = render_plan(plan, dry_run=True)
+    assert "ebpy check" in rendered
+    assert rendered.index("skipped .github/workflows/quality.yml") < rendered.index("ebpy check")
+
+
+def test_the_withheld_content_is_shown_on_a_real_run_too(tmp_path: Path) -> None:
+    # A real run is where the file was actually left alone, so it needs the text most.
+    (tmp_path / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
+    rendered = render_plan(plan_for(tmp_path), dry_run=False)
+    assert "skipped .gitattributes" in rendered
+    assert GITATTRIBUTES_CONTENT.strip() in rendered
+
+
+def test_an_already_configured_tool_still_shows_the_config_it_would_have_written(tmp_path: Path) -> None:
+    """The main case: the config lives in pyproject.toml, so no file is skipped — nothing is written.
+
+    Before, a repository that already configured ruff heard nothing at all about the rule tiers the
+    ratchet expects. The plan now carries that config so the output can be acted on by hand.
+    """
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "app"\n\n[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+    )
+    plan = plan_for(tmp_path)
+    withheld = next(config for config in plan.skipped if config.note == "ruff is already configured")
+    assert withheld.path == "pyproject.toml"
+    assert "[tool.ruff.lint]" in withheld.content
+    assert "max-complexity" in render_plan(plan, dry_run=False)

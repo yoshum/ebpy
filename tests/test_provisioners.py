@@ -13,6 +13,7 @@ from ebpy.decide.provisioner import (
     CreateFile,
     ProvisionContext,
     Provisioner,
+    WithheldConfig,
 )
 from ebpy.generate import configs, workflows
 from ebpy.generate.workflows import CHECKOUT_ACTION
@@ -146,10 +147,16 @@ def test_ruff_provisioner_falls_back_to_the_default_target_version_when_unspecif
     assert 'target-version = "py311"' in actions[0].content
 
 
-def test_ruff_provisioner_configured_still_adds_the_format_step() -> None:
-    """Configured ruff writes no config but the gate step is emitted regardless of setup."""
+def test_ruff_provisioner_configured_withholds_the_config_and_still_adds_the_format_step() -> None:
+    """Configured ruff writes no config, but the text is carried so a reader can merge it by hand."""
     actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx())
     assert actions == [
+        WithheldConfig(
+            path="pyproject.toml",
+            content="\n" + ruff_pyproject_section("py312"),
+            reason="lint + format config; the rule tiers the ratchet will freeze",
+            note="ruff is already configured",
+        ),
         AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
     ]
 
@@ -157,9 +164,17 @@ def test_ruff_provisioner_configured_still_adds_the_format_step() -> None:
 def test_ruff_provisioner_format_step_follows_the_run_prefix() -> None:
     """An empty run_prefix (plain pip layout) drops the prefix from the Format check command."""
     actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(run_prefix=""))
-    assert actions == [
-        AddWorkflowStep(lines=("      - name: Format check", "        run: ruff format --check ."))
-    ]
+    assert actions[-1] == AddWorkflowStep(
+        lines=("      - name: Format check", "        run: ruff format --check .")
+    )
+
+
+def test_a_withheld_ruff_config_names_the_file_it_would_have_gone_into() -> None:
+    """Without a pyproject.toml the config bootstrap holds back is the standalone ruff.toml."""
+    actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(has_pyproject=False))
+    withheld = next(a for a in actions if isinstance(a, WithheldConfig))
+    assert withheld.path == "ruff.toml"
+    assert withheld.content == ruff_toml_content("py312")
 
 
 # ---- RuffFormatProvisioner -------------------------------------------------
@@ -226,10 +241,17 @@ def test_mypy_provisioner_creates_mypy_ini_without_pyproject() -> None:
     ]
 
 
-def test_configured_mypy_needs_no_file_actions() -> None:
-    """Configured mypy -> no packages, no file actions (mypy runs through ebpy check)."""
+def test_configured_mypy_installs_nothing_and_withholds_its_config() -> None:
+    """Configured mypy -> no packages, and the config it would have written, carried not written."""
     assert MypyProvisioner().plan_packages(ToolSetup(configured=True)) == ()
-    assert MypyProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx()) == []
+    assert MypyProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx()) == [
+        WithheldConfig(
+            path="pyproject.toml",
+            content="\n" + MYPY_PYPROJECT_SECTION,
+            reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
+            note="mypy is already configured",
+        )
+    ]
 
 
 # ---- PytestProvisioner -----------------------------------------------------
