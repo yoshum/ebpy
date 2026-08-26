@@ -43,6 +43,26 @@ repository's Ruff config is too narrow, widening it is a *tighten* decision to d
 silent replacement. Existing files are reported as skipped and left alone; `pyproject.toml` is only
 ever **appended** to, and only for a table it does not have.
 
+Refusing to write is not a reason to stay quiet about *what* would have been written. Every config
+bootstrap holds back is printed in full underneath the plan — both the file it would have created
+and the table it would have appended to a `pyproject.toml` that already has one:
+
+```
+     skipped pyproject.toml — ruff is already configured, not touched
+
+Not written, because the repository has its own. Merge by hand what yours lacks and should have:
+
+----- pyproject.toml (lint + format config; the rule tiers the ratchet will freeze) -----
+[tool.ruff]
+line-length = 100
+…
+----- end pyproject.toml -----
+```
+
+Merge by hand means merging *keys*: pasting a second `[tool.ruff]` table into a file that has one is
+invalid TOML. What the printed text is for is deciding, rule tier by rule tier, which of the ones
+[the ratchet expects](../defaults.md) your config is missing.
+
 For the same reason bootstrap does not turn on `mypy strict` over an existing loose config. That is
 a tighten step, done deliberately, with the count measured first.
 

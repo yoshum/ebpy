@@ -2,7 +2,8 @@
 
 The plan is computed pure from a diagnosis, so ``--dry-run`` prints exactly
 what a real run executes. It never overwrites a config that already exists —
-the exceptions in it have reasons that are not in the file.
+the exceptions in it have reasons that are not in the file. What it held back
+is carried in the plan, content and all, so the output stays actionable by hand.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from ebpy.models import Diagnosis, ToolSetup
 from ebpy.package_manager import DEV_INSTALL_PREFIXES
 from ebpy.tools import PROVISIONERS
 
-from .provisioner import AddWorkflowStep, AppendText, CreateFile, ProvisionContext
+from .provisioner import AddWorkflowStep, AppendText, CreateFile, ProvisionContext, WithheldConfig
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,9 @@ class BootstrapPlan:
     install: InstallAction | None
     # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
     files: tuple[CreateFile | AppendText, ...]
-    skipped: tuple[str, ...]
+    # The whole action, not a note: the file was left alone, so the text bootstrap held back is
+    # the only record of the configuration the repository would otherwise have had.
+    skipped: tuple[WithheldConfig, ...]
 
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
@@ -68,22 +71,24 @@ def build_plan(
     )
     gate_steps: list[str] = []
     tool_files: list[CreateFile | AppendText] = []
+    skipped: list[WithheldConfig] = []
     for p in PROVISIONERS:
         setup = diagnosis.tool_setups.get(p.name, ToolSetup(configured=False))
         for action in p.plan_file_actions(setup, ctx):
             if isinstance(action, AddWorkflowStep):
                 gate_steps.extend(action.lines)
+            elif isinstance(action, WithheldConfig):
+                skipped.append(action)
             else:
                 tool_files.append(action)
 
     files: list[CreateFile | AppendText] = []
-    skipped: list[str] = []
 
     def add(action: CreateFile | AppendText) -> None:
         # AppendText is additive (unconfigured detection already gates it); only a CreateFile
         # onto a path that already exists is skipped, so a hand-written config is never touched.
         if isinstance(action, CreateFile) and action.path in all_files:
-            skipped.append(f"{action.path} — already exists, not touched")
+            skipped.append(WithheldConfig(action, "already exists"))
         else:
             files.append(action)
 
@@ -115,7 +120,36 @@ def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
         verb = "append to" if isinstance(action, AppendText) else "write"
         prefix = f"would {verb}" if dry_run else verb
         lines.append(f"{prefix:>12} {action.path}  ({action.reason})")
-    lines.extend(f"     skipped {note}" for note in plan.skipped)
+    lines.extend(
+        f"     skipped {w.would_have.path} — {w.withheld_because}, not touched" for w in plan.skipped
+    )
+    lines.extend(_withheld_section(plan.skipped))
     if not dry_run:
         lines.extend(["", "Next: `ebpy freeze` pins today's violations as the ceiling."])
     return "\n".join([*lines, ""])
+
+
+def _withheld_section(skipped: tuple[WithheldConfig, ...]) -> list[str]:
+    """Render the configs bootstrap declined to write, verbatim, so they can be merged by hand.
+
+    Bootstrap will not overwrite, and a name plus a reason is not something anyone can act on.
+    The text is what keeps the same configuration reachable for whoever — or whatever — reads
+    the output afterwards.
+    """
+    if not skipped:
+        return []
+    lines = [
+        "",
+        "Not written, because the repository has its own. Merge by hand what yours lacks and should have:",
+    ]
+    for withheld in skipped:
+        config = withheld.would_have
+        lines.extend(
+            [
+                "",
+                f"----- {config.path} ({config.reason}) -----",
+                config.content.strip("\n"),
+                f"----- end {config.path} -----",
+            ]
+        )
+    return lines

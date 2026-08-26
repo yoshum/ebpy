@@ -39,7 +39,9 @@ and mixing it into the tooling commit makes the tooling change unreviewable too.
 
 - **It never overwrites an existing config.** The exceptions in a config that is already there have
   reasons that are not written in the file. If a repo's Ruff config is too narrow, widening it is a
-  *tighten* decision — discuss it, do not silently replace it.
+  *tighten* decision — discuss it, do not silently replace it. Bootstrap prints the config it held
+  back so that difference can be read; pasting that text over the existing file is the silent
+  replacement this rule exists to prevent.
 - **It does not fix violations.** After bootstrap the repository is full of errors, and that is the
   expected state. `freeze` is what makes them survivable.
 - **It does not enable `mypy strict` on an existing loose config.** Turning it on can produce
@@ -51,8 +53,13 @@ and mixing it into the tooling commit makes the tooling change unreviewable too.
 1. Check that the tools actually run: `uv run ruff check .` and `uv run mypy .` must fail with
    *violations*, not with a config error. A config that cannot load produces zero findings and
    looks like success.
-2. Commit the configs and the workflows.
-3. Route to `ebpy-freeze`. The gate in the generated workflow calls `ebpy check`, which fails until
+2. **If bootstrap printed configs it held back, do not apply them yourself.** Read each one against
+   what the repository already has, then state a proposal and get the user's decision before
+   touching the file: which rule tiers of ebpy's defaults are missing, which of the repository's own
+   exceptions you would keep and why, and what turning each one on is likely to cost. Merging is by
+   *key* — a `pyproject.toml` that already has a `[tool.ruff]` table cannot take a second one.
+3. Commit the configs and the workflows.
+4. Route to `ebpy-freeze`. The gate in the generated workflow calls `ebpy check`, which fails until
    a baseline exists — so the freeze commit is what turns CI green, and leaving it undone leaves the
    repository red.
 
