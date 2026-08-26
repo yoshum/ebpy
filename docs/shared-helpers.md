@@ -6,7 +6,7 @@ Read this before writing a helper. The failure it exists to prevent is the same 
 a sixth time under a sixth name, which no linter reports and which duplication detection only
 notices once the copies are textually similar — and independently written ones rarely are.
 
-133 public functions.
+134 public functions.
 
 ## src/ebpy
 
@@ -103,16 +103,17 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `build_graph` | src/ebpy/repo/fan_in.py:100 | File -> the project files it imports. |
-| `commits_since` | src/ebpy/repo/git.py:42 | Count how far the repository has moved since a diagnosis. |
+| `commits_since` | src/ebpy/repo/git.py:63 | Count how far the repository has moved since a diagnosis. |
 | `count_importers` | src/ebpy/repo/fan_in.py:120 | Count how many distinct files import each file — the fan-in that ranks drain targets. |
 | `gather_facts` | src/ebpy/repo/facts.py:117 | Read everything a diagnosis needs from disk once, so the decision functions stay pure. |
 | `head_commit` | src/ebpy/repo/git.py:30 | Return the current HEAD sha, or None when it cannot be resolved or is malformed. |
+| `history_is_complete` | src/ebpy/repo/git.py:42 | Report whether this clone holds the whole history, or None when git could not say. |
 | `importers_of` | src/ebpy/repo/fan_in.py:129 | Restrict the importer counts to the files in the backlog. |
 | `is_git_repository` | src/ebpy/repo/git.py:16 | Report whether there is a git history here at all. |
 | `list_all_files` | src/ebpy/repo/facts.py:67 | Return every tracked, non-ignored file, falling back to a filesystem walk outside a git repo. |
 | `list_source_paths` | src/ebpy/repo/facts.py:82 | Return the repo-relative paths of every Python source file. |
 | `read_sources` | src/ebpy/repo/facts.py:87 | Read the given paths' text, skipping any that cannot be read. |
-| `tracked_files` | src/ebpy/repo/git.py:63 | Every tracked, non-ignored file, or None outside a repository. |
+| `tracked_files` | src/ebpy/repo/git.py:90 | Every tracked, non-ignored file, or None outside a repository. |
 
 ## src/ebpy/repo/detect
 

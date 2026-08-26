@@ -52,7 +52,8 @@ Without `--write` nothing is written at all — no ledger, no `QUALITY.md`, no `
 ## When to re-run it
 
 Whenever `status` prints a `STALE` line: the diagnosis is over thirty days old, more than fifty
-commits behind, or was taken on a commit no longer in this history. The ratchet itself never goes
+commits behind, or sits at a distance from HEAD that cannot be established — a rewritten history
+or a [shallow clone](status.md#shallow-clones-report-an-unknown-distance-not-a-small-one). The ratchet itself never goes
 stale — Ruff maintains it against the current tree — but the gap list, the file sizes and every
 deferred note do.
 
