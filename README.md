@@ -106,7 +106,7 @@ repository worse than it was.
 
 Everything bootstrap writes — every selected rule tier, every pinned action, every threshold — is
 listed in **[Default configuration](docs/defaults.md)**. It never overwrites a config that already
-exists.
+exists — it prints what it would have written instead, to merge by hand.
 
 After the freeze, the repository is one that can only get better: old code is grandfathered, new
 code is held to the whole rule set, and CI rejects anything that rises.

@@ -39,7 +39,9 @@ and mixing it into the tooling commit makes the tooling change unreviewable too.
 
 - **It never overwrites an existing config.** The exceptions in a config that is already there have
   reasons that are not written in the file. If a repo's Ruff config is too narrow, widening it is a
-  *tighten* decision — discuss it, do not silently replace it.
+  *tighten* decision — discuss it, do not silently replace it. The config it declined to write is
+  printed in full under its path: read it against what is already there and propose the difference.
+  Pasting it over the existing file is the silent replacement this rule exists to prevent.
 - **It does not fix violations.** After bootstrap the repository is full of errors, and that is the
   expected state. `freeze` is what makes them survivable.
 - **It does not enable `mypy strict` on an existing loose config.** Turning it on can produce

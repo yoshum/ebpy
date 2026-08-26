@@ -2,12 +2,15 @@
 
 The plan is computed pure from a diagnosis, so ``--dry-run`` prints exactly
 what a real run executes. It never overwrites a config that already exists —
-the exceptions in it have reasons that are not in the file.
+the exceptions in it have reasons that are not in the file — but a skip carries
+the content it declined to write, so the settings can still be applied by hand.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import gate_workflow, run_prefix_for
@@ -27,13 +30,27 @@ class InstallAction:
 
 
 @dataclass(frozen=True)
+class SkippedFile:
+    """A config bootstrap planned to create and did not, because that path already exists.
+
+    The content travels with the skip rather than being dropped at the decision: the run that
+    declined to write a config is the run whose reader most needs to read it, to merge by hand
+    what the file already there is missing.
+    """
+
+    path: str
+    content: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class BootstrapPlan:
     """What bootstrap would do, as data: the install action, the files to write, and what it skips."""
 
     install: InstallAction | None
     # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
     files: tuple[CreateFile | AppendText, ...]
-    skipped: tuple[str, ...]
+    skipped: tuple[SkippedFile, ...]
 
 
 def _missing_dev_packages(diagnosis: Diagnosis) -> tuple[str, ...]:
@@ -77,13 +94,13 @@ def build_plan(
                 tool_files.append(action)
 
     files: list[CreateFile | AppendText] = []
-    skipped: list[str] = []
+    skipped: list[SkippedFile] = []
 
     def add(action: CreateFile | AppendText) -> None:
         # AppendText is additive (unconfigured detection already gates it); only a CreateFile
         # onto a path that already exists is skipped, so a hand-written config is never touched.
         if isinstance(action, CreateFile) and action.path in all_files:
-            skipped.append(f"{action.path} — already exists, not touched")
+            skipped.append(SkippedFile(action.path, action.content, action.reason))
         else:
             files.append(action)
 
@@ -104,6 +121,42 @@ def build_plan(
     return BootstrapPlan(install=install, files=tuple(files), skipped=tuple(skipped))
 
 
+_FENCE_LANGUAGES = {".toml": "toml", ".ini": "ini", ".yml": "yaml", ".yaml": "yaml"}
+
+
+def _fence(content: str) -> str:
+    """Return a fence longer than the longest backtick run in the content.
+
+    A fixed three-backtick fence ends the block early on a config that contains one, handing
+    the reader a truncated file that still looks whole.
+    """
+    longest = max((len(run) for run in re.findall(r"`+", content)), default=0)
+    return "`" * max(3, longest + 1)
+
+
+def _skipped_lines(skipped: tuple[SkippedFile, ...]) -> list[str]:
+    """Render each skipped config in full, so what bootstrap declined to write can still be applied.
+
+    Nothing here is printed when nothing was skipped: a run that overwrote no config and a run
+    that had no config to overwrite must not read the same.
+    """
+    if not skipped:
+        return []
+    present = "1 file" if len(skipped) == 1 else f"{len(skipped)} files"
+    lines = [
+        "",
+        f"Left alone ({present} already present). Below is the config bootstrap would have",
+        "written — merge by hand whatever the file already there is missing.",
+    ]
+    for entry in skipped:
+        fence = _fence(entry.content)
+        language = _FENCE_LANGUAGES.get(PurePosixPath(entry.path).suffix, "")
+        lines.extend(
+            ["", f"{entry.path} — {entry.reason}", fence + language, entry.content.rstrip("\n"), fence]
+        )
+    return lines
+
+
 def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
     """Render a bootstrap plan as the text shown for a real run or a dry run."""
     lines = ["ebpy bootstrap" + (" --dry-run" if dry_run else ""), ""]
@@ -115,7 +168,8 @@ def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
         verb = "append to" if isinstance(action, AppendText) else "write"
         prefix = f"would {verb}" if dry_run else verb
         lines.append(f"{prefix:>12} {action.path}  ({action.reason})")
-    lines.extend(f"     skipped {note}" for note in plan.skipped)
+    lines.extend(f"     skipped {entry.path} — already exists, not touched" for entry in plan.skipped)
+    lines.extend(_skipped_lines(plan.skipped))
     if not dry_run:
         lines.extend(["", "Next: `ebpy freeze` pins today's violations as the ceiling."])
     return "\n".join([*lines, ""])

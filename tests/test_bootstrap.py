@@ -5,10 +5,10 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING
 
-from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
+from ebpy.decide.bootstrap_plan import BootstrapPlan, _fence, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
-from ebpy.generate.configs import DEPENDABOT_CONTENT
+from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import (
     PinnedAction,
     gate_workflow,
@@ -198,7 +198,52 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
     workflow.write_text("name: ours\n", encoding="utf-8")
     plan = plan_for(tmp_path)
     assert ".github/workflows/quality.yml" not in {a.path for a in plan.files}
-    assert any("quality.yml" in note for note in plan.skipped)
+    assert ".github/workflows/quality.yml" in {entry.path for entry in plan.skipped}
+
+
+def test_a_skipped_config_keeps_the_content_it_would_have_written(tmp_path: Path) -> None:
+    """Skipping is not forgetting.
+
+    A skip that carries only a path tells the reader a file was left alone and nothing about
+    the setup it just declined, which is exactly what a hand-merge needs.
+    """
+    (tmp_path / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
+    skipped = {entry.path: entry for entry in plan_for(tmp_path).skipped}
+    assert skipped[".gitattributes"].content == GITATTRIBUTES_CONTENT
+    assert skipped[".gitattributes"].reason == "line endings settled once, per repository"
+
+
+def test_the_config_it_declined_to_write_is_printed_in_full(tmp_path: Path) -> None:
+    (tmp_path / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
+    rendered = render_plan(plan_for(tmp_path), dry_run=False)
+    assert "     skipped .gitattributes — already exists, not touched" in rendered
+    assert GITATTRIBUTES_CONTENT.rstrip("\n") in rendered
+
+
+def test_a_dry_run_prints_the_skipped_config_the_same_way_a_real_run_does(tmp_path: Path) -> None:
+    """The skip is the same decision either way, so the content it carries reads the same too."""
+    (tmp_path / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
+    plan = plan_for(tmp_path)
+    assert GITATTRIBUTES_CONTENT.rstrip("\n") in render_plan(plan, dry_run=True)
+
+
+def test_a_run_that_skipped_nothing_says_nothing_about_skipping(tmp_path: Path) -> None:
+    """A run that overwrote no config and a run with no config to overwrite must not read alike."""
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    rendered = render_plan(plan_for(tmp_path), dry_run=True)
+    assert "skipped" not in rendered
+    assert "Left alone" not in rendered
+
+
+def test_the_fence_outgrows_any_backtick_run_inside_the_config() -> None:
+    """A config carrying a fence of its own must not end its block early.
+
+    The truncated file that would result still looks whole to whoever copies it out, so the
+    fence is measured against the content rather than fixed at three.
+    """
+    assert _fence("* text=auto eol=lf\n") == "```"
+    assert _fence("run: echo ```\n") == "````"
+    assert _fence("run: echo `````\n") == "``````"
 
 
 def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:

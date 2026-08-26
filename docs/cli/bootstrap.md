@@ -43,6 +43,25 @@ repository's Ruff config is too narrow, widening it is a *tighten* decision to d
 silent replacement. Existing files are reported as skipped and left alone; `pyproject.toml` is only
 ever **appended** to, and only for a table it does not have.
 
+Skipping is not silence. Every config bootstrap declined to write is then printed in full, in a
+fenced block under its path, so the settings can be merged by hand — or handed to an agent to
+merge — without a second run or a guess about what the defaults were:
+
+````
+     skipped .gitattributes — already exists, not touched
+
+Left alone (1 file already present). Below is the config bootstrap would have
+written — merge by hand whatever the file already there is missing.
+
+.gitattributes — line endings settled once, per repository
+```
+* text=auto eol=lf
+```
+````
+
+The decision is unchanged — nothing on disk is touched — and a run that skipped nothing prints
+none of this.
+
 For the same reason bootstrap does not turn on `mypy strict` over an existing loose config. That is
 a tighten step, done deliberately, with the count measured first.
 
