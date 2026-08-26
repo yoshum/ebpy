@@ -228,7 +228,7 @@ def test_a_dry_run_prints_the_skipped_config_the_same_way_a_real_run_does(tmp_pa
 
 
 def test_a_run_that_skipped_nothing_says_nothing_about_skipping(tmp_path: Path) -> None:
-    """A run that overwrote no config and a run with no config to overwrite must not read alike."""
+    """A "Left alone (0 files already present)" header reports a decision this run never made."""
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     rendered = render_plan(plan_for(tmp_path), dry_run=True)
     assert "skipped" not in rendered
