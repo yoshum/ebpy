@@ -2,6 +2,137 @@
 
 <!-- version list -->
 
+## v0.10.0 (2026-08-26)
+
+### Bug Fixes
+
+- **bootstrap**: Qualify the merge the withheld section asks for
+  ([`663265b`](https://github.com/yoshum/ebpy/commit/663265bec215382de163a3f6f14935653f5b603d))
+
+### Code Style
+
+- Place multi-line docstring closing quotes on their own line (D209)
+  ([`cbe9243`](https://github.com/yoshum/ebpy/commit/cbe92432213635a760dd39e046ded33d36d51735))
+
+- Re-sort import blocks after the absolute-imports migration
+  ([#54](https://github.com/yoshum/ebpy/pull/54),
+  [`c0e956e`](https://github.com/yoshum/ebpy/commit/c0e956ea41882a19a48eb71a2f34b4bdadde897e))
+
+### Documentation
+
+- Add module docstrings to the test suite and errors module (D100)
+  ([`4c9332e`](https://github.com/yoshum/ebpy/commit/4c9332ecfbccc411138ffc7dd917ba3b49b4b181))
+
+- Document src public functions to drain D103
+  ([`e2a9e19`](https://github.com/yoshum/ebpy/commit/e2a9e19e7093bd6227f1a414e00320be6c5701fd))
+
+- Document the five undocumented public methods
+  ([`3cd6be2`](https://github.com/yoshum/ebpy/commit/3cd6be2c12ea122ff542709921ea17e078ca8cb5))
+
+- Give the four undocumented subpackages a package docstring
+  ([`1a630f9`](https://github.com/yoshum/ebpy/commit/1a630f96289d98856fa8219d55bae6e0031e10bf))
+
+- Give the shared value objects class docstrings (D101)
+  ([`695de06`](https://github.com/yoshum/ebpy/commit/695de06954ad072ea286d81abc9b2cfa20ace58d))
+
+- Rewrite src docstrings to summary+body / imperative to drain D205 and D401 (src)
+  ([`0812cd9`](https://github.com/yoshum/ebpy/commit/0812cd98e3e8091c1a03c6547222f584e923381e))
+
+- **bootstrap**: Make the withheld config a proposal, not a paste
+  ([`31aef6a`](https://github.com/yoshum/ebpy/commit/31aef6a1c3fda4240d66b3a9767e2a84b3e28b52))
+
+- **errors**: Document ToolError.__init__ to satisfy D107
+  ([`8db9fb3`](https://github.com/yoshum/ebpy/commit/8db9fb3954b96b1c44754ab52ff1e11c0f84330e))
+
+- **models**: Document why AnalysisMeasurement.__post_init__ freezes cells
+  ([`47eeae3`](https://github.com/yoshum/ebpy/commit/47eeae337bdd407c9a36ba3f1d52fab4a4364cc2))
+
+### Features
+
+- **bootstrap**: Print the config it declined to write
+  ([`1a17946`](https://github.com/yoshum/ebpy/commit/1a1794642df6794086cfd21299730e7cebfe392b))
+
+### Refactoring
+
+- Adopt absolute imports across the package ([#54](https://github.com/yoshum/ebpy/pull/54),
+  [`a86da30`](https://github.com/yoshum/ebpy/commit/a86da30ebd58208b88fa855b4bda151028ea72ac))
+
+- Guard type-only first-party imports with TYPE_CHECKING
+  ([`17c4efd`](https://github.com/yoshum/ebpy/commit/17c4efdc55d3875e1156e65a4d12a31bf51e487a))
+
+- Guard type-only first-party imports with TYPE_CHECKING (TC001)
+  ([`c549e49`](https://github.com/yoshum/ebpy/commit/c549e499862f0990ecafbae8e8c1cf547f0d9605))
+
+- Move type-only imports into TYPE_CHECKING blocks (TC003)
+  ([`7524093`](https://github.com/yoshum/ebpy/commit/752409374cb500755ec54664e0394c97f7844ebd))
+
+- Move type-only stdlib imports into TYPE_CHECKING blocks (TC003)
+  ([`c228771`](https://github.com/yoshum/ebpy/commit/c228771bc34f84a7d7842a235c857abc97eaed71))
+
+- Rank smallest backlogs with operator.itemgetter
+  ([`808114e`](https://github.com/yoshum/ebpy/commit/808114ee102269dd62426273a12dece9693317fd))
+
+- Replace key lambda with operator.itemgetter (FURB118)
+  ([`61ad5b5`](https://github.com/yoshum/ebpy/commit/61ad5b5efcea447a47e35d6f21892d047dac70c1))
+
+- Split compound assertions flagged by PT018
+  ([`5d48102`](https://github.com/yoshum/ebpy/commit/5d48102a0318600b4f24fb9eb26e5a6539bae087))
+
+- Split compound assertions flagged by PT018
+  ([`844b88d`](https://github.com/yoshum/ebpy/commit/844b88d63408a731aefb0219c29459e430036686))
+
+- Tighten Any annotations flagged by ANN401
+  ([`f917913`](https://github.com/yoshum/ebpy/commit/f9179139fcc6042d775b1c9322659865c34c4a3d))
+
+- Type untyped JSON inputs as object instead of Any (ANN401)
+  ([`428adea`](https://github.com/yoshum/ebpy/commit/428adea696257d833cb710c839933de20f028b3f))
+
+- **catalog**: Build exports via comprehension to drain PERF401
+  ([`8c5308d`](https://github.com/yoshum/ebpy/commit/8c5308dc572e6925350ddfc6fd0c0392f6e1755c))
+
+- **freshness**: Drop redundant Z-offset replace to drain FURB162
+  ([`e3e27b9`](https://github.com/yoshum/ebpy/commit/e3e27b97d6a6c82cf5af215b1f7fd14755c3c33e))
+
+- **mypy**: Test exit-code membership with a set literal
+  ([`134aefe`](https://github.com/yoshum/ebpy/commit/134aefead975c3661adf04e74a4da06e05fd776a))
+
+- **provisioner**: Carry the action a withheld config did not take
+  ([`e5c42f8`](https://github.com/yoshum/ebpy/commit/e5c42f80d2d38e77c3812a97f1803badaed0afd7))
+
+- **prune**: Extract per-analyzer prune into a pure helper
+  ([`382bbee`](https://github.com/yoshum/ebpy/commit/382bbee689c4989583c22a0dbd1eaee7e64ab542))
+
+- **render**: Collapse repeated gap appends into a single extend
+  ([`22d97c8`](https://github.com/yoshum/ebpy/commit/22d97c8da5fca82af2fd10f3229448648aabccce))
+
+- **render**: Use `or` for the notes placeholder to drain FURB110
+  ([`242261a`](https://github.com/yoshum/ebpy/commit/242261a3dfad7f71bc4b1909e721cd942533c713))
+
+- **ruff**: Extract diagnostic parsing to clear PLR0916
+  ([`2da1cb1`](https://github.com/yoshum/ebpy/commit/2da1cb12d4a65fbfd3f5f4d557dbce0a24c11a59))
+
+- **skills-install**: Split the transactional swap into named phases
+  ([`3c6eafd`](https://github.com/yoshum/ebpy/commit/3c6eafd425584d032fca6497e3811fd191709969))
+
+- **state**: Name the schema-version constant to drain PLR2004
+  ([`a13213a`](https://github.com/yoshum/ebpy/commit/a13213a1cbd5809558c9b3985b18321f76b25803))
+
+- **state**: Use truthiness over compare-to-empty-string to drain PLC1901 in src
+  ([`e5aa398`](https://github.com/yoshum/ebpy/commit/e5aa39824c37899e7ee050cf3ee1029964e8157f))
+
+- **tools**: Drop noqa:ARG002 and scope unused-method-argument to drain RUF105
+  ([`07f7749`](https://github.com/yoshum/ebpy/commit/07f774993d16c7db903ca2c76f4025c43db99e5a))
+
+- **tools**: Give ruff and mypy ownership of the configs they generate
+  ([`57ab5ee`](https://github.com/yoshum/ebpy/commit/57ab5ee9881e277f85af36d802430ab1ff60994d))
+
+- **tools**: Move package implementations out of __init__ into named modules to drain RUF067
+  ([`5f9fd84`](https://github.com/yoshum/ebpy/commit/5f9fd84a62250e28ea615ec8dcf1ad808f00fc40))
+
+- **typing**: Quote cast() type expressions to satisfy TC006
+  ([`45e3fcd`](https://github.com/yoshum/ebpy/commit/45e3fcd23a89d85a27ee74cfa6f51a5f1fe25d2a))
+
+
 ## v0.9.0 (2026-08-24)
 
 ### Features
