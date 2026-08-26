@@ -34,7 +34,7 @@ class BootstrapPlan:
     install: InstallAction | None
     # AddWorkflowStep is never a plan file — it is folded into quality.yml by the gate workflow.
     files: tuple[CreateFile | AppendText, ...]
-    # Content and all, not a note: the file was left alone, so the text bootstrap held back is
+    # The whole action, not a note: the file was left alone, so the text bootstrap held back is
     # the only record of the configuration the repository would otherwise have had.
     skipped: tuple[WithheldConfig, ...]
 
@@ -88,7 +88,7 @@ def build_plan(
         # AppendText is additive (unconfigured detection already gates it); only a CreateFile
         # onto a path that already exists is skipped, so a hand-written config is never touched.
         if isinstance(action, CreateFile) and action.path in all_files:
-            skipped.append(WithheldConfig(action.path, action.content, action.reason, note="already exists"))
+            skipped.append(WithheldConfig(action, "already exists"))
         else:
             files.append(action)
 
@@ -120,7 +120,9 @@ def render_plan(plan: BootstrapPlan, dry_run: bool) -> str:
         verb = "append to" if isinstance(action, AppendText) else "write"
         prefix = f"would {verb}" if dry_run else verb
         lines.append(f"{prefix:>12} {action.path}  ({action.reason})")
-    lines.extend(f"     skipped {config.path} — {config.note}, not touched" for config in plan.skipped)
+    lines.extend(
+        f"     skipped {w.would_have.path} — {w.withheld_because}, not touched" for w in plan.skipped
+    )
     lines.extend(_withheld_section(plan.skipped))
     if not dry_run:
         lines.extend(["", "Next: `ebpy freeze` pins today's violations as the ceiling."])
@@ -140,7 +142,8 @@ def _withheld_section(skipped: tuple[WithheldConfig, ...]) -> list[str]:
         "",
         "Not written, because the repository has its own. Merge by hand what yours lacks and should have:",
     ]
-    for config in skipped:
+    for withheld in skipped:
+        config = withheld.would_have
         lines.extend(
             [
                 "",

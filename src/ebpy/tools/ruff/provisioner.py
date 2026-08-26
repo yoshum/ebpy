@@ -34,22 +34,23 @@ class RuffProvisioner:
         see what ebpy would have written, or nothing tells it which rule tiers the ratchet expects.
         """
         target_version = ruff_target_version(ctx.requires_python)
+        config: CreateFile | AppendText
         if ctx.has_pyproject:
-            path, content = "pyproject.toml", "\n" + ruff_pyproject_section(target_version)
-            reason = "lint + format config; the rule tiers the ratchet will freeze"
+            config = AppendText(
+                path="pyproject.toml",
+                content="\n" + ruff_pyproject_section(target_version),
+                reason="lint + format config; the rule tiers the ratchet will freeze",
+            )
         else:
-            path, content = "ruff.toml", ruff_toml_content(target_version)
-            reason = "lint + format config (no pyproject.toml to append to)"
+            config = CreateFile(
+                path="ruff.toml",
+                content=ruff_toml_content(target_version),
+                reason="lint + format config (no pyproject.toml to append to)",
+            )
 
-        config: FileAction
-        if setup.configured:
-            config = WithheldConfig(path, content, reason, note="ruff is already configured")
-        elif ctx.has_pyproject:
-            config = AppendText(path=path, content=content, reason=reason)
-        else:
-            config = CreateFile(path=path, content=content, reason=reason)
-
-        actions: list[FileAction] = [config]
+        actions: list[FileAction] = [
+            WithheldConfig(config, "ruff is already configured") if setup.configured else config
+        ]
         actions.append(
             AddWorkflowStep(
                 lines=("      - name: Format check", f"        run: {ctx.run_prefix}ruff format --check .")

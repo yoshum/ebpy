@@ -34,17 +34,15 @@ class AppendText:
 
 @dataclass(frozen=True)
 class WithheldConfig:
-    """The config a tool wanted, held back because the repository already configures that tool.
+    """The action a tool would have taken, not taken because the repository already has its own.
 
-    Carried with its full content rather than reduced to a note: bootstrap will not overwrite,
-    so the text it declined to write is the only thing that keeps the same configuration
-    reachable — by hand, later, by whoever reads the output.
+    The action is carried whole rather than reduced to a note: bootstrap will not overwrite, so
+    the text it declined to write is the only thing that keeps the same configuration reachable —
+    by hand, later, by whoever reads the output.
     """
 
-    path: str  # where the config would have gone
-    content: str
-    reason: str  # why the config is wanted
-    note: str  # why it was not written
+    would_have: CreateFile | AppendText
+    withheld_because: str
 
 
 @dataclass(frozen=True)

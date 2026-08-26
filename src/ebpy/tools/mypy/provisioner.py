@@ -33,15 +33,17 @@ class MypyProvisioner:
         No gate step either way: mypy runs through `ebpy check`. A repository that already
         configures mypy is shown the config rather than having it written over.
         """
+        config: CreateFile | AppendText
         if ctx.has_pyproject:
-            path, content = "pyproject.toml", "\n" + MYPY_PYPROJECT_SECTION
-            reason = "type checking, strict — errors are ratcheted per file per rule, like Ruff's"
+            config = AppendText(
+                path="pyproject.toml",
+                content="\n" + MYPY_PYPROJECT_SECTION,
+                reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
+            )
         else:
-            path, content = "mypy.ini", MYPY_INI_CONTENT
-            reason = "type checking, strict (no pyproject.toml to append to)"
-
-        if setup.configured:
-            return [WithheldConfig(path, content, reason, note="mypy is already configured")]
-        if ctx.has_pyproject:
-            return [AppendText(path=path, content=content, reason=reason)]
-        return [CreateFile(path=path, content=content, reason=reason)]
+            config = CreateFile(
+                path="mypy.ini",
+                content=MYPY_INI_CONTENT,
+                reason="type checking, strict (no pyproject.toml to append to)",
+            )
+        return [WithheldConfig(config, "mypy is already configured") if setup.configured else config]

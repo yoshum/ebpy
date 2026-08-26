@@ -198,7 +198,7 @@ def test_an_existing_config_is_never_overwritten(tmp_path: Path) -> None:
     workflow.write_text("name: ours\n", encoding="utf-8")
     plan = plan_for(tmp_path)
     assert ".github/workflows/quality.yml" not in {a.path for a in plan.files}
-    assert any("quality.yml" in action.path for action in plan.skipped)
+    assert any("quality.yml" in w.would_have.path for w in plan.skipped)
 
 
 def test_build_plan_splices_format_check_before_test_in_the_gate_workflow(tmp_path: Path) -> None:
@@ -237,8 +237,8 @@ def test_a_skipped_config_prints_the_content_it_would_have_written(tmp_path: Pat
     workflow.parent.mkdir(parents=True)
     workflow.write_text("name: ours\n", encoding="utf-8")
     plan = plan_for(tmp_path)
-    skipped = next(action for action in plan.skipped if action.path == ".github/workflows/quality.yml")
-    assert "ebpy check" in skipped.content
+    skipped = next(w for w in plan.skipped if w.would_have.path == ".github/workflows/quality.yml")
+    assert "ebpy check" in skipped.would_have.content
     rendered = render_plan(plan, dry_run=True)
     assert "ebpy check" in rendered
     assert rendered.index("skipped .github/workflows/quality.yml") < rendered.index("ebpy check")
@@ -262,7 +262,7 @@ def test_an_already_configured_tool_still_shows_the_config_it_would_have_written
         '[project]\nname = "app"\n\n[tool.ruff]\nline-length = 88\n', encoding="utf-8"
     )
     plan = plan_for(tmp_path)
-    withheld = next(config for config in plan.skipped if config.note == "ruff is already configured")
-    assert withheld.path == "pyproject.toml"
-    assert "[tool.ruff.lint]" in withheld.content
+    withheld = next(w for w in plan.skipped if w.withheld_because == "ruff is already configured")
+    assert withheld.would_have.path == "pyproject.toml"
+    assert "[tool.ruff.lint]" in withheld.would_have.content
     assert "max-complexity" in render_plan(plan, dry_run=False)

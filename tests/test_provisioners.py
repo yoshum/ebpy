@@ -152,10 +152,12 @@ def test_ruff_provisioner_configured_withholds_the_config_and_still_adds_the_for
     actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx())
     assert actions == [
         WithheldConfig(
-            path="pyproject.toml",
-            content="\n" + ruff_pyproject_section("py312"),
-            reason="lint + format config; the rule tiers the ratchet will freeze",
-            note="ruff is already configured",
+            AppendText(
+                path="pyproject.toml",
+                content="\n" + ruff_pyproject_section("py312"),
+                reason="lint + format config; the rule tiers the ratchet will freeze",
+            ),
+            "ruff is already configured",
         ),
         AddWorkflowStep(lines=("      - name: Format check", "        run: uv run ruff format --check .")),
     ]
@@ -173,8 +175,8 @@ def test_a_withheld_ruff_config_names_the_file_it_would_have_gone_into() -> None
     """Without a pyproject.toml the config bootstrap holds back is the standalone ruff.toml."""
     actions = RuffProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx(has_pyproject=False))
     withheld = next(a for a in actions if isinstance(a, WithheldConfig))
-    assert withheld.path == "ruff.toml"
-    assert withheld.content == ruff_toml_content("py312")
+    assert withheld.would_have.path == "ruff.toml"
+    assert withheld.would_have.content == ruff_toml_content("py312")
 
 
 # ---- RuffFormatProvisioner -------------------------------------------------
@@ -246,10 +248,12 @@ def test_configured_mypy_installs_nothing_and_withholds_its_config() -> None:
     assert MypyProvisioner().plan_packages(ToolSetup(configured=True)) == ()
     assert MypyProvisioner().plan_file_actions(ToolSetup(configured=True), _ctx()) == [
         WithheldConfig(
-            path="pyproject.toml",
-            content="\n" + MYPY_PYPROJECT_SECTION,
-            reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
-            note="mypy is already configured",
+            AppendText(
+                path="pyproject.toml",
+                content="\n" + MYPY_PYPROJECT_SECTION,
+                reason="type checking, strict — errors are ratcheted per file per rule, like Ruff's",
+            ),
+            "mypy is already configured",
         )
     ]
 
