@@ -107,7 +107,7 @@ notices once the copies are textually similar — and independently written ones
 | `count_importers` | src/ebpy/repo/fan_in.py:120 | Count how many distinct files import each file — the fan-in that ranks drain targets. |
 | `gather_facts` | src/ebpy/repo/facts.py:117 | Read everything a diagnosis needs from disk once, so the decision functions stay pure. |
 | `head_commit` | src/ebpy/repo/git.py:30 | Return the current HEAD sha, or None when it cannot be resolved or is malformed. |
-| `history_is_complete` | src/ebpy/repo/git.py:42 | Report whether this clone holds the whole history, or None when git could not say. |
+| `history_is_complete` | src/ebpy/repo/git.py:42 | Report whether this clone holds the whole history. |
 | `importers_of` | src/ebpy/repo/fan_in.py:129 | Restrict the importer counts to the files in the backlog. |
 | `is_git_repository` | src/ebpy/repo/git.py:16 | Report whether there is a git history here at all. |
 | `list_all_files` | src/ebpy/repo/facts.py:67 | Return every tracked, non-ignored file, falling back to a filesystem walk outside a git repo. |

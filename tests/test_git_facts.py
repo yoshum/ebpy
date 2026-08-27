@@ -39,12 +39,10 @@ class Origin(NamedTuple):
 
 @pytest.fixture
 def origin(tmp_path: Path) -> Origin:
-    """Build a repository whose history is a short main line and a long merged side branch.
-
-    The shape is the point. A clone shallow enough to cut the side branch still reaches the
-    root along the main line, so `root..HEAD` has both endpoints in hand and only the middle
-    missing — the one case where git answers with a number instead of an error.
-    """
+    """Build a repository whose history is a short main line and a long merged side branch."""
+    # The shape is what makes the trap reachable: a clone shallow enough to cut the side branch
+    # still reaches the root along the main line, so `root..HEAD` has both endpoints in hand and
+    # only the middle missing — the one case where git answers with a number instead of an error.
     path = tmp_path / "origin"
     path.mkdir()
     git(path, "init", "-q", "-b", "main")
@@ -103,20 +101,19 @@ def test_commits_since_is_unknown_in_a_shallow_clone(shallow: Origin) -> None:
 def test_a_shallow_clone_is_the_case_git_answers_wrongly_rather_than_refusing(
     origin: Origin, shallow: Origin
 ) -> None:
-    """Pin the trap the check exists for, so a future simplification cannot quietly undo it.
-
-    The endpoint is on disk and `rev-list` exits 0, so neither the object's presence nor the
-    exit code reveals the cut — only asking git whether the clone is shallow does.
-    """
+    """Pin the trap the check exists for, so a future simplification cannot quietly undo it."""
     truncated = git(shallow.path, "rev-list", "--count", f"{shallow.root}..HEAD")
     whole = git(origin.path, "rev-list", "--count", f"{origin.root}..HEAD")
 
+    # Neither the endpoint being on disk nor a zero exit reveals the cut, so neither could
+    # stand in for asking git whether the clone is shallow.
     assert git(shallow.path, "cat-file", "-t", shallow.root) == "commit"
     assert int(truncated) < int(whole)
 
 
 def test_a_shallow_clone_reports_the_distance_as_unknown_rather_than_current(shallow: Origin) -> None:
-    """The distance decides staleness, so an undercount can declare a moved HEAD current."""
+    """Report a moved HEAD as stale when the distance to it cannot be counted."""
+    # The distance decides staleness, so an undercount is what would declare this one current.
     diagnosed_at = (datetime.now(UTC) - timedelta(days=1)).isoformat(timespec="seconds")
     state = State(diagnosed_at=diagnosed_at, diagnosed_commit=shallow.root)
 
