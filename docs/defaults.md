@@ -246,5 +246,5 @@ These live in ebpy itself and shape what it reports rather than what it enforces
 | file size limit | 600 lines | [`diagnose`](cli/diagnose.md) — the split-and-DRY backlog, reported so the limit becomes a choice rather than a number copied from a blog post |
 | "one or two edits from clean" | 2 violations | [`next`](cli/next.md), *take these first* |
 | "the last files carrying a rule" | 2 files or fewer | [`next`](cli/next.md), directory tails |
-| staleness | 30 days, 50 commits, or a commit no longer in the history | [`status`](cli/status.md) |
+| staleness | 30 days, 50 commits, or a distance from HEAD that cannot be established | [`status`](cli/status.md) |
 | generated workflow Python | 3.12 | [`bootstrap --python`](cli/bootstrap.md) |
