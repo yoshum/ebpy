@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import ebpy.tools.mypy
 from ebpy.measurement import Failed, Measured, Observation, Unavailable
+from ebpy.models import Language
 
 from ._runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 
@@ -22,6 +23,7 @@ class MypyAnalyzer:
 
     name: str = "mypy"
     noun: str = "Type errors"
+    language: Language = "python"
 
     def measure(self, cwd: Path) -> Observation[AnalysisMeasurement]:
         """Run mypy against the repository at cwd and return the observation."""

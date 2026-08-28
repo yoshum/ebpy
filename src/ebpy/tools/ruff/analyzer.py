@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import ebpy.tools.ruff
 from ebpy.measurement import Failed, Measured, Observation, Unavailable
+from ebpy.models import Language
 
 from ._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
@@ -22,6 +23,7 @@ class RuffAnalyzer:
 
     name: str = "ruff"
     noun: str = "Lint violations"
+    language: Language = "python"
 
     def measure(self, cwd: Path) -> Observation[AnalysisMeasurement]:
         """Run ruff against the repository at cwd and return the observation."""

@@ -18,9 +18,14 @@ from ebpy.tools import (
 )
 
 
-def test_analyzer_protocol_exposes_name_noun_measure() -> None:
-    """Analyzer Protocol declares exactly the name, noun, and measure members."""
-    assert {m for m in dir(Analyzer) if not m.startswith("_")} == {"name", "noun", "measure"}
+def test_analyzer_protocol_exposes_name_noun_language_measure() -> None:
+    """Analyzer Protocol declares exactly the name, noun, language, and measure members."""
+    assert {m for m in dir(Analyzer) if not m.startswith("_")} == {"name", "noun", "language", "measure"}
+
+
+def test_every_analyzer_declares_the_language_it_measures() -> None:
+    """Each analyzer names its own language, which is intrinsic to the tool, not to a repository."""
+    assert {a.name: a.language for a in ANALYZERS} == {"ruff": "python", "mypy": "python"}
 
 
 def test_tools_package_imports_without_measurement_preloaded() -> None:
