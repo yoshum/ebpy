@@ -307,7 +307,7 @@ wheels = [
 
 [[package]]
 name = "ebpy"
-version = "0.10.0"
+version = "0.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },

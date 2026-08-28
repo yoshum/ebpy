@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.11.0 (2026-08-28)
+
+### Bug Fixes
+
+- **git**: Do not count commits in a shallow clone
+  ([`447c417`](https://github.com/yoshum/ebpy/commit/447c417e902b7395a8140495a8da09bd80ffda42))
+
+### Documentation
+
+- **git**: Keep the shallow-clone mechanism out of the docstrings
+  ([`de8b455`](https://github.com/yoshum/ebpy/commit/de8b455fcc7c3c2b11c762d21dbe8b0495310dbc))
+
+### Features
+
+- Run on Python 3.10 through 3.14
+  ([`36a9844`](https://github.com/yoshum/ebpy/commit/36a9844a43b4fae826ae89b8cd3714f13ae0d104))
+
+
 ## v0.10.0 (2026-08-26)
 
 ### Bug Fixes
