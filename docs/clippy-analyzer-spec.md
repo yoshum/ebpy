@@ -295,12 +295,15 @@ class Analyzer(Protocol):
 # 純粋関数。既に列挙済みの呼び出し側はこちらを使う。
 def languages_from_files(all_files: Iterable[str]) -> RepoLanguages: ...
 
+
 # cwd ラッパー。列挙していない呼び出し側はこちら。
 def detect_languages(cwd: Path) -> RepoLanguages:
     return languages_from_files(list_all_files(cwd))
 
+
 def has_python(cwd: Path) -> bool: ...
 def has_rust(cwd: Path) -> bool: ...
+
 
 @dataclass(frozen=True)
 class RepoLanguages:
@@ -312,16 +315,18 @@ class RepoLanguages:
 class RustWorkspace:
     """A Cargo workspace inside this repository, as cargo itself reports it."""
 
-    root: PurePosixPath        # repository root からの相対。必ず repo 内に収まる
-    target_directory: Path     # cargo metadata が返した絶対パス
+    root: PurePosixPath  # repository root からの相対。必ず repo 内に収まる
+    target_directory: Path  # cargo metadata が返した絶対パス
     packages: tuple[str, ...]  # member の package ディレクトリ（リポジトリ相対、昇順）
+
 
 @dataclass(frozen=True)
 class RustTopology:
     """What cargo could and could not resolve in this repository."""
 
     workspaces: tuple[RustWorkspace, ...]
-    unmeasured: tuple[UnmeasuredScope, ...]   # 解決できなかった候補（D-6）
+    unmeasured: tuple[UnmeasuredScope, ...]  # 解決できなかった候補（D-6）
+
 
 def rust_topology(cwd: Path) -> RustTopology:
     """Resolve this repository into the Cargo workspaces ebpy can measure.
@@ -726,10 +731,10 @@ class ScopeDecision:
     4つとも **analyzer 名の集合**であって、言語の集合ではない。
     """
 
-    declared: frozenset[str] | None      # .ebpy/config.json。None は「未表明」
-    detected_analyzers: frozenset[str]   # 言語検出から射影した analyzer 名（下記）
-    frozen: frozenset[str]               # state.frozen_analyzers
-    registered_analyzers: frozenset[str] # この build の ANALYZERS。下記
+    declared: frozenset[str] | None  # .ebpy/config.json。None は「未表明」
+    detected_analyzers: frozenset[str]  # 言語検出から射影した analyzer 名（下記）
+    frozen: frozenset[str]  # state.frozen_analyzers
+    registered_analyzers: frozenset[str]  # この build の ANALYZERS。下記
 
     @property
     def to_measure(self) -> tuple[str, ...]:
@@ -749,6 +754,7 @@ class ScopeDecision:
 
     def mismatch(self) -> str | None:
         """契約とスコープが食い違うときの説明。一致していれば None。"""
+
 
 def scope_decision(config, languages: RepoLanguages, state) -> ScopeDecision: ...
 ```
@@ -1898,15 +1904,15 @@ cfg ゲートを足した / feature の既定を変えた
 class AnalysisMeasurement:
     cells: CellCountsView
     unattributed: tuple[UnattributedFinding, ...] = ()
-    unmeasured: tuple[UnmeasuredScope, ...] = ()   # 新規
+    unmeasured: tuple[UnmeasuredScope, ...] = ()  # 新規
 
 
 @dataclass(frozen=True)
 class UnmeasuredScope:
     """One range clippy could not measure, as the runner saw it."""
 
-    root: str                    # 表示用。workspace root、無ければ候補 manifest のディレクトリ
-    packages: tuple[str, ...]    # 判定用。package ディレクトリ（リポジトリ相対、昇順）
+    root: str  # 表示用。workspace root、無ければ候補 manifest のディレクトリ
+    packages: tuple[str, ...]  # 判定用。package ディレクトリ（リポジトリ相対、昇順）
 ```
 
 **`root` は表示に、`packages` は判定に使う。** 2つ持つのは、前節のとおり root の同一性が
@@ -2554,8 +2560,9 @@ class ToolDetector(Protocol[S]):
     def languages(self) -> frozenset[Language]:
         """The languages this detector's tool belongs to; empty means repository-wide."""
 
+
 # decide/diagnose.py:147 付近
-detectors   = tuple(d for d in DETECTORS if not d.languages or d.languages & languages)
+detectors = tuple(d for d in DETECTORS if not d.languages or d.languages & languages)
 tool_setups = {d.name: d.detect(facts) for d in detectors}
 ```
 
@@ -2648,7 +2655,7 @@ def report_from_measurement(
     baseline: CellCounts,
     frozen_analyzers: tuple[str, ...],
     measurement: Measurement,
-    scope_mismatches: frozenset[str],   # 新規。下記の定義
+    scope_mismatches: frozenset[str],  # 新規。下記の定義
 ) -> AnalysisReport: ...
 ```
 
@@ -2682,9 +2689,9 @@ elif summary.unattributed_total > 0:
 
 ```python
 if not frozen:
-    scope_mismatches = frozenset()                  # fresh。照合そのものをしない
+    scope_mismatches = frozenset()  # fresh。照合そのものをしない
 elif declared is not None:
-    scope_mismatches = declared ^ frozen            # config 由来は完全一致 → 対称差
+    scope_mismatches = declared ^ frozen  # config 由来は完全一致 → 対称差
 else:
     scope_mismatches = (frozen & registered_analyzers) - detected_analyzers
 ```
@@ -2753,13 +2760,13 @@ detector が自分でファイルを読むと *"Everything read from disk once, 
 class InvalidToml:
     """A manifest ebpy could not read, and why — kept apart from a manifest with no clippy config."""
 
-    path: PurePosixPath   # リポジトリ相対
-    detail: str           # 絶対パスを含まない（下記）
+    path: PurePosixPath  # リポジトリ相対
+    detail: str  # 絶対パスを含まない（下記）
 
 
 # RepoFacts に足すフィールド
 cargo_manifests: Mapping[PurePosixPath, dict[str, Any] | InvalidToml]
-clippy_config_paths: tuple[PurePosixPath, ...]   # clippy.toml / .clippy.toml
+clippy_config_paths: tuple[PurePosixPath, ...]  # clippy.toml / .clippy.toml
 ```
 
 `InvalidToml` に入るのは **TOML の構文エラー・読み取りエラー・デコードエラーの3つ**である。
@@ -2815,7 +2822,7 @@ detector の契約は `detect(facts) -> S` / `gaps(setup) -> list[Gap]`
 ```python
 @dataclass(frozen=True)
 class ClippySetup(ToolSetup):
-    invalid_manifests: tuple[InvalidToml, ...]   # path でソート済み
+    invalid_manifests: tuple[InvalidToml, ...]  # path でソート済み
 ```
 
 - `ClippyDetector.detect()` は `ClippySetup` を返す。
@@ -2915,12 +2922,10 @@ for name in ANALYZERS_BY_NAME:
     if name in roster:
         continue
     setup = tool_setups.get(name)
-    if setup is None:          # D-13 が言語で絞った結果、存在しないことがある
+    if setup is None:  # D-13 が言語で絞った結果、存在しないことがある
         continue
     detector = DETECTORS_BY_NAME[name]
-    if setup.configured or (
-        not detector.requires_repository_setup and detector.languages & languages
-    ):
+    if setup.configured or (not detector.requires_repository_setup and detector.languages & languages):
         ...
 ```
 
@@ -2938,6 +2943,7 @@ def diagnose(
     frozen_analyzers: tuple[str, ...],
     languages: frozenset[Language],
 ) -> Diagnosis: ...
+
 
 def _unratcheted_gaps(
     tool_setups: dict[str, ToolSetup],

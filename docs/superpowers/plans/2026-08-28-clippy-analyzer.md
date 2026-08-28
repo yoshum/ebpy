@@ -618,8 +618,7 @@ class ScopeDecision:
             lines = [".ebpy/config.json and the frozen contract disagree on the analyzer set:"]
             if unfrozen:
                 lines.append(
-                    f"  declared but not frozen: {', '.join(unfrozen)}"
-                    " — run `ebpy freeze --analyzer <name>`."
+                    f"  declared but not frozen: {', '.join(unfrozen)} — run `ebpy freeze --analyzer <name>`."
                 )
             if undeclared:
                 lines.append(
@@ -760,9 +759,7 @@ def measure_repository(cwd: Path, scope: tuple[str, ...]) -> Measurement:
     build", and a KeyError would replace the one message a reader could act on.
     """
     return Measurement(
-        analyzers={
-            name: ANALYZERS_BY_NAME[name].measure(cwd) for name in scope if name in ANALYZERS_BY_NAME
-        }
+        analyzers={name: ANALYZERS_BY_NAME[name].measure(cwd) for name in scope if name in ANALYZERS_BY_NAME}
     )
 ```
 
@@ -989,9 +986,7 @@ The fourth argument does not exist yet — Task 6 adds it. Until then, pass thre
 For this task, write it as:
 
 ```python
-    report = report_from_measurement(
-        artifacts.cells, frozen_analyzers, measure_repository(cwd, scope.to_measure)
-    )
+report = report_from_measurement(artifacts.cells, frozen_analyzers, measure_repository(cwd, scope.to_measure))
 ```
 
 - [ ] **Step 5: Run tests**
@@ -1042,7 +1037,9 @@ def test_an_unregistered_contract_analyzer_is_still_a_missing_runner() -> None:
 
 def test_a_scope_mismatched_analyzer_keeps_its_failure_detail() -> None:
     """One status can only say one thing, but the detail is a separate fact worth keeping."""
-    measurement = Measurement({"clippy": Failed(tool="clippy", failure_kind="execution-failed", detail="boom")})
+    measurement = Measurement(
+        {"clippy": Failed(tool="clippy", failure_kind="execution-failed", detail="boom")}
+    )
     report = report_from_measurement({}, ("ruff",), measurement, frozenset({"clippy"}))
     summary = dict(report.analyzers)["clippy"]
     assert summary.status == "scope-mismatch"
@@ -1308,9 +1305,7 @@ def test_a_workspace_root_outside_the_repository_is_invalid_output(
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     outside = tmp_path.parent.resolve() / "elsewhere"
     payload = _metadata(outside, [outside])
-    monkeypatch.setattr(
-        _topology, "run", lambda _argv, _cwd: ExecResult(code=0, stdout=payload, stderr="")
-    )
+    monkeypatch.setattr(_topology, "run", lambda _argv, _cwd: ExecResult(code=0, stdout=payload, stderr=""))
     with pytest.raises(ClippyInvalidOutputError):
         rust_topology(tmp_path)
 
@@ -1323,9 +1318,7 @@ def test_a_member_outside_the_repository_is_invalid_output(
     root = tmp_path.resolve()
     outside = root.parent / "sibling"
     payload = _metadata(root, [outside])
-    monkeypatch.setattr(
-        _topology, "run", lambda _argv, _cwd: ExecResult(code=0, stdout=payload, stderr="")
-    )
+    monkeypatch.setattr(_topology, "run", lambda _argv, _cwd: ExecResult(code=0, stdout=payload, stderr=""))
     with pytest.raises(ClippyInvalidOutputError):
         rust_topology(tmp_path)
 
@@ -1340,9 +1333,7 @@ def test_a_candidate_cargo_cannot_resolve_is_dropped_rather_than_fatal(
     root = tmp_path.resolve()
     ok = ExecResult(code=0, stdout=_metadata(root, [root]), stderr="")
     bad = ExecResult(code=101, stdout="", stderr="not in a workspace")
-    monkeypatch.setattr(
-        _topology, "run", _fake_run({str(root): ok, str(root / "vendor" / "dep"): bad})
-    )
+    monkeypatch.setattr(_topology, "run", _fake_run({str(root): ok, str(root / "vendor" / "dep"): bad}))
     topology = rust_topology(tmp_path)
     assert len(topology.workspaces) == 1
     assert [s.root for s in topology.unmeasured] == ["vendor/dep"]
@@ -1432,9 +1423,7 @@ Add the real-cargo integration block at the bottom of the same file:
 def _clippy_available() -> bool:
     if shutil.which("cargo") is None:
         return False
-    probe = subprocess.run(
-        ["cargo", "clippy", "--version"], capture_output=True, text=True, check=False
-    )
+    probe = subprocess.run(["cargo", "clippy", "--version"], capture_output=True, text=True, check=False)
     return probe.returncode == 0 and probe.stdout.startswith("clippy ")
 
 
@@ -1896,7 +1885,9 @@ def _place(tmp_path: Path, relative: str) -> None:
     target.write_text("pub fn f() {}\n", encoding="utf-8")
 
 
-def _verdict(tmp_path: Path, reported: str, root: str = "", out_dirs: tuple[str, ...] = ()) -> tuple[str, str]:
+def _verdict(
+    tmp_path: Path, reported: str, root: str = "", out_dirs: tuple[str, ...] = ()
+) -> tuple[str, str]:
     result = attribute_path(reported, workspace_root=root, repo_root=tmp_path, out_dirs=out_dirs)
     return result.kind, result.path
 
@@ -2273,9 +2264,7 @@ def _warning(file: str, code: str = "clippy::needless_return", line: int = 1) ->
                 "message": "needless return",
                 "rendered": "warning: needless return",
                 "code": {"code": code},
-                "spans": [
-                    {"is_primary": True, "file_name": file, "line_start": line, "column_start": 1}
-                ],
+                "spans": [{"is_primary": True, "file_name": file, "line_start": line, "column_start": 1}],
             },
         }
     )
@@ -2811,9 +2800,7 @@ def parse_clippy_output(
         if scan.spanned_errors and all(scan.spanned_errors):
             return AnalysisMeasurement(
                 cells={},
-                unmeasured=(
-                    UnmeasuredScope(root=workspace.root.as_posix(), packages=workspace.packages),
-                ),
+                unmeasured=(UnmeasuredScope(root=workspace.root.as_posix(), packages=workspace.packages),),
             )
         raise ClippyFailedError(
             f"cargo clippy could not build this workspace (exit {returncode})",
@@ -3085,7 +3072,7 @@ def test_the_analyzer_turns_each_error_into_the_right_observation(
 
 
 def test_the_analyzer_names_its_language_and_what_it_finds() -> None:
-    """"Clippy lints" would be too narrow: rustc's own lints share this stream and get cells."""
+    """ "Clippy lints" would be too narrow: rustc's own lints share this stream and get cells."""
     analyzer = ClippyAnalyzer()
     assert analyzer.name == "clippy"
     assert analyzer.language == "rust"
@@ -3163,7 +3150,7 @@ def test_a_misspelled_module_is_a_real_failure_and_is_never_dropped(tmp_path: Pa
 
 @needs_clippy
 def test_a_type_error_is_a_real_failure(tmp_path: Path) -> None:
-    _crate(tmp_path, "a", body="pub fn f() -> i32 { \"x\" }\n")
+    _crate(tmp_path, "a", body='pub fn f() -> i32 { "x" }\n')
     with pytest.raises(ClippyFailedError):
         run_clippy_check(tmp_path)
 
@@ -3177,7 +3164,7 @@ def test_a_compile_error_macro_beside_a_cfg_failure_is_a_real_failure(tmp_path: 
         body=(
             "#[cfg(fuzzing)]\npub mod fuzz;\n"
             "pub fn use_it() { crate::fuzz::f(); }\n"
-            "compile_error!(\"select a backend\");\n"
+            'compile_error!("select a backend");\n'
         ),
     )
     with pytest.raises(ClippyFailedError):
@@ -3203,9 +3190,9 @@ def test_build_script_output_is_dropped_and_the_measurement_still_succeeds(tmp_p
     (tmp_path / "build.rs").write_text(
         "use std::{env, fs, path::Path};\n"
         "fn main() {\n"
-        "    let out = env::var(\"OUT_DIR\").unwrap();\n"
-        "    fs::write(Path::new(&out).join(\"gen.rs\"), "
-        "\"pub fn g() -> i32 { return 1; }\\n\").unwrap();\n"
+        '    let out = env::var("OUT_DIR").unwrap();\n'
+        '    fs::write(Path::new(&out).join("gen.rs"), '
+        '"pub fn g() -> i32 { return 1; }\\n").unwrap();\n'
         "}\n",
         encoding="utf-8",
     )
@@ -3287,9 +3274,7 @@ def _probe(directory: Path) -> None:
         raise ClippyNotFoundError(_INSTALL_HINT, detail=detail)
 
 
-def _measure_workspace(
-    directory: Path, workspace: RustWorkspace, repo_root: Path
-) -> AnalysisMeasurement:
+def _measure_workspace(directory: Path, workspace: RustWorkspace, repo_root: Path) -> AnalysisMeasurement:
     argv = [
         "cargo",
         "clippy",
@@ -3337,9 +3322,7 @@ def run_clippy_check(cwd: Path) -> AnalysisMeasurement:
         try:
             part = _measure_workspace(_workspace_dir(repo_root, workspace), workspace, repo_root)
         except ClippyFailedError as error:
-            raise type(error)(
-                f"{root}: {error.summary}", detail=f"{root}:\n{error.detail}"
-            ) from error
+            raise type(error)(f"{root}: {error.summary}", detail=f"{root}:\n{error.detail}") from error
         for file, rules in part.cells.items():
             target = cells.setdefault(file, {})
             for rule, count in rules.items():
@@ -3351,9 +3334,7 @@ def run_clippy_check(cwd: Path) -> AnalysisMeasurement:
         unattributed.extend(part.unattributed)
         unmeasured.extend(part.unmeasured)
 
-    return AnalysisMeasurement(
-        cells=cells, unattributed=tuple(unattributed), unmeasured=tuple(unmeasured)
-    )
+    return AnalysisMeasurement(cells=cells, unattributed=tuple(unattributed), unmeasured=tuple(unmeasured))
 ```
 
 - [ ] **Step 4: Write the analyzer**
@@ -3564,7 +3545,7 @@ def test_a_cargo_manifest_is_parsed_into_the_facts(tmp_path: Path) -> None:
 
 
 def test_an_unparseable_manifest_is_recorded_rather_than_flattened_to_false(tmp_path: Path) -> None:
-    """"no clippy config" and "ebpy could not read the file" are different facts."""
+    """ "no clippy config" and "ebpy could not read the file" are different facts."""
     (tmp_path / "Cargo.toml").write_text("[lints.clippy\n", encoding="utf-8")
     manifest = gather_facts(tmp_path).cargo_manifests[PurePosixPath("Cargo.toml")]
     assert isinstance(manifest, InvalidToml)
@@ -3654,7 +3635,9 @@ def _toml_failure(error: Exception) -> str:
     return str(error)
 
 
-def _read_cargo_manifests(cwd: Path, all_files: list[str]) -> dict[PurePosixPath, dict[str, Any] | InvalidToml]:
+def _read_cargo_manifests(
+    cwd: Path, all_files: list[str]
+) -> dict[PurePosixPath, dict[str, Any] | InvalidToml]:
     manifests: dict[PurePosixPath, dict[str, Any] | InvalidToml] = {}
     for file in sorted(all_files):
         path = PurePosixPath(file)
@@ -3761,7 +3744,9 @@ def test_a_clippy_toml_below_every_manifest_does_not_configure_the_repository(tm
 def test_a_ci_step_running_clippy_makes_it_configured(tmp_path: Path) -> None:
     workflows = tmp_path / ".github" / "workflows"
     workflows.mkdir(parents=True)
-    (workflows / "ci.yml").write_text("jobs:\n  a:\n    steps:\n      - run: cargo clippy\n", encoding="utf-8")
+    (workflows / "ci.yml").write_text(
+        "jobs:\n  a:\n    steps:\n      - run: cargo clippy\n", encoding="utf-8"
+    )
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     assert ClippyDetector().detect(gather_facts(tmp_path)).configured
 
@@ -4086,10 +4071,7 @@ def diagnose(
     detectors = tuple(d for d in DETECTORS if not d.languages or d.languages & languages)
     tool_setups = {detector.name: detector.detect(facts) for detector in detectors}
     ...
-    gaps = [
-        *(gap for detector in detectors for gap in detector.gaps(tool_setups[detector.name])),
-        ...
-    ]
+    gaps = [*(gap for detector in detectors for gap in detector.gaps(tool_setups[detector.name])), ...]
 ```
 
 Both loops use the same filtered tuple.
@@ -4605,9 +4587,7 @@ def test_check_records_a_widened_contract_so_a_second_break_is_still_caught(
 ) -> None:
     """If only freeze and prune wrote the key, breaking it a second time would pass silently."""
     _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={}, unmeasured_packages=("fuzz",))
-    measurement = Measurement(
-        {"clippy": Measured(tool="clippy", value=AnalysisMeasurement(cells={}))}
-    )
+    measurement = Measurement({"clippy": Measured(tool="clippy", value=AnalysisMeasurement(cells={}))})
     monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
     assert check_command.run_check(tmp_path, write=True).ok
     assert read_ledger(tmp_path).state.unmeasured_packages == ()
@@ -4678,9 +4658,7 @@ class UnmeasuredVerdict:
     lost_cells: tuple[str, ...]
 
 
-def unmeasured_verdict(
-    measurement: Measurement, previous: State, baseline: CellCounts
-) -> UnmeasuredVerdict:
+def unmeasured_verdict(measurement: Measurement, previous: State, baseline: CellCounts) -> UnmeasuredVerdict:
     """Decide whether this run's unmeasured ranges leave the contract's coverage."""
     observation = measurement.analyzers.get(_ANALYZER)
     measured = isinstance(observation, Measured) and classify(observation) == "complete"
@@ -5168,8 +5146,7 @@ git add tests/test_clippy_lifecycle.py && git commit -m "test(clippy): pin the f
 
    ```python
    RULE_HINT = (
-       "--rule must be a namespaced rule ID, e.g. ruff:C901, mypy:arg-type"
-       " or clippy:clippy::needless_return"
+       "--rule must be a namespaced rule ID, e.g. ruff:C901, mypy:arg-type or clippy:clippy::needless_return"
    )
    ```
 9. **`generate/workflows.py`'s `gate_workflow` docstring** says *"There is no raw `ruff check` or `mypy` step"*. The generated workflow itself does **not** change (Rust CI generation is out of scope), but the docstring's reasoning never depended on which analyzers exist. Restate it in the seam's words so it does not go stale each time the registry grows.
