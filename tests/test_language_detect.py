@@ -19,7 +19,7 @@ def test_a_python_source_file_at_any_depth_detects_python() -> None:
 
 
 def test_a_notebook_only_repository_detects_python() -> None:
-    """ruff walks notebooks by default, so a notebook-only repository is measured today."""
+    """Ruff walks notebooks by default, so a notebook-only repository is measured today."""
     assert languages_from_files(["analysis/run.ipynb"]).languages == frozenset({"python"})
 
 

@@ -7,14 +7,13 @@ from typing import TYPE_CHECKING
 
 import ebpy.tools.ruff
 from ebpy.measurement import Failed, Measured, Observation, Unavailable
-from ebpy.models import Language
 
 from ._runner import RuffFailedError, RuffInvalidOutputError, RuffNotFoundError
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ebpy.models import AnalysisMeasurement
+    from ebpy.models import AnalysisMeasurement, Language
 
 
 @dataclass(frozen=True)
