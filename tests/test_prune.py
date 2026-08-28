@@ -10,10 +10,12 @@ measured carries its ceiling through untouched rather than losing it.
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
 
+from ebpy.commands import prune as prune_command
 from ebpy.commands.prune import prune_measurement, run_prune
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
@@ -28,6 +30,23 @@ if TYPE_CHECKING:
 
 def _state(frozen_analyzers: tuple[str, ...], rules: dict[str, RuleBaseline]) -> State:
     return State(frozen_analyzers=frozen_analyzers, rules=rules)
+
+
+def _write_frozen_pair(
+    cwd: Path,
+    *,
+    frozen_analyzers: tuple[str, ...],
+    cells: CellCounts,
+    rules: dict[str, RuleBaseline] | None = None,
+) -> None:
+    # A pyproject.toml so language detection evidences Python here — without it, an
+    # unconfigured repository has no analyzer scope no matter what the ledger records.
+    (cwd / "pyproject.toml").touch()
+    write_cells(cwd, cells)
+    state = State(
+        frozen_analyzers=frozen_analyzers, rules=rules or {}, frozen_at="2026-08-19T00:00:00Z", phase="drain"
+    )
+    write_state(cwd, state)
 
 
 def _frozen(baseline: int) -> RuleBaseline:
@@ -346,3 +365,28 @@ def test_prune_carries_an_incomplete_analyzer_through_unchanged() -> None:
     assert decision.cells["src/b.py"] == {"mypy:arg-type": 3}
     assert decision.state.rules["mypy:arg-type"].baseline == 3
     assert decision.state.rules["ruff:F401"].baseline == 1
+
+
+def test_prune_refuses_before_measuring_when_the_scope_and_contract_disagree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Prune lowers the ceiling, so it fails closed exactly where check does.
+
+    `clippy` alone in `frozen_analyzers` cannot produce a mismatch here: this build's
+    registry has no clippy runner, and `registered_analyzers` deliberately excludes an
+    unregistered contract analyzer from the mismatch set so it reaches `classify(None)`'s
+    "no-runner" case instead (see `ebpy.decide.analyzer_scope`). A declared config that
+    disagrees with the frozen roster — the same shape `test_check.py` uses — is what
+    produces a real mismatch to refuse on.
+    """
+    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "clippy"), cells={})
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
+
+    def _never(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
+        raise AssertionError("prune must refuse before measuring")
+
+    monkeypatch.setattr(prune_command, "measure_repository", _never)
+    with pytest.raises(CommandError):
+        prune_command.run_prune(tmp_path)
