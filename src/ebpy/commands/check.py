@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
+from ebpy.repo.detect.language import detect_languages
 from ebpy.store.baseline import cells_for, finding_total, split_against_baseline
-from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ebpy.store.config import read_config
 from ebpy.store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
 from ebpy.tools import ANALYZERS_BY_NAME, measure_repository
@@ -181,11 +183,14 @@ def run_check(cwd: Path, write: bool) -> CheckResult:
     previous = artifacts.ledger.state
     assert previous is not None
 
-    mismatch = reconcile_scope(read_config(cwd), previous)
+    scope = scope_decision(read_config(cwd), detect_languages(cwd), previous)
+    mismatch = scope.mismatch()
     if mismatch is not None:
         return CheckResult(ok=False, message=mismatch)
+    if not scope.to_measure:
+        return CheckResult(ok=False, message=empty_scope_message(scope))
 
-    decision = check_measurement(previous, artifacts.cells, measure_repository(cwd))
+    decision = check_measurement(previous, artifacts.cells, measure_repository(cwd, scope.to_measure))
     if write:
         write_state(cwd, decision.state)
         write_quality_file(cwd, decision.state)

@@ -11,9 +11,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
 from ebpy.quality_file import write_quality_file
+from ebpy.repo.detect.language import detect_languages
 from ebpy.store.baseline import (
     cells_excluding,
     cells_for,
@@ -31,7 +33,7 @@ from ebpy.store.ceiling_artifacts import (
 )
 from ebpy.store.config import read_config
 from ebpy.store.state import copy_state, empty_state, with_phase, write_state
-from ebpy.tools import ANALYZER_NAMES, measure_repository
+from ebpy.tools import measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -312,12 +314,6 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
         precondition_error = _check_scope_preconditions(artifacts, analyzer, force)
         if precondition_error is not None:
             raise CommandError(precondition_error)
-        # When a config is present, only declared analyzers may be targeted.
-        if config is not None and analyzer not in config.analyzers:
-            declared = ", ".join(config.analyzers)
-            raise CommandError(
-                f"{analyzer} is not in the declared analyzer set in .ebpy/config.json ({declared})."
-            )
     elif not force:
         # Global freeze: read before measuring so a repository that must not be frozen
         # cannot have its ceiling raised by the run that discovers it.
@@ -327,17 +323,31 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
             raise CommandError(_already_frozen(artifacts))
 
     previous = _previous_state(artifacts, force and analyzer is None)
+    # The state a forced global recovery starts from, not the ledger as read: an invalid
+    # ledger yields empty_state(), so a roster nobody could read cannot be resurrected into
+    # the new contract and block the recovery a second time.
+    scope = scope_decision(config, detect_languages(cwd), previous)
     frozen_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
-    measurement = measure_repository(cwd)
-    if analyzer is None:
-        if config is not None:
-            scope = sorted(config.analyzers)
-        else:
-            scope = sorted(set(ANALYZER_NAMES) | set(previous.frozen_analyzers))
-        decision = build_global_freeze(previous, measurement, force, frozen_at, scope)
-    else:
+    if analyzer is not None:
+        if analyzer not in scope.to_measure:
+            in_scope = ", ".join(scope.to_measure) or "nothing"
+            raise CommandError(
+                f"{analyzer} is not in this repository's analyzer scope ({in_scope})."
+                " Declare it in .ebpy/config.json, or check that what it measures is present here."
+            )
+        measurement = measure_repository(cwd, (analyzer,))
         decision = build_scoped_freeze(previous, artifacts.cells, measurement, analyzer, frozen_at)
+    else:
+        contract = scope.global_freeze_scope
+        if not contract:
+            raise CommandError(empty_scope_message(scope))
+        # Measured with exactly the set that becomes the contract: measuring `to_measure` and
+        # freezing `global_freeze_scope` would make an analyzer that was never run report
+        # "no runner in this build", when the runner is right here.
+        measurement = measure_repository(cwd, contract)
+        decision = build_global_freeze(previous, measurement, force, frozen_at, list(contract))
+
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)

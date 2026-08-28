@@ -15,7 +15,7 @@ from ebpy.store.ceiling_artifacts import (
     read_ceiling_artifacts,
 )
 from ebpy.store.state import copy_state, total_violations, write_state
-from ebpy.tools import measure_repository
+from ebpy.tools import ANALYZER_NAMES, measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -191,7 +191,7 @@ def run_prune(cwd: Path) -> str:
 
     # Compare with the baseline file, not the ledger: check may already have lowered
     # the ledger's current values, which would make every prune look like a no-op.
-    decision = prune_measurement(previous, artifacts.cells, measure_repository(cwd))
+    decision = prune_measurement(previous, artifacts.cells, measure_repository(cwd, ANALYZER_NAMES))
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)
