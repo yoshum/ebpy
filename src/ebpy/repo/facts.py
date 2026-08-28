@@ -6,11 +6,11 @@ the decisions are pure and the disk access lives in exactly one place.
 
 from __future__ import annotations
 
-import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from ebpy._toml import TOMLDecodeError, loads
 from ebpy.models import SourceFile, WorkflowFile
 
 from .git import tracked_files
@@ -123,8 +123,8 @@ def gather_facts(cwd: Path) -> RepoFacts:
     pyproject_path = cwd / "pyproject.toml"
     if pyproject_path.is_file():
         try:
-            pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-        except (OSError, tomllib.TOMLDecodeError):
+            pyproject = loads(pyproject_path.read_text(encoding="utf-8"))
+        except (OSError, TOMLDecodeError):
             pyproject = None
 
     source_files = tuple(

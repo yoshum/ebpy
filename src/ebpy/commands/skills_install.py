@@ -16,7 +16,14 @@ from ebpy import __version__
 from .install import InstallResult, _current_source
 
 if TYPE_CHECKING:
-    from importlib.resources.abc import Traversable
+    import sys
+
+    # importlib.resources.abc is 3.11 and up; below it the same class lives in importlib.abc,
+    # which 3.12 in turn deprecates. Only mypy ever reads either — the import is type-only.
+    if sys.version_info >= (3, 11):
+        from importlib.resources.abc import Traversable
+    else:
+        from importlib.abc import Traversable
 
 MANIFEST_NAME = ".ebpy-manifest.json"
 

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 import re
-import tomllib
 from dataclasses import dataclass
 from importlib import metadata
 from typing import TYPE_CHECKING, Any, cast
 
 from ebpy import __version__
+from ebpy._toml import TOMLDecodeError, loads
 from ebpy.package_manager import DEV_INSTALL_PREFIXES, RUN_PREFIXES
 from ebpy.repo.detect.package_manager import detect_package_manager
 from ebpy.util import run
@@ -82,8 +82,8 @@ def _bootstrap_ref() -> str | None:
 def _project_manager(cwd: Path) -> PackageManager:
     root_entries = tuple(sorted(entry.name for entry in cwd.iterdir() if entry.is_file()))
     try:
-        pyproject: dict[str, Any] | None = tomllib.loads((cwd / "pyproject.toml").read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError):
+        pyproject: dict[str, Any] | None = loads((cwd / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, TOMLDecodeError):
         pyproject = None
     return detect_package_manager(root_entries, pyproject)
 

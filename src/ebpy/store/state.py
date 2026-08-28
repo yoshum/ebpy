@@ -10,7 +10,7 @@ import json
 import operator
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 from ebpy.cell_key import analyzer_of, is_analyzer_name, is_rule_id
@@ -69,7 +69,7 @@ class Ledger:
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def state_path(cwd: Path) -> Path:

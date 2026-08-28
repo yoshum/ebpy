@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import tomllib
 from typing import TYPE_CHECKING
 
+from ebpy._toml import loads
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
@@ -48,14 +48,14 @@ def test_the_target_version_follows_requires_python() -> None:
 
 
 def test_the_generated_ruff_config_parses_as_toml() -> None:
-    parsed = tomllib.loads(ruff_pyproject_section("py312"))
+    parsed = loads(ruff_pyproject_section("py312"))
     assert parsed["tool"]["ruff"]["target-version"] == "py312"
     assert "C90" in parsed["tool"]["ruff"]["lint"]["select"]
     assert parsed["tool"]["ruff"]["lint"]["mccabe"]["max-complexity"] == 10
 
 
 def test_a_standalone_ruff_toml_carries_no_tool_prefix() -> None:
-    parsed = tomllib.loads(ruff_toml_content("py311"))
+    parsed = loads(ruff_toml_content("py311"))
     assert "tool" not in parsed
     assert parsed["lint"]["mccabe"]["max-complexity"] == 10
 

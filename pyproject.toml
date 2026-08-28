@@ -8,7 +8,7 @@ version = "0.10.0"
 description = "Make an existing Python codebase one that can only get better — a Python port of ever-better."
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [{ name = "Shuhei Yoshida" }]
 keywords = ["lint", "ruff", "mypy", "baseline", "ratchet", "quality"]
 classifiers = [
@@ -17,14 +17,18 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Quality Assurance",
 ]
-# Zero runtime dependencies, deliberately — the tool that gates a repository's dependencies
-# should not bring its own.
-dependencies = []
+# Zero runtime dependencies on any interpreter that can supply them itself — the tool that gates
+# a repository's dependencies should not bring its own. tomli is the single exception: it is
+# `tomllib` before `tomllib` existed, and 3.10 has no other way to read TOML from the standard
+# library. It disappears from the install the moment the floor reaches 3.11.
+dependencies = ['tomli>=2.0; python_version < "3.11"']
 
 [project.urls]
 Homepage = "https://github.com/yoshum/ebpy"
@@ -47,7 +51,7 @@ packages = ["src/ebpy"]
 # (src/ebpy/generate/configs.py). Keep the two in step.
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py310"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -123,6 +127,13 @@ max-complexity = 10
 # summary is derived once inside __post_init__ of a frozen dataclass, where object.__setattr__ is the
 # only way to assign — the direct mutation the rule suggests is impossible on a frozen instance.
 "src/ebpy/measurement/observation.py" = ["unnecessary-dunder-call"]
+# Both loops must survive a failing iteration: read_sources skips the paths it cannot read, and the
+# rollback records every failure instead of abandoning the remaining entries. Hoisting the try out
+# of the loop would abort on the first error, so try-except-in-loop asks for a different behaviour
+# rather than a faster spelling of this one. Only surfaced once target-version dropped to py310;
+# ruff suppresses the rule from py311, where the exception no longer costs anything on the happy path.
+"src/ebpy/repo/facts.py" = ["try-except-in-loop"]
+"src/ebpy/commands/skills_install.py" = ["try-except-in-loop"]
 
 [tool.mypy]
 strict = true

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from .decide.freshness import Freshness, FreshnessInput, assess_freshness
@@ -24,7 +24,7 @@ def freshness_of(cwd: Path, state: State) -> Freshness:
             diagnosed_commit=state.diagnosed_commit,
             head_commit=head,
             commits_since=commits_since(cwd, state.diagnosed_commit),
-            now=datetime.now(UTC),
+            now=datetime.now(timezone.utc),
         )
     )
 

@@ -255,7 +255,8 @@ work; the rules, and the case for releasing on every merge, are in [docs/release
 Anything an agent would do slowly or differently on each run belongs in the CLI; anything a markdown
 checklist cannot express belongs in a skill.
 
-Zero runtime dependencies.
+Zero runtime dependencies, save one: on Python 3.10 `tomli` backfills the `tomllib` that only
+arrived in 3.11.
 
 ## License
 
