@@ -8,7 +8,7 @@ systematically low, and wrong.
 from __future__ import annotations
 
 import subprocess
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
@@ -114,7 +114,7 @@ def test_a_shallow_clone_is_the_case_git_answers_wrongly_rather_than_refusing(
 def test_a_shallow_clone_reports_the_distance_as_unknown_rather_than_current(shallow: Origin) -> None:
     """Report a moved HEAD as stale when the distance to it cannot be counted."""
     # The distance decides staleness, so an undercount is what would declare this one current.
-    diagnosed_at = (datetime.now(UTC) - timedelta(days=1)).isoformat(timespec="seconds")
+    diagnosed_at = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(timespec="seconds")
     state = State(diagnosed_at=diagnosed_at, diagnosed_commit=shallow.root)
 
     verdict = freshness_of(shallow.path, state)
@@ -124,7 +124,7 @@ def test_a_shallow_clone_reports_the_distance_as_unknown_rather_than_current(sha
 
 
 def test_a_whole_clone_still_calls_a_short_distance_current(origin: Origin) -> None:
-    diagnosed_at = (datetime.now(UTC) - timedelta(days=1)).isoformat(timespec="seconds")
+    diagnosed_at = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(timespec="seconds")
     state = State(diagnosed_at=diagnosed_at, diagnosed_commit=origin.root)
 
     assert not freshness_of(origin.path, state).stale

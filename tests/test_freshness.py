@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ebpy.decide.freshness import FreshnessInput, assess_freshness
 
-NOW = datetime(2026, 8, 17, tzinfo=UTC)
+NOW = datetime(2026, 8, 17, tzinfo=timezone.utc)
 
 
 def at(days_ago: int) -> str:

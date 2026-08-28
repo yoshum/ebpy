@@ -8,7 +8,7 @@ to recover from that state.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ebpy.errors import CommandError
@@ -327,7 +327,7 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
             raise CommandError(_already_frozen(artifacts))
 
     previous = _previous_state(artifacts, force and analyzer is None)
-    frozen_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    frozen_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     measurement = measure_repository(cwd)
     if analyzer is None:

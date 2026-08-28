@@ -39,8 +39,12 @@ class Freshness:
 
 
 def _days_between(from_iso: str, to: datetime) -> int | None:
+    # The ledger writes its timestamps with a trailing "Z", which fromisoformat only learned to read
+    # in 3.11. Below that it raises, and an unparsed timestamp reads as "not old" — the one way this
+    # check must never fail.
+    normalized = f"{from_iso.removesuffix('Z')}+00:00" if from_iso.endswith("Z") else from_iso
     try:
-        start = datetime.fromisoformat(from_iso)
+        start = datetime.fromisoformat(normalized)
     except ValueError:
         return None
     return (to - start).days

@@ -10,10 +10,10 @@ from __future__ import annotations
 import configparser
 import re
 import shutil
-import tomllib
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
+from ebpy._toml import TOMLDecodeError, loads
 from ebpy.cell_key import normalize_analyzer_path, qualify_rule
 from ebpy.errors import ToolError
 from ebpy.models import AnalysisMeasurement, CellCounts, UnattributedFinding
@@ -90,8 +90,8 @@ _CONFIG_FILES = ("mypy.ini", ".mypy.ini", "pyproject.toml", "setup.cfg")
 def _toml_selects_target(text: str) -> bool | None:
     """Whether `[tool.mypy]` in a pyproject names a check target; None if there is no table."""
     try:
-        data: Any = tomllib.loads(text)
-    except tomllib.TOMLDecodeError:
+        data: Any = loads(text)
+    except TOMLDecodeError:
         return None
     table = ((data.get("tool") or {}).get("mypy")) if isinstance(data, dict) else None
     if not isinstance(table, dict):

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import tomllib
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
+from ebpy._toml import loads
 from ebpy.decide.diagnose import diagnose
 from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 def toml(text: str) -> dict[str, object]:
-    return tomllib.loads(text)
+    return loads(text)
 
 
 def test_a_lockfile_names_the_package_manager() -> None:

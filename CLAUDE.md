@@ -29,7 +29,8 @@ checklist cannot express belongs in a skill.
 ## Rules that are not in the linter
 
 - **Zero runtime dependencies.** The tool that gates a repository's dependencies does not add its
-  own. Dev dependencies are fine.
+  own. Dev dependencies are fine. The one exception is `tomli` on Python 3.10, which backfills the
+  standard library's own `tomllib`; do not read it as licence for a second.
 - **A comment says why, never what.** If it restates the line below it, delete it. The comments
   worth keeping are the ones recording a decision the code cannot show — a measured behaviour of an
   external tool, a trap that cost somebody an afternoon.
