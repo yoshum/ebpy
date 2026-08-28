@@ -28,6 +28,9 @@ Every task's requirements implicitly include this section.
 - **v1 measures exactly one build configuration:** default features, the running platform, no `--all-targets`. Code outside it is neither ceilinged nor gated.
 - **Before every commit:** `uv run ruff format .` then `uv run pytest`. Before pushing, also `uv run ebpy check`. A raw `uv run ruff check .` / `uv run mypy .` is **not** a gate here — both report the whole grandfathered backlog as failure.
 - **`uv run ebpy check` rewrites `QUALITY.md` and `.ebpy/state.json`** as a side effect (a timestamp, and a staleness line that degrades to "the distance is unknown" in a shallow clone). Neither belongs in a task's commit. Leave them out of your `git add`, and revert them before finishing so the next task starts on a clean tree. `.ebpy/baseline.json` is different: it is committed, but only by a task that actually lowers a ceiling, and only via `uv run ebpy prune`.
+- **The baseline is empty: `.ebpy/baseline.json` has 0 cells and 0 findings.** This repository has fully drained its backlog, so `ebpy check` is not a ratchet here — it is a demand for **zero** new ruff or mypy findings. Every line any task adds must be clean under a wide rule set (`select` includes `D`, `ANN`, `TC`, `SLF`, `ARG`, `PL`, `RUF`, with `preview = true`). The two pydocstyle rules that bite hardest, measured against this config rather than guessed:
+  - **`D403`** (first word capitalized) fires on function *and* `@property` docstrings. It does **not** fire on module or class docstrings, nor when the first word contains `_`, `-`, or `/` — ruff treats those as identifiers. This is why a docstring may not open with a bare lowercase tool name: `"""clippy reports..."""` fails, `"""Diagnostics arrive..."""` passes. Every docstring in this plan has been checked and reworded already; keep new ones the same way.
+  - **`D401`** (imperative mood) fires on ordinary functions but is skipped for `test_*` functions and for `@property`. So a test docstring may be a plain sentence, while a new non-test helper's docstring must open with a verb.
 - **`ruff format` formats fenced Python inside Markdown**, this plan and the spec included. Both are committed already formatted, so `ruff format .` is now a no-op on them — but if you edit a Python block in a Markdown file, it has to stay formatted or CI's `ruff format --check .` goes red.
 - **Commit messages follow Conventional Commits** (this repository's convention; `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, with an optional scope).
 
@@ -224,7 +227,7 @@ def test_a_python_source_file_at_any_depth_detects_python() -> None:
 
 
 def test_a_notebook_only_repository_detects_python() -> None:
-    """ruff walks notebooks by default, so a notebook-only repository is measured today."""
+    """A notebook-only repository is measured today, because ruff walks notebooks by default."""
     assert languages_from_files(["analysis/run.ipynb"]).languages == frozenset({"python"})
 
 
@@ -899,7 +902,7 @@ Add to `tests/test_report.py`:
 def test_report_does_not_refuse_when_the_contract_and_the_scope_disagree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """report is the window a reader opens because something is wrong; it stays open."""
+    """The window a reader opens because something is wrong stays open: report never refuses here."""
     _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "clippy"), cells={})
     monkeypatch.setattr(report_command, "measure_repository", lambda _cwd, _scope: Measurement({}))
     output = report_command.run_report(tmp_path, as_json=False)
@@ -918,7 +921,7 @@ Add to `tests/test_prune.py`:
 def test_prune_refuses_before_measuring_when_the_scope_and_contract_disagree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """prune lowers the ceiling, so it fails closed exactly where check does."""
+    """Lowering the ceiling means prune fails closed exactly where check does."""
     _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "clippy"), cells={})
 
     def _never(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
@@ -1900,7 +1903,7 @@ def test_a_path_inside_the_repository_becomes_a_cell(tmp_path: Path) -> None:
 
 
 def test_the_workspace_root_is_prefixed_before_the_path_is_used(tmp_path: Path) -> None:
-    """clippy reports relative to its workspace root, which is not the repository root."""
+    """Diagnostics arrive relative to the workspace root, which is not the repository root."""
     _place(tmp_path, "crates/a/src/lib.rs")
     assert _verdict(tmp_path, "src/lib.rs", root="crates/a") == ("cell", "crates/a/src/lib.rs")
 
@@ -1982,7 +1985,7 @@ def test_an_out_dir_is_normalized_before_it_is_compared() -> None:
 
 
 def test_a_relative_out_dir_is_invalid_output() -> None:
-    """cargo documents out_dir as absolute; a relative one means ebpy is misreading the stream."""
+    """An out_dir is documented absolute; a relative one means ebpy is misreading the stream."""
     with pytest.raises(ClippyInvalidOutputError):
         normalize_out_dir("target/debug/build/x/out")
 
@@ -1997,7 +2000,7 @@ def test_a_path_that_resolves_outside_the_repository_is_unattributed(tmp_path: P
 
 
 def test_a_nul_byte_in_a_path_is_unattributed_not_an_exception(tmp_path: Path) -> None:
-    """clippy's output is external input; a raw ValueError must not escape the parser."""
+    """Tool output is external input, so a raw ValueError must not escape the parser."""
     assert _verdict(tmp_path, "src/li\x00b.rs")[0] == "unattributed"
 ```
 
@@ -2312,7 +2315,7 @@ def test_a_warning_with_a_primary_span_becomes_a_cell(tmp_path: Path) -> None:
 
 
 def test_the_clippy_prefix_is_kept_in_the_rule_id(tmp_path: Path) -> None:
-    """rustc's own lints share this stream; stripping `clippy::` merges two namespaces."""
+    """Two lint namespaces share this stream, so stripping `clippy::` would merge them."""
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "lib.rs").write_text("pub fn f() {}\n", encoding="utf-8")
     result = _parse("\n".join([_warning("src/lib.rs", code="unused_variables"), _FINISHED_OK]), tmp_path)
@@ -2331,7 +2334,7 @@ def test_a_brace_line_that_is_not_json_is_invalid_output(tmp_path: Path) -> None
 
 
 def test_output_with_no_json_object_at_all_is_execution_failed(tmp_path: Path) -> None:
-    """cargo dying silently is the tool failing, not ebpy failing to read it."""
+    """Dying silently is the tool failing, not ebpy failing to read it."""
     with pytest.raises(ClippyFailedError) as caught:
         _parse("plain text\n", tmp_path, code=101)
     assert not isinstance(caught.value, ClippyInvalidOutputError)
@@ -2381,7 +2384,7 @@ def test_a_failed_build_with_no_rendered_text_falls_back_to_stderr(tmp_path: Pat
 
 
 def test_a_failure_whose_errors_are_all_configured_out_drops_the_workspace(tmp_path: Path) -> None:
-    """ebpy measures one build configuration; code outside it is not a broken repository."""
+    """One build configuration is measured; code outside it is not a broken repository."""
     stdout = "\n".join([_error(configured_out=True), _FINISHED_BAD])
     result = _parse(stdout, tmp_path, code=101)
     assert result.cells == {}
@@ -2436,7 +2439,7 @@ def test_broken_error_facts_do_not_downgrade_a_failure_to_invalid_output(tmp_pat
 
 
 def test_an_unknown_level_is_never_type_checked_further(tmp_path: Path) -> None:
-    """rustc documents that enumerated fields may gain values; strictness there is a time bomb."""
+    """Enumerated fields are documented as open to new values, so strictness there is a time bomb."""
     stdout = "\n".join(
         [
             _line(
@@ -3772,7 +3775,7 @@ def test_an_unreadable_manifest_is_named_in_its_own_gap(tmp_path: Path) -> None:
 
 
 def test_an_unconfigured_clippy_reports_no_gap_at_all(tmp_path: Path) -> None:
-    """clippy needs no repository configuration and has no provisioner, so such a gap cannot close."""
+    """No repository configuration and no provisioner exist here, so such a gap cannot close."""
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     assert ClippyDetector().gaps(ClippyDetector().detect(gather_facts(tmp_path))) == []
 
@@ -4039,7 +4042,7 @@ For each of the six Python-and-repository detectors, add a property beside `name
 ```python
     @property
     def languages(self) -> frozenset[Language]:
-        """ruff is a Python tool."""
+        """Ruff is a Python tool."""
         return frozenset({"python"})
 ```
 
@@ -4496,7 +4499,7 @@ def _scope(root: str, *packages: str) -> UnmeasuredScope:
 
 
 def test_a_range_that_was_never_covered_passes() -> None:
-    """tokio's shape: a fuzz workspace that never compiled in this configuration."""
+    """The tokio shape: a fuzz workspace that never compiled in this configuration."""
     state = State(frozen_analyzers=("clippy",), unmeasured_packages=("fuzz",))
     assert not unmeasured_verdict(_measurement(_scope("fuzz")), state, {}).regressed
 
@@ -5056,7 +5059,7 @@ def test_check_passes_at_the_ceiling_and_fails_above_it(tmp_path: Path) -> None:
 
 
 def test_a_second_measurement_of_an_unchanged_repository_counts_the_same(tmp_path: Path) -> None:
-    """cargo re-emits saved diagnostics for units it did not recompile.
+    """Saved diagnostics are re-emitted for units cargo did not recompile.
 
     Observed only — no documentation was found for it, and this area historically carried
     "no warnings on the second run" bugs. Splitting the target directory does not help,
