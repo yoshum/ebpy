@@ -31,6 +31,7 @@ Every task's requirements implicitly include this section.
 - **The baseline is empty: `.ebpy/baseline.json` has 0 cells and 0 findings.** This repository has fully drained its backlog, so `ebpy check` is not a ratchet here — it is a demand for **zero** new ruff or mypy findings. Every line any task adds must be clean under a wide rule set (`select` includes `D`, `ANN`, `TC`, `SLF`, `ARG`, `PL`, `RUF`, with `preview = true`). The two pydocstyle rules that bite hardest, measured against this config rather than guessed:
   - **`D403`** (first word capitalized) fires on function *and* `@property` docstrings. It does **not** fire on module or class docstrings, nor when the first word contains `_`, `-`, or `/` — ruff treats those as identifiers. This is why a docstring may not open with a bare lowercase tool name: `"""clippy reports..."""` fails, `"""Diagnostics arrive..."""` passes. Every docstring in this plan has been checked and reworded already; keep new ones the same way.
   - **`D401`** (imperative mood) fires on ordinary functions but is skipped for `test_*` functions and for `@property`. So a test docstring may be a plain sentence, while a new non-test helper's docstring must open with a verb.
+- **`src/ebpy/decide/__init__.py` must stay import-free.** It is a docstring and nothing else, and that is load-bearing: `decide/analyzer_scope.py` imports `ebpy.tools` at module scope, while `ebpy.tools.registry` reaches back into `ebpy.decide.provisioner`. The cycle stays broken only because importing `ebpy.decide` executes no submodule imports. Adding re-exports there turns this into a circular import. Naming new modules in its **docstring prose** is fine and is Task 20's job.
 - **`ruff format` formats fenced Python inside Markdown**, this plan and the spec included. Both are committed already formatted, so `ruff format .` is now a no-op on them — but if you edit a Python block in a Markdown file, it has to stay formatted or CI's `ruff format --check .` goes red.
 - **Commit messages follow Conventional Commits** (this repository's convention; `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, with an optional scope).
 
@@ -5190,15 +5191,21 @@ Apply items 1–4.
 
 Apply items 5, 6 and 11.
 
-- [ ] **Step 6: Verify the repository still gates itself**
+- [ ] **Step 6: Name the new modules where the package docstrings list them**
+
+Tasks 3 and 17 added `decide/analyzer_scope.py` and `decide/unmeasured.py`; `src/ebpy/decide/__init__.py`'s docstring still names only the five modules that were there before. Add both to that prose sentence, and add `repo/detect/language.py` to whatever `repo/`'s own docstring lists. CLAUDE.md's "Shape of the code" needs the same two names in its `decide/` sentence.
+
+**Prose only.** Do not add an `import` or a re-export to `src/ebpy/decide/__init__.py` — see the Global Constraint. It stays a docstring and nothing else.
+
+- [ ] **Step 7: Verify the repository still gates itself**
 
 Run: `uv run ruff format . && uv run pytest && uv run ebpy check`
 Expected: PASS
 
-- [ ] **Step 7: Commit the documentation**
+- [ ] **Step 8: Commit the documentation**
 
 ```bash
-git add docs/measurement-seam.md docs/cli/ CLAUDE.md && git commit -m "docs: describe the analyzer scope, clippy, and the statuses report can hold"
+git add docs/measurement-seam.md docs/cli/ CLAUDE.md src/ebpy/decide/__init__.py && git commit -m "docs: describe the analyzer scope, clippy, and the statuses report can hold"
 ```
 
 **Do not `git add docs/clippy-analyzer-spec.md` or `docs/superpowers/` here.** Both are already committed on this branch, and re-adding them would put an unrelated design document into a documentation commit.
