@@ -66,9 +66,20 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
     )
 
 
-def _write_frozen_ceiling(cwd: Path, cells: CellCounts, rules: dict[str, RuleBaseline]) -> None:
+def _write_frozen_ceiling(
+    cwd: Path,
+    cells: CellCounts,
+    rules: dict[str, RuleBaseline],
+    *,
+    frozen_analyzers: tuple[str, ...] = ("ruff",),
+) -> None:
+    # A pyproject.toml so language detection evidences Python here — without it, an
+    # unconfigured repository has no analyzer scope no matter what the ledger records.
+    (cwd / "pyproject.toml").touch()
     write_cells(cwd, cells)
-    state = State(frozen_analyzers=("ruff",), rules=rules, frozen_at="2026-08-19T00:00:00Z", phase="drain")
+    state = State(
+        frozen_analyzers=frozen_analyzers, rules=rules, frozen_at="2026-08-19T00:00:00Z", phase="drain"
+    )
     write_state(cwd, state)
 
 
@@ -354,7 +365,7 @@ def test_no_write_persists_nothing_on_success_or_failure(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
     )
     passing = run_check(tmp_path, write=False)
     assert passing.ok is True
@@ -363,7 +374,7 @@ def test_no_write_persists_nothing_on_success_or_failure(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 5}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 5}})}),
     )
     failing = run_check(tmp_path, write=False)
     assert failing.ok is False
@@ -463,7 +474,7 @@ def test_check_shell_persists_state_and_quality_even_after_a_failure(
         analyzers={"ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff failed")}
     )
     writes: list[str] = []
-    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(check_command, "write_state", lambda _cwd, _state: writes.append("state"))
     monkeypatch.setattr(check_command, "write_quality_file", lambda _cwd, _state: writes.append("quality"))
 
@@ -574,7 +585,7 @@ def test_check_fails_when_declared_set_diverges_from_roster(
 
     measured: list[bool] = []
 
-    def _no_measure(_cwd: Path) -> Measurement:
+    def _no_measure(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
         measured.append(True)
         return Measurement(analyzers={})
 
@@ -608,10 +619,28 @@ def test_check_proceeds_normally_when_config_matches_frozen_roster(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
     )
 
     result = run_check(tmp_path, write=False)
 
     assert result.ok is True
     assert "Clean." in result.message
+
+
+def test_check_refuses_before_measuring_when_the_contract_names_an_undetected_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reconciling before measuring is what keeps a skipped analyzer from becoming `no-runner`."""
+    _write_frozen_ceiling(tmp_path, {}, {}, frozen_analyzers=("ruff", "clippy"))
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
+
+    def _never(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
+        raise AssertionError("check must refuse before measuring")
+
+    monkeypatch.setattr(check_command, "measure_repository", _never)
+    result = check_command.run_check(tmp_path, write=False)
+    assert not result.ok
+    assert "clippy" in result.message

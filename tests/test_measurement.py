@@ -32,7 +32,7 @@ def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: ruff_result)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: mypy_result)
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert result.analyzers["ruff"] == Measured(tool="ruff", value=ruff_result)
     assert result.analyzers["mypy"] == Measured(tool="mypy", value=mypy_result)
@@ -52,7 +52,7 @@ def test_mypy_is_measured_after_ruff_fails(tmp_path: Path, monkeypatch: pytest.M
     monkeypatch.setattr(ruff_tool, "run_ruff_check", fail_ruff)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", run_mypy)
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert calls == ["ruff", "mypy"]
     assert result.analyzers["ruff"] == Failed(
@@ -78,7 +78,7 @@ def test_a_failing_ruff_still_leaves_a_measured_mypy_observation(
         lambda _cwd: AnalysisMeasurement(cells={"a.py": {"mypy:arg-type": 1}}),
     )
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert isinstance(result.analyzers["ruff"], Failed)
     assert result.analyzers["mypy"] == Measured(
@@ -96,7 +96,7 @@ def test_unavailable_tools_are_not_reported_as_clean(tmp_path: Path, monkeypatch
     monkeypatch.setattr(ruff_tool, "run_ruff_check", missing_ruff)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", missing_mypy)
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert result.analyzers["ruff"] == Unavailable(tool="ruff", detail="ruff is not installed here")
     assert result.analyzers["mypy"] == Unavailable(tool="mypy", detail="mypy is not installed here")
@@ -113,7 +113,7 @@ def test_mypy_failure_is_distinct_from_mypy_being_unavailable(
 
     monkeypatch.setattr(mypy_tool, "run_mypy_check", fail_mypy)
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert result.analyzers["mypy"] == Failed(
         tool="mypy", failure_kind="execution-failed", detail="mypy failed (exit 2)"
@@ -137,7 +137,7 @@ def test_invalid_mypy_output_is_a_distinct_failure_kind_from_execution_failure(
 
     monkeypatch.setattr(mypy_tool, "run_mypy_check", invalid_mypy)
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert result.analyzers["mypy"] == Failed(
         tool="mypy", failure_kind="invalid-output", detail="mypy produced an unparseable error line"
@@ -153,7 +153,7 @@ def test_invalid_lint_output_is_distinct_from_tool_execution_failure(
     monkeypatch.setattr(ruff_tool, "run_ruff_check", invalid_ruff)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert result.analyzers["ruff"] == Failed(
         tool="ruff",
@@ -238,9 +238,21 @@ def test_measure_repository_produces_one_observation_per_registered_analyzer(
     monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    result = measure_repository(tmp_path)
+    result = measure_repository(tmp_path, ("ruff", "mypy"))
 
     assert set(result.analyzers) == set(ANALYZER_NAMES)
+
+
+def test_measure_repository_runs_only_the_analyzers_in_scope(tmp_path: Path) -> None:
+    """Scope is a value the caller passes; the registry holds no policy about which apply."""
+    result = measure_repository(tmp_path, ("ruff",))
+    assert set(result.analyzers) == {"ruff"}
+
+
+def test_measure_repository_ignores_a_scope_name_it_has_no_runner_for(tmp_path: Path) -> None:
+    """A missing key is how `no-runner` is expressed; a KeyError would destroy that message."""
+    result = measure_repository(tmp_path, ("ruff", "pylint"))
+    assert set(result.analyzers) == {"ruff"}
 
 
 def test_two_different_failures_do_not_arrive_as_the_same_sentence(
@@ -259,9 +271,9 @@ def test_two_different_failures_do_not_arrive_as_the_same_sentence(
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
     monkeypatch.setattr(ruff_tool, "run_ruff_check", failing("Cause: Failed to parse pyproject.toml"))
-    parse_failure = measure_repository(tmp_path).analyzers["ruff"]
+    parse_failure = measure_repository(tmp_path, ("ruff", "mypy")).analyzers["ruff"]
     monkeypatch.setattr(ruff_tool, "run_ruff_check", failing("Cause: Unknown rule selector `NOPE999`"))
-    selector_failure = measure_repository(tmp_path).analyzers["ruff"]
+    selector_failure = measure_repository(tmp_path, ("ruff", "mypy")).analyzers["ruff"]
 
     assert parse_failure != selector_failure
     assert "Failed to parse pyproject.toml" in cast("Failed", parse_failure).detail
@@ -277,7 +289,7 @@ def test_a_detail_keeps_every_line_the_tool_wrote(tmp_path: Path, monkeypatch: p
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path, ("ruff", "mypy")).analyzers["ruff"])
 
     assert ruff.detail.splitlines() == ["head:", "  Cause: first", "  Cause: deeper", "  detail line"]
     # The runner chose the summary; it is not simply the detail's first line.
@@ -294,7 +306,7 @@ def test_a_runaway_detail_is_cut_and_says_so(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(ruff_tool, "run_ruff_check", raise_it)
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    ruff = cast("Failed", measure_repository(tmp_path).analyzers["ruff"])
+    ruff = cast("Failed", measure_repository(tmp_path, ("ruff", "mypy")).analyzers["ruff"])
 
     assert ruff.detail.splitlines()[-1] == "... (truncated)"
     assert len(ruff.detail.splitlines()) == measurement.observation._DETAIL_LINES + 1

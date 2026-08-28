@@ -73,6 +73,14 @@ PROVISIONERS: tuple[Provisioner, ...] = tuple(_provisioners)
 PROVISIONERS_BY_NAME: Mapping[str, Provisioner] = MappingProxyType({p.name: p for p in PROVISIONERS})
 
 
-def measure_repository(cwd: Path) -> Measurement:
-    """Measure every registered analyzer, retaining partial success as data."""
-    return Measurement(analyzers={a.name: a.measure(cwd) for a in ANALYZERS})
+def measure_repository(cwd: Path, scope: tuple[str, ...]) -> Measurement:
+    """Measure the analyzers named in ``scope``, retaining partial success as data.
+
+    The registry holds no policy about which analyzers apply to a repository: `scope` arrives
+    as a value from the caller that computed it. A name with no runner here is skipped rather
+    than raised — that missing key is exactly how `classify(None)` reports "no runner in this
+    build", and a KeyError would replace the one message a reader could act on.
+    """
+    return Measurement(
+        analyzers={name: ANALYZERS_BY_NAME[name].measure(cwd) for name in scope if name in ANALYZERS_BY_NAME}
+    )

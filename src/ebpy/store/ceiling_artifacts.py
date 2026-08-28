@@ -19,40 +19,10 @@ if TYPE_CHECKING:
 
     from ebpy.models import CellCounts, CellCountsView, RuleId, State
 
-    from .config import EbpyConfig
-
 ArtifactKind = Literal["fresh", "frozen", "invalid"]
 
 _PRE_FREEZE_PHASES = ("diagnose", "bootstrap", "freeze")
 _POST_FREEZE_PHASES = ("drain", "tighten", "split", "review")
-
-
-def reconcile_scope(config: EbpyConfig | None, state: State) -> str | None:
-    """Return an error message if config and the frozen roster disagree on the analyzer set.
-
-    None means either no config is present (no gate) or the sets match exactly.
-    When they differ, the message names each direction of the discrepancy with the
-    appropriate remediation command so the caller can surface it without knowing the detail.
-    """
-    if config is None:
-        return None
-    declared = set(config.analyzers)
-    frozen = set(state.frozen_analyzers)
-    if declared == frozen:
-        return None
-    unfrozen = sorted(declared - frozen)
-    undeclared = sorted(frozen - declared)
-    lines = [".ebpy/config.json and the frozen contract disagree on the analyzer set:"]
-    if unfrozen:
-        lines.append(
-            f"  declared but not frozen: {', '.join(unfrozen)} — run `ebpy freeze --analyzer <name>`."
-        )
-    if undeclared:
-        lines.append(
-            f"  frozen but not declared: {', '.join(undeclared)}"
-            " — re-declare it, or `ebpy freeze --force` to drop it."
-        )
-    return "\n".join(lines)
 
 
 @dataclass(frozen=True)
