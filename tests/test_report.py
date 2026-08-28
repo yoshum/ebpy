@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -181,10 +182,18 @@ def test_report_does_not_refuse_when_the_contract_and_the_scope_disagree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Report is the window a reader opens because something is wrong; it stays open."""
-    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "clippy"), cells={})
+    # config.json declares only ruff while mypy is also frozen — the `declared ^ frozen`
+    # branch of ScopeDecision.scope_mismatches, a genuine disagreement rather than one
+    # that only looks like it because the analyzer has no runner in this build.
+    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "mypy"), cells={})
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
     monkeypatch.setattr(report_command, "measure_repository", lambda _cwd, _scope: Measurement({}))
-    output = run_report(tmp_path, as_json=False)
-    assert "clippy" in output
+
+    output = json.loads(run_report(tmp_path, as_json=True))
+
+    assert output["analyzers"]["mypy"]["status"] == "scope-mismatch"
 
 
 def test_report_refuses_on_a_fresh_repository_with_nothing_to_measure(tmp_path: Path) -> None:

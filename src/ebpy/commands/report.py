@@ -62,7 +62,10 @@ def run_report(cwd: Path, as_json: bool) -> str:
         raise CommandError(empty_scope_message(scope))
 
     report = report_from_measurement(
-        artifacts.cells, frozen_analyzers, measure_repository(cwd, scope.to_measure)
+        artifacts.cells,
+        frozen_analyzers,
+        measure_repository(cwd, scope.to_measure),
+        scope.scope_mismatches,
     )
 
     if as_json:
