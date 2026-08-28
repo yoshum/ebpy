@@ -27,6 +27,8 @@ Every task's requirements implicitly include this section.
 - **Supported Rust range: 1.79 (floor) through current stable.** Any behaviour justified by measurement must hold at both ends.
 - **v1 measures exactly one build configuration:** default features, the running platform, no `--all-targets`. Code outside it is neither ceilinged nor gated.
 - **Before every commit:** `uv run ruff format .` then `uv run pytest`. Before pushing, also `uv run ebpy check`. A raw `uv run ruff check .` / `uv run mypy .` is **not** a gate here — both report the whole grandfathered backlog as failure.
+- **`uv run ebpy check` rewrites `QUALITY.md` and `.ebpy/state.json`** as a side effect (a timestamp, and a staleness line that degrades to "the distance is unknown" in a shallow clone). Neither belongs in a task's commit. Leave them out of your `git add`, and revert them before finishing so the next task starts on a clean tree. `.ebpy/baseline.json` is different: it is committed, but only by a task that actually lowers a ceiling, and only via `uv run ebpy prune`.
+- **`ruff format` formats fenced Python inside Markdown**, this plan and the spec included. Both are committed already formatted, so `ruff format .` is now a no-op on them — but if you edit a Python block in a Markdown file, it has to stay formatted or CI's `ruff format --check .` goes red.
 - **Commit messages follow Conventional Commits** (this repository's convention; `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, with an optional scope).
 
 ### Two deliberate deviations from the spec, decided here
@@ -151,11 +153,11 @@ class RuffAnalyzer:
     language: Language = "python"
 ```
 
-with `from ebpy.models import Language` added to the `TYPE_CHECKING` block — except that a dataclass field annotation is evaluated at runtime by `dataclasses`, so import `Language` at module scope instead:
+with `from ebpy.models import AnalysisMeasurement, Language` in the existing `TYPE_CHECKING` block — **the `TYPE_CHECKING` block, not module scope.** Both files begin with `from __future__ import annotations`, so the field annotation is stored as the string `"Language"` and `dataclasses` never resolves it; nothing in `src/` or `tests/` calls `get_type_hints`, so no runtime resolution is needed either. Verified on both ends of the CI matrix (3.10 and 3.14): the dataclass constructs and `RuffAnalyzer().language == "python"`.
 
-```python
-from ebpy.models import Language
-```
+A module-scope import here is not merely unnecessary, it **breaks the gate**: ruff's `TC` rules are selected in `pyproject.toml`, so `from ebpy.models import Language` at module scope raises `TC001` (`typing-only-first-party-import`) in both files, and `uv run ebpy check` fails with two findings above the ceiling. Silencing it would need this repository's first `# noqa` in `src/` — there are currently zero.
+
+**Every later task that adds a dataclass field typed by an `ebpy.models` alias does the same** — Task 10's `ClippyAnalyzer` above all.
 
 Do the same in `src/ebpy/tools/mypy/analyzer.py` (`name: str = "mypy"`, `noun: str = "Type errors"`, `language: Language = "python"` — keep the existing `noun` value, whatever it is).
 
