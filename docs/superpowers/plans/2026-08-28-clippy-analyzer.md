@@ -6,9 +6,9 @@
 
 **Architecture:** Three moves, in order. (1) Measurement becomes *scoped*: `measure_repository(cwd, scope)` takes the analyzer set as a value, computed by a new pure `ScopeDecision` from three authorities — `.ebpy/config.json`, language detection, and the frozen roster. (2) A new `tools/clippy/` package asks `cargo metadata` for the workspace topology, runs `cargo clippy --workspace --message-format=json`, and turns the JSON stream into cells, unattributed findings, and *unmeasured scopes*. (3) The ledger grows `unmeasuredPackages` so a package that once contributed to the ceiling cannot silently stop being measured.
 
-**Tech Stack:** Python 3.11+, stdlib only (zero runtime dependencies). `subprocess` via `ebpy.util.run`. `tomllib` for manifests. pytest + monkeypatch for unit tests; real `cargo`/`rustc` for integration tests, skipped when `cargo clippy --version` does not succeed.
+**Tech Stack:** Python 3.10+, stdlib only apart from the one conditional backport described below. `subprocess` via `ebpy.util.run`. **`ebpy._toml` for manifests, never `import tomllib` directly** — `tomllib` arrived in 3.11 and the floor is 3.10, so `ebpy/_toml.py` re-exports `loads` and `TOMLDecodeError` from `tomllib` or from `tomli`, whichever the interpreter has. pytest + monkeypatch for unit tests; real `cargo`/`rustc` for integration tests, skipped when `cargo clippy --version` does not succeed.
 
-**Spec:** `docs/clippy-analyzer-spec.md` (Japanese; design document, **not committed** — see Global Constraints)
+**Spec:** `docs/clippy-analyzer-spec.md` (Japanese; design document, committed alongside this plan on the feature branch)
 
 ---
 
@@ -16,14 +16,14 @@
 
 Every task's requirements implicitly include this section.
 
-- **Zero runtime dependencies.** `pyproject.toml`'s `dependencies = []` does not change. Dev dependencies are fine.
-- **Do not commit `docs/clippy-analyzer-spec.md` or this plan file.** They are design documents held outside the repository's canonical (English) `docs/` set. Every `git add` in this plan names files explicitly; never `git add -A`, `git add .`, or `git add docs/`.
+- **Zero runtime dependencies.** `pyproject.toml`'s `dependencies` list does not grow. It is not empty: it carries `tomli>=2.0; python_version < "3.11"`, the one exception the file's own comment justifies — `tomli` is `tomllib` before `tomllib` existed, and it leaves the install the moment the floor reaches 3.11. Nothing in this plan adds a second entry. Dev dependencies are fine.
+- **`docs/clippy-analyzer-spec.md` and this plan file are already committed** on this feature branch, and no task re-adds them. Every `git add` in this plan names files explicitly; never `git add -A`, `git add .`, or `git add docs/` — not to keep these two out of the tree, but so that a task's commit carries only the files that task changed.
 - **A comment says why, never what.** Delete a comment that restates the line below it.
 - **Names measure claims.** Do not widen a name past what its arithmetic supports.
 - **Absence and zero are different.** "nobody looked" and "measured zero" must never render the same way, and a counter must never be written from a run that did not happen.
 - **Tests are named as sentences.** `test_freeze_lowers_but_never_raises`, not `test_freeze_2`.
 - **`Literal` type aliases, never `Enum`.** `Enum` appears 0 times in `src/`; `typing.get_args` appears 0 times.
-- **Line length 110, `target-version = "py311"`, mypy `strict = true` over `src` and `tests`.**
+- **Line length 110, `target-version = "py310"`, mypy `strict = true` over `src` and `tests`.** The CI matrix runs 3.10 through 3.14 on Linux, macOS and Windows, so no task may reach for a 3.11-only spelling — `tomllib`, `Self`, `StrEnum`, `datetime.UTC` — without the same version guard `ebpy/_toml.py` uses.
 - **Supported Rust range: 1.79 (floor) through current stable.** Any behaviour justified by measurement must hold at both ends.
 - **v1 measures exactly one build configuration:** default features, the running platform, no `--all-targets`. Code outside it is neither ceilinged nor gated.
 - **Before every commit:** `uv run ruff format .` then `uv run pytest`. Before pushing, also `uv run ebpy check`. A raw `uv run ruff check .` / `uv run mypy .` is **not** a gate here — both report the whole grandfathered backlog as failure.
@@ -61,6 +61,7 @@ Every task's requirements implicitly include this section.
 | `tests/test_clippy_runner.py` | Probe/aggregation unit tests plus real-cargo integration tests. |
 | `tests/test_unmeasured.py` | Regression fail-closed decision tests. |
 | `tests/test_clippy_lifecycle.py` | Real-cargo end-to-end lifecycle (D-10). |
+| `tests/test_clippy_ci_guard.py` | The one clippy test that must fail, not skip, when CI installed a toolchain (§5.3). |
 
 **Modified files**
 
@@ -78,6 +79,7 @@ Every task's requirements implicitly include this section.
 | `src/ebpy/render/{analysis_report,report,quality}.py` | Banner conditions, `KeyError` fix, unratcheted marker from gaps. |
 | `src/ebpy/store/{ceiling_artifacts,state}.py` | `reconcile_scope` retired; `unmeasuredPackages` read/write. |
 | `src/ebpy/commands/log.py` | `RULE_HINT` gains a clippy example. |
+| `.github/workflows/quality.yml` | A `clippy-analyzer` job pinning Rust 1.79 and stable (§5.3). |
 
 ---
 
@@ -823,7 +825,7 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     # ledger yields empty_state(), so a roster nobody could read cannot be resurrected into
     # the new contract and block the recovery a second time.
     scope = scope_decision(config, detect_languages(cwd), previous)
-    frozen_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    frozen_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     if analyzer is not None:
         if analyzer not in scope.to_measure:
@@ -3543,11 +3545,12 @@ git add src/ebpy/tools/registry.py src/ebpy/commands/freeze.py tests/ && git com
 
 **Why the facts and not the detector read these files.** `RepoFacts`'s own contract is *"Everything read from disk once, so decisions stay pure."* A detector opening files itself breaks it.
 
-**Three rules that matter:**
-1. **Catch `UnicodeError` alongside `OSError` and `tomllib.TOMLDecodeError`.** `read_text(encoding="utf-8")` raises `UnicodeDecodeError` on invalid UTF-8, which is neither of the other two. Catching only two means one badly-encoded `Cargo.toml` makes `gather_facts` raise and *every* ebpy command in that repository stop working. (The same hole exists today in the `pyproject.toml` read — noted so the new code does not copy it, but fixing it is unrelated work.)
-2. **A manifest that could not be read is `InvalidToml`, never `configured=False`.** "clippy is not configured" and "ebpy could not read the file" must not render identically.
-3. **`detail` never contains an absolute path.** The diagnosis is persisted into the ledger and `QUALITY.md`; `str(OSError)` would bake this host's directory layout into a committed artifact. Take `error.strerror` (falling back to the exception class name), the codec error's reason and offset, or `str(TOMLDecodeError)` — which carries line and column but no path. Files are always named by `InvalidToml.path`, repository-relative.
-4. **The same `target`-segment exclusion the runner uses.** Otherwise the detector names a generated manifest broken that the runner never looked at.
+**Five rules that matter:**
+1. **Read TOML through `ebpy._toml`, not `tomllib`.** `facts.py` already does (`from ebpy._toml import TOMLDecodeError, loads`); a direct `import tomllib` here would pass on the developer's interpreter and fail the 3.10 leg of the CI matrix.
+2. **Catch `UnicodeError` alongside `OSError` and `TOMLDecodeError`.** `read_text(encoding="utf-8")` raises `UnicodeDecodeError` on invalid UTF-8, which is neither of the other two. Catching only two means one badly-encoded `Cargo.toml` makes `gather_facts` raise and *every* ebpy command in that repository stop working. (The same hole exists today in the `pyproject.toml` read — noted so the new code does not copy it, but fixing it is unrelated work.)
+3. **A manifest that could not be read is `InvalidToml`, never `configured=False`.** "clippy is not configured" and "ebpy could not read the file" must not render identically.
+4. **`detail` never contains an absolute path.** The diagnosis is persisted into the ledger and `QUALITY.md`; `str(OSError)` would bake this host's directory layout into a committed artifact. Take `error.strerror` (falling back to the exception class name), the codec error's reason and offset, or `str(TOMLDecodeError)` — which carries line and column but no path. Files are always named by `InvalidToml.path`, repository-relative.
+5. **The same `target`-segment exclusion the runner uses.** Otherwise the detector names a generated manifest broken that the runner never looked at.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3658,8 +3661,8 @@ def _read_cargo_manifests(cwd: Path, all_files: list[str]) -> dict[PurePosixPath
         if path.name != "Cargo.toml" or "target" in path.parts[:-1]:
             continue
         try:
-            manifests[path] = tomllib.loads((cwd / file).read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+            manifests[path] = loads((cwd / file).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, TOMLDecodeError) as error:
             # UnicodeError belongs here: read_text raises UnicodeDecodeError on invalid UTF-8,
             # which is neither of the other two, and letting it escape would stop every ebpy
             # command in the repository rather than just this one file's detection.
@@ -5216,7 +5219,92 @@ Expected: PASS
 git add docs/measurement-seam.md docs/cli/ CLAUDE.md && git commit -m "docs: describe the analyzer scope, clippy, and the statuses report can hold"
 ```
 
-**Do not `git add docs/clippy-analyzer-spec.md` or `docs/superpowers/`.** Both are design documents held outside the repository's canonical set. `git status` will keep showing them untracked; that is intended.
+**Do not `git add docs/clippy-analyzer-spec.md` or `docs/superpowers/` here.** Both are already committed on this branch, and re-adding them would put an unrelated design document into a documentation commit.
+
+---
+
+## Task 21: The CI matrix that makes the supported Rust range real
+
+**Files:**
+- Modify: `.github/workflows/quality.yml`
+- Test: CI itself — there is no unit test for a workflow file.
+
+**Why this task exists.** §5.3 does not merely note that Rust versions differ; it *defines* a supported range (floor **1.79**, ceiling **current stable**) and names the CI matrix as the two points that make the range a claim rather than a hope. Every "根拠: 観測" line in the spec — the `--all-targets` double-count, `aborting due to N previous errors` having empty spans, the `configured out` note's wording, broken-manifest exit 101 — was measured across versions precisely so CI could keep re-measuring it. Without this task the integration tests from Tasks 7, 10 and 19 run on exactly one toolchain, which §5.3 says is worth "no more than 'no counterexample has appeared'".
+
+**What the existing workflow already looks like.** `quality.yml`'s `quality` job matrixes `os: [ubuntu-latest, macos-latest, windows-latest]` × `python-version: ["3.10" … "3.14"]` — fifteen legs, none of which installs Rust. Crossing Rust into that matrix would make thirty, and twenty-eight of them would compile Rust to learn nothing about Python. **Add a separate job instead.**
+
+**The floor is a decision, not a constant.** §5.3 says so explicitly: raising it is allowed, and the price of raising it is re-running the §5.2 rows that cite measurement. Put that sentence in the workflow next to the pinned version, because the pin is where somebody will meet it.
+
+- [ ] **Step 1: Add the job**
+
+In `.github/workflows/quality.yml`, after the `quality` job:
+
+```yaml
+  clippy-analyzer:
+    # The two ends of the supported Rust range (spec §5.3). The clippy integration tests read
+    # cargo's JSON output and its diagnostic re-emission behaviour, both of which move between
+    # toolchains — one version proves only that no counterexample turned up on that version.
+    # Raising the 1.79 floor is an allowed decision; whoever raises it re-runs the measured
+    # claims in the spec's §5.2 against the new floor first.
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.79", "stable"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust ${{ matrix.rust }}
+        run: rustup toolchain install ${{ matrix.rust }} --profile minimal --component clippy
+          && rustup default ${{ matrix.rust }}
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: Clippy analyzer tests
+        # Named explicitly rather than `uv run pytest`: this job exists for the tests that need
+        # a toolchain, and the rest of the suite is already covered fifteen times over above.
+        run: uv run pytest tests/test_clippy_topology.py tests/test_clippy_runner.py tests/test_clippy_lifecycle.py tests/test_clippy_ci_guard.py -v
+        env:
+          EBPY_REQUIRE_CLIPPY: "1"
+```
+
+`--component clippy` is not optional decoration: a minimal profile ships cargo without clippy, and the skip guard in Task 19 would then quietly skip the whole job green. **A job that installs a toolchain and skips every test is worse than no job** — it reports a range it never checked.
+
+- [ ] **Step 2: Prove the guard cannot silently skip**
+
+A check that fails loudly when CI asked for clippy and did not get it. It cannot live in `tests/test_clippy_lifecycle.py`: Task 19 puts a module-level `pytestmark` there that skips on exactly the condition this test needs to *assert*, so it would skip itself. Create `tests/test_clippy_ci_guard.py`:
+
+```python
+"""The one clippy test that must not skip when CI said it installed a toolchain."""
+
+from __future__ import annotations
+
+import os
+
+import pytest
+
+from tests.test_clippy_lifecycle import _clippy_available
+
+
+def test_the_clippy_suite_is_not_silently_skipped_in_ci() -> None:
+    """A green job that skipped every test would report a Rust range CI never exercised."""
+    if os.environ.get("EBPY_REQUIRE_CLIPPY") != "1":
+        pytest.skip("only enforced where CI installed a toolchain on purpose")
+    assert _clippy_available(), "CI installed a toolchain but `cargo clippy --version` did not succeed"
+```
+
+Set `EBPY_REQUIRE_CLIPPY: "1"` in the job's `env:`, and add this file to the job's pytest arguments. The variable is the job saying *I installed clippy on purpose*; without it a developer's laptop still skips normally. If importing from a sibling test module is awkward under this repository's pytest layout, lift `_clippy_available` into `tests/conftest.py` and import it from there in both files.
+
+- [ ] **Step 3: Verify the workflow parses**
+
+Run: `uv run python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/quality.yml'))"` if PyYAML is importable in the dev environment; it is not a dependency, so if it is not there, read the new job against the `quality` job above it and confirm the indentation matches. Either way the real verification is the first push — a malformed workflow does not run at all, which is the one failure mode that looks like silence rather than red.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add .github/workflows/quality.yml tests/test_clippy_ci_guard.py && git commit -m "ci: run the clippy analyzer tests at both ends of the supported Rust range"
+```
 
 ---
 
@@ -5251,10 +5339,10 @@ Run against the spec after finishing, before declaring done.
 | D-17 `unmeasuredPackages` | 16, 17 |
 | §2.1 subcommand support matrix | 4, 5, 18 |
 | §2.5 the three failures guarded | 7, 9, 10, 17 |
-| §5.3 support range at both ends | 7, 10, 19 (CI matrix — see below) |
+| §5.3 support range at both ends | 7, 10, 19 (the tests); 21 (the matrix that runs them twice) |
 | §7 documentation list | 20 |
 
-**One deliberate omission, flagged rather than silently dropped:** §5.3 asks for a **CI matrix pinning Rust 1.79 and current stable**. No task adds it, because this repository's CI workflow was not read while writing this plan and its shape is unknown. Do it as a follow-up: add a `rust-toolchain` matrix axis (`1.79`, `stable`) to the job that runs `uv run pytest`, so the integration tests in Tasks 7, 10 and 19 run at both ends. Without it, every claim in the spec marked "observation" is pinned at exactly one version — which §5.1 documents as the mistake that produced five falsified hypotheses.
+**The gap this plan first left open, now closed:** §5.3's **CI matrix pinning Rust 1.79 and current stable** had no task, because `.github/workflows/quality.yml` had not been read when the plan was first written. It has been now, and Task 21 adds the matrix as a separate job rather than a fourth axis on the existing fifteen-leg Python matrix. Without it, every claim in the spec marked "観測" would be pinned at exactly one version — which §5.1 documents as the mistake that produced five falsified hypotheses.
 
 **Placeholder scan.** No step says "add error handling", "handle edge cases", or "similar to Task N". Every code step carries the code. Three places name a value to be confirmed against the repository rather than guessed: `_write_frozen_pair`'s real helper name in `tests/test_check.py`, `render_quality_file`'s actual export name in `render/quality.py`, and `cli.main`'s argument shape in Task 19. Each says so explicitly at the point of use.
 
