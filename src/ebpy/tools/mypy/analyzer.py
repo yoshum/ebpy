@@ -13,7 +13,7 @@ from ._runner import MypyFailedError, MypyInvalidOutputError, MypyNotFoundError
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ebpy.models import AnalysisMeasurement
+    from ebpy.models import AnalysisMeasurement, Language
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,7 @@ class MypyAnalyzer:
 
     name: str = "mypy"
     noun: str = "Type errors"
+    language: Language = "python"
 
     def measure(self, cwd: Path) -> Observation[AnalysisMeasurement]:
         """Run mypy against the repository at cwd and return the observation."""
