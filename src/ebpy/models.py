@@ -298,6 +298,12 @@ class State:
     # never ran". For example, a ceiling of zero is only verifiable if we know which analyzers
     # contributed to that measurement.
     frozen_analyzers: tuple[str, ...] = ()
+    # The package-level counterpart to frozen_analyzers, and there for the same reason.
+    # `write_cells` drops zero-count cells, so a workspace measured and found clean looks
+    # exactly like one never measured — and clean is where every repository is headed.
+    # Unmeasured packages are remembered rather than measured ones so that deleting a crate
+    # does not read as the contract narrowing.
+    unmeasured_packages: tuple[str, ...] = ()
     rules: dict[str, RuleBaseline] = field(default_factory=dict)
     log: list[LogEntry] = field(default_factory=list)
 
