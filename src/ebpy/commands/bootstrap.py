@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
-from ebpy.repo.detect.language import languages_from_files
+from ebpy.errors import CommandError
+from ebpy.repo.detect.language import languages_from_files, no_python_message
 from ebpy.repo.facts import gather_facts
 from ebpy.util import run
 
@@ -38,6 +39,8 @@ def run_bootstrap(cwd: Path, dry_run: bool, python_version: str) -> str:
     """Run ``ebpy bootstrap``: plan the toolchain setup and, unless a dry run, apply it."""
     facts = gather_facts(cwd)
     languages = languages_from_files(facts.all_files)
+    if "python" not in languages.languages:
+        raise CommandError(no_python_message("bootstrap"))
     # The plan reads only the tool setups and required Python; the roster feeds the
     # "configured but not ratcheted" gap, which the plan ignores, so an empty roster is enough.
     diagnosis = diagnose(facts, (), languages.languages)

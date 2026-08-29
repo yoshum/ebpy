@@ -5,9 +5,13 @@ from __future__ import annotations
 import tomllib
 from typing import TYPE_CHECKING
 
+import pytest
+
+from ebpy.commands.bootstrap import run_bootstrap
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
+from ebpy.errors import CommandError
 from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import (
     PinnedAction,
@@ -266,3 +270,9 @@ def test_an_already_configured_tool_still_shows_the_config_it_would_have_written
     assert withheld.would_have.path == "pyproject.toml"
     assert "[tool.ruff.lint]" in withheld.would_have.content
     assert "max-complexity" in render_plan(plan, dry_run=False)
+
+
+def test_bootstrap_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    with pytest.raises(CommandError):
+        run_bootstrap(tmp_path, dry_run=True, python_version="3.11")

@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import pytest
+
 from ebpy.catalog import catalog_sources, extract_exports, render_catalog
+from ebpy.commands.catalog import run_catalog
+from ebpy.errors import CommandError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_public_module_level_functions_are_catalogued() -> None:
@@ -68,3 +77,10 @@ def test_the_catalog_groups_by_directory() -> None:
     assert "## src/sub" in rendered
     assert "`a`" in rendered
     assert "`b`" in rendered
+
+
+def test_catalog_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
+    """It would write "No public functions found." over a repository full of Rust."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    with pytest.raises(CommandError):
+        run_catalog(tmp_path)

@@ -9,6 +9,7 @@ from ebpy.decide.drain_order import build_drain_plan
 from ebpy.errors import CommandError
 from ebpy.models import Suppression
 from ebpy.render.next import render_next
+from ebpy.repo.detect.language import has_python, no_python_message
 from ebpy.repo.facts import list_source_paths, read_sources
 from ebpy.repo.fan_in import build_graph, count_importers, importers_of
 from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
@@ -32,6 +33,8 @@ def run_next(cwd: Path, as_json: bool, fan_in: bool) -> str:
         for file, rules in artifacts.cells.items()
         for rule, count in rules.items()
     ]
+    if fan_in and not has_python(cwd):
+        raise CommandError(no_python_message("next --fan-in"))
     # Reading every source file to parse its imports is the weight of a whole-repo pass,
     # not of a command you run between edits — so it is a flag rather than the default.
     importers = _gather_importers(cwd, entries) if fan_in else {}

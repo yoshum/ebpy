@@ -6,7 +6,11 @@ import tomllib
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
+import pytest
+
+from ebpy.commands.diagnose import run_diagnose
 from ebpy.decide.diagnose import diagnose
+from ebpy.errors import CommandError
 from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
 from ebpy.render.report import render_diagnosis
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
@@ -304,3 +308,18 @@ def test_the_diagnosis_renders_an_unknown_stored_setup_without_raising() -> None
     """The ledger reads back whatever keys it holds, including a future ebpy's unknown tool."""
     diagnosis = diagnosis_from_dict({"toolSetups": {"pylint": {"configured": True}}})
     assert render_diagnosis(diagnosis)
+
+
+def test_diagnose_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
+    """Its size distribution counts only .py, so it would report "0 files over 600 lines"."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    with pytest.raises(CommandError) as caught:
+        run_diagnose(tmp_path, as_json=False, write=False)
+    assert "Python" in str(caught.value)
+
+
+def test_a_mixed_repository_still_runs_every_python_command(tmp_path: Path) -> None:
+    """The refusal is for repositories with no Python, never for repositories that also have Rust."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert run_diagnose(tmp_path, as_json=False, write=False)
