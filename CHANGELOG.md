@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.12.0 (2026-08-29)
+
+### Features
+
+- **check**: Support analyzer-scoped runs
+  ([`f68a8d3`](https://github.com/yoshum/ebpy/commit/f68a8d3cd9ea67719f8a23c2b9c787f70da1afa2))
+
+
 ## v0.11.0 (2026-08-28)
 
 ### Bug Fixes
