@@ -41,6 +41,11 @@ class RuffFormatDetector:
         """The formatter (ruff or black) is a Python tool."""
         return frozenset({"python"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt a formatter before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when ruff or black is configured in the repository."""
         return ToolSetup(configured=formatter_configured(facts.root_entries, facts.pyproject))

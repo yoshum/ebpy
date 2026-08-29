@@ -70,6 +70,11 @@ class MypyDetector:
         """Mypy is a Python tool."""
         return frozenset({"python"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt mypy before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> MypySetup:
         """Return configured and strict state based on mypy config found in the repository."""
         return MypySetup(

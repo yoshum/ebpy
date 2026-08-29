@@ -259,6 +259,32 @@ def test_a_python_only_repository_gets_no_clippy_setup(tmp_path: Path) -> None:
     assert "ruff" in diagnosis.tool_setups
 
 
+def test_a_rust_repository_without_a_clippy_config_is_still_offered_the_ratchet(tmp_path: Path) -> None:
+    """The mixed-repository case the whole feature exists for."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    gaps = diagnose(gather_facts(tmp_path), (), frozenset({"rust"})).gaps
+    assert "unratcheted:clippy" in {g.id for g in gaps}
+
+
+def test_an_unconfigured_ruff_is_not_offered_the_ratchet(tmp_path: Path) -> None:
+    """`ebpy freeze --analyzer ruff` would fail: ruff is not installed, so the advice is unusable."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    gaps = diagnose(gather_facts(tmp_path), (), frozenset({"python"})).gaps
+    assert "unratcheted:ruff" not in {g.id for g in gaps}
+
+
+def test_a_frozen_clippy_produces_no_unratcheted_gap(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    gaps = diagnose(gather_facts(tmp_path), ("clippy",), frozenset({"rust"})).gaps
+    assert "unratcheted:clippy" not in {g.id for g in gaps}
+
+
+def test_a_python_only_repository_does_not_crash_on_a_missing_clippy_setup(tmp_path: Path) -> None:
+    """After the language filter there is no clippy setup at all; the None guard is what saves it."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    assert diagnose(gather_facts(tmp_path), (), frozenset({"python"})).gaps is not None
+
+
 def test_secret_scanning_runs_in_every_repository(tmp_path: Path) -> None:
     """It reads workflows and pre-commit config; claiming it belongs to Python would be false."""
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")

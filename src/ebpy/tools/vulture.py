@@ -34,6 +34,11 @@ class VultureDetector:
         """Vulture is a Python tool."""
         return frozenset({"python"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt vulture before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when vulture is configured or declared as a dependency."""
         return ToolSetup(configured=vulture_configured(facts.pyproject))
