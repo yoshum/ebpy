@@ -7,7 +7,7 @@ from typing import Any
 
 from ebpy.models import ToolSetup, WorkflowFile
 from ebpy.repo.facts import RepoFacts, gather_facts
-from ebpy.tools.clippy import ClippyDetector
+from ebpy.tools.clippy import ClippyDetector, ClippySetup
 from ebpy.tools.gitleaks import GitleaksDetector
 from ebpy.tools.mypy import MypyDetector, MypySetup
 from ebpy.tools.pytest import PytestDetector
@@ -96,6 +96,12 @@ def test_a_workspace_lint_table_makes_clippy_configured(tmp_path: Path) -> None:
     assert ClippyDetector().detect(gather_facts(tmp_path)).configured
 
 
+def test_a_non_table_clippy_lints_value_does_not_configure_clippy(tmp_path: Path) -> None:
+    """The lint-table rule counts only a `dict` value; `clippy = "warn"` is not a table."""
+    (tmp_path / "Cargo.toml").write_text("[lints]\nclippy = 'warn'\n", encoding="utf-8")
+    assert not ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
 def test_a_clippy_toml_above_a_manifest_makes_clippy_configured(tmp_path: Path) -> None:
     (tmp_path / "clippy.toml").write_text("msrv = '1.79'\n", encoding="utf-8")
     (tmp_path / "crates" / "a").mkdir(parents=True)
@@ -152,6 +158,13 @@ def test_an_invalid_manifest_and_a_configured_clippy_coexist(tmp_path: Path) -> 
     setup = ClippyDetector().detect(gather_facts(tmp_path))
     assert setup.configured
     assert len(setup.invalid_manifests) == 1
+
+
+def test_a_manifest_ebpy_could_parse_never_crashes_detection(tmp_path: Path) -> None:
+    """A value that parsed as TOML is not thereby a table: `workspace = "x"` must not raise."""
+    (tmp_path / "Cargo.toml").write_text("workspace = 'x'\n\n[package]\nname = 'a'\n", encoding="utf-8")
+    setup = ClippyDetector().detect(gather_facts(tmp_path))
+    assert isinstance(setup, ClippySetup)
 
 
 def test_the_clippy_row_says_it_runs_without_configuration(tmp_path: Path) -> None:

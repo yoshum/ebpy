@@ -37,7 +37,11 @@ class ClippySetup(ToolSetup):
 
 
 def _lint_table_present(manifest: dict[str, Any]) -> bool:
-    for table in (manifest.get("lints"), (manifest.get("workspace") or {}).get("lints")):
+    workspace = manifest.get("workspace")
+    # A value that parsed as valid TOML is not thereby a table: `workspace = "x"` parses fine
+    # and would raise AttributeError on `.get("lints")` without this guard.
+    workspace_lints = workspace.get("lints") if isinstance(workspace, dict) else None
+    for table in (manifest.get("lints"), workspace_lints):
         if isinstance(table, dict) and isinstance(table.get("clippy"), dict):
             return True
     return False
