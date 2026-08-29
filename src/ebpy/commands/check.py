@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ebpy.cell_key import analyzer_of
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
 from ebpy.store.baseline import cells_for, finding_total, split_against_baseline
@@ -146,12 +147,18 @@ def _non_contract_notes(previous: State, measurement: Measurement) -> list[str]:
     ]
 
 
-def check_measurement(previous: State, baseline: CellCounts, measurement: Measurement) -> CheckDecision:
-    """Apply one repository measurement without reading tools or writing artifacts."""
+def check_measurement(
+    previous: State,
+    baseline: CellCounts,
+    measurement: Measurement,
+    analyzer: str | None = None,
+) -> CheckDecision:
+    """Apply a full or analyzer-scoped repository measurement without writing artifacts."""
     state = copy_state(previous)
     failures: list[str] = []
-    for analyzer in sorted(previous.frozen_analyzers):
-        state, failure = _gate_analyzer(state, analyzer, baseline, measurement)
+    scope = sorted(previous.frozen_analyzers) if analyzer is None else [analyzer]
+    for name in scope:
+        state, failure = _gate_analyzer(state, name, baseline, measurement)
         if failure is not None:
             failures.append(failure)
 
@@ -160,10 +167,15 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
     if failures:
         return CheckDecision(CheckResult(ok=False, message="\n\n".join([*failures, *notes])), state)
 
-    count = len(previous.frozen_analyzers)
+    count = len(scope)
+    current = (
+        total_violations(state)
+        if analyzer is None
+        else sum(rule.current for name, rule in state.rules.items() if analyzer_of(name) == analyzer)
+    )
     message = "\n\n".join(
         [
-            f"Clean. {total_violations(state)} grandfathered findings left to drain across "
+            f"Clean. {current} grandfathered findings left to drain across "
             f"{count} {'analyzer' if count == 1 else 'analyzers'}.",
             *notes,
         ]
@@ -171,8 +183,8 @@ def check_measurement(previous: State, baseline: CellCounts, measurement: Measur
     return CheckDecision(CheckResult(ok=True, message=message), state)
 
 
-def run_check(cwd: Path, write: bool) -> CheckResult:
-    """Run ``ebpy check``: gate the repository, failing if any count rose above its ceiling."""
+def run_check(cwd: Path, write: bool, analyzer: str | None = None) -> CheckResult:
+    """Run ``ebpy check`` for one analyzer or the whole frozen contract."""
     artifacts = read_ceiling_artifacts(cwd)
     if artifacts.kind == "invalid":
         return CheckResult(ok=False, message=invalid_artifacts_message(artifacts))
@@ -185,7 +197,21 @@ def run_check(cwd: Path, write: bool) -> CheckResult:
     if mismatch is not None:
         return CheckResult(ok=False, message=mismatch)
 
-    decision = check_measurement(previous, artifacts.cells, measure_repository(cwd))
+    if analyzer is not None:
+        if analyzer not in ANALYZERS_BY_NAME:
+            choices = ", ".join(sorted(ANALYZERS_BY_NAME))
+            return CheckResult(ok=False, message=f"Unknown analyzer: {analyzer}. Choose one of: {choices}.")
+        if analyzer not in previous.frozen_analyzers:
+            return CheckResult(
+                ok=False,
+                message=(
+                    f"{analyzer} is not in the frozen contract. "
+                    f"Run `ebpy freeze --analyzer {analyzer}` first."
+                ),
+            )
+
+    measurement = measure_repository(cwd, analyzer) if analyzer is not None else measure_repository(cwd)
+    decision = check_measurement(previous, artifacts.cells, measurement, analyzer)
     if write:
         write_state(cwd, decision.state)
         write_quality_file(cwd, decision.state)

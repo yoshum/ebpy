@@ -22,7 +22,7 @@ notices once the copies are textually similar — and independently written ones
 | `interpret_gitleaks` | src/ebpy/secret_scan.py:67 | Map a gitleaks exit code and output to a SecretVerdict, treating a failed scan as not clean. |
 | `is_analyzer_name` | src/ebpy/cell_key.py:19 | Report whether a string is a well-formed analyzer namespace. |
 | `is_rule_id` | src/ebpy/cell_key.py:59 | Report whether the value is a namespaced rule id; never raises on untrusted JSON. |
-| `main` | src/ebpy/cli.py:220 | Parse argv, dispatch the subcommand, and return the process exit code. |
+| `main` | src/ebpy/cli.py:226 | Parse argv, dispatch the subcommand, and return the process exit code. |
 | `normalize_analyzer_path` | src/ebpy/cell_key.py:64 | Normalize a path an analyzer reported into the form a stored cell key uses. |
 | `qualify_rule` | src/ebpy/cell_key.py:24 | Join an analyzer name and its local code into a namespaced rule ID, rejecting malformed halves. |
 | `render_catalog` | src/ebpy/catalog.py:84 | Render the shared-helpers catalog as Markdown, grouped by directory. |
@@ -36,13 +36,13 @@ notices once the copies are textually similar — and independently written ones
 | --- | --- | --- |
 | `build_global_freeze` | src/ebpy/commands/freeze.py:192 | Merge every in-scope analyzer's cells into one contract, requiring all to be complete. |
 | `build_scoped_freeze` | src/ebpy/commands/freeze.py:252 | Add or replace one analyzer's namespace without touching any other. |
-| `check_measurement` | src/ebpy/commands/check.py:149 | Apply one repository measurement without reading tools or writing artifacts. |
+| `check_measurement` | src/ebpy/commands/check.py:150 | Apply a full or analyzer-scoped repository measurement without writing artifacts. |
 | `is_log_kind` | src/ebpy/commands/log.py:27 | Report whether a string is a recognised work-log kind. |
-| `load_bundle` | src/ebpy/commands/skills_install.py:63 | Load the skills bundled inside the ebpy package, raising when none are present. |
+| `load_bundle` | src/ebpy/commands/skills_install.py:70 | Load the skills bundled inside the ebpy package, raising when none are present. |
 | `prune_measurement` | src/ebpy/commands/prune.py:114 | Lower each complete analyzer's ceiling from measured facts without writing it. |
 | `run_bootstrap` | src/ebpy/commands/bootstrap.py:36 | Run ``ebpy bootstrap``: plan the toolchain setup and, unless a dry run, apply it. |
 | `run_catalog` | src/ebpy/commands/catalog.py:16 | Run ``ebpy catalog``: regenerate docs/shared-helpers.md from the public functions in source. |
-| `run_check` | src/ebpy/commands/check.py:174 | Run ``ebpy check``: gate the repository, failing if any count rose above its ceiling. |
+| `run_check` | src/ebpy/commands/check.py:186 | Run ``ebpy check`` for one analyzer or the whole frozen contract. |
 | `run_diagnose` | src/ebpy/commands/diagnose.py:21 | Run ``ebpy diagnose``: measure the repository and, when writing, record the diagnosis in the ledger. |
 | `run_freeze` | src/ebpy/commands/freeze.py:305 | Run ``ebpy freeze``: pin today's counts as the ceiling for one analyzer or the whole roster. |
 | `run_install` | src/ebpy/commands/install.py:163 | Run ``ebpy install``: pin ebpy into the project's dev dependencies at a matching Git ref. |
@@ -51,7 +51,7 @@ notices once the copies are textually similar — and independently written ones
 | `run_prune` | src/ebpy/commands/prune.py:176 | Lower every cell to what still exists — the safe, repeatable way to drain the ceiling. |
 | `run_report` | src/ebpy/commands/report.py:37 | Run ``ebpy report``: render every rule's standing against the frozen contract. |
 | `run_secrets` | src/ebpy/commands/secrets.py:38 | Run ``ebpy secrets``: scan history and the working tree with gitleaks. |
-| `run_skills_install` | src/ebpy/commands/skills_install.py:290 | Run ``ebpy skills install``: copy the bundled skills into the project's .claude/skills. |
+| `run_skills_install` | src/ebpy/commands/skills_install.py:297 | Run ``ebpy skills install``: copy the bundled skills into the project's .claude/skills. |
 | `run_status` | src/ebpy/commands/status.py:20 | Run ``ebpy status``: report the ledger's current phase, freshness and backlog. |
 
 ## src/ebpy/decide
@@ -59,7 +59,7 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `area_of` | src/ebpy/decide/analysis_report.py:35 | Return the top-level area a file belongs to — its first path segment, or the root marker. |
-| `assess_freshness` | src/ebpy/decide/freshness.py:49 | Decide whether a recorded diagnosis can still be trusted given its age and the commits since. |
+| `assess_freshness` | src/ebpy/decide/freshness.py:53 | Decide whether a recorded diagnosis can still be trusted given its age and the commits since. |
 | `build_drain_plan` | src/ebpy/decide/drain_order.py:180 | Rank the backlog into a drain plan: cheapest targets, rule spread, directory tails, heaviest files. |
 | `build_plan` | src/ebpy/decide/bootstrap_plan.py:52 | Decide the bootstrap plan — packages to install and files to create — from a diagnosis. |
 | `build_worklist` | src/ebpy/decide/worklist.py:59 | Derive from the ledger which phase the user is in and what step comes next. |
@@ -174,7 +174,7 @@ notices once the copies are textually similar — and independently written ones
 | Helper | Where | What it does |
 | --- | --- | --- |
 | `formatter_configured` | src/ebpy/tools/ruff_format.py:18 | Return True when a formatter (ruff or black) is configured. |
-| `measure_repository` | src/ebpy/tools/registry.py:76 | Measure every registered analyzer, retaining partial success as data. |
+| `measure_repository` | src/ebpy/tools/registry.py:76 | Measure one named analyzer, or every registered analyzer when no name is given. |
 | `secret_scan_configured` | src/ebpy/tools/gitleaks.py:73 | Return True when a known secret-scanning tool is referenced in workflows or pre-commit config. |
 | `secret_scan_workflow` | src/ebpy/tools/gitleaks.py:25 | Scan committed history and the working tree for leaked secrets. |
 | `vulture_configured` | src/ebpy/tools/vulture.py:16 | Return True when vulture is configured or declared as a dependency. |

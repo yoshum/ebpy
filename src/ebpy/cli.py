@@ -130,6 +130,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     check = add("check", "CI gate")
     check.add_argument("--no-write", action="store_true", help="do not update the ledger")
+    check.add_argument(
+        "--analyzer",
+        choices=sorted(ANALYZER_NAMES),
+        default=None,
+        help="check only this analyzer, leaving every other analyzer untouched",
+    )
 
     add("status", "print the current backlog")
 
@@ -195,7 +201,7 @@ _TEXT_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], str]] = {
 _RESULT_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], _Result]] = {
     "install": lambda args, cwd: run_install(cwd, args.version, args.ref, args.force),
     "skills": lambda args, cwd: run_skills_install(cwd, args.force),
-    "check": lambda args, cwd: run_check(cwd, write=not args.no_write),
+    "check": lambda args, cwd: run_check(cwd, write=not args.no_write, analyzer=args.analyzer),
 }
 
 _OUTCOME_COMMANDS: dict[str, Callable[[argparse.Namespace, Path], Outcome]] = {

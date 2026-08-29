@@ -73,6 +73,7 @@ PROVISIONERS: tuple[Provisioner, ...] = tuple(_provisioners)
 PROVISIONERS_BY_NAME: Mapping[str, Provisioner] = MappingProxyType({p.name: p for p in PROVISIONERS})
 
 
-def measure_repository(cwd: Path) -> Measurement:
-    """Measure every registered analyzer, retaining partial success as data."""
-    return Measurement(analyzers={a.name: a.measure(cwd) for a in ANALYZERS})
+def measure_repository(cwd: Path, analyzer: str | None = None) -> Measurement:
+    """Measure one named analyzer, or every registered analyzer when no name is given."""
+    selected = ANALYZERS if analyzer is None else (ANALYZERS_BY_NAME[analyzer],)
+    return Measurement(analyzers={item.name: item.measure(cwd) for item in selected})

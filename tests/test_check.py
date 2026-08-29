@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+from ebpy import cli as cli_module
 from ebpy.commands import check as check_command
 from ebpy.commands.check import check_measurement, run_check
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
@@ -306,6 +307,28 @@ def test_a_complete_analyzer_is_persisted_even_when_another_analyzer_is_unverifi
 
     assert decision.result.ok is False
     assert decision.state.rules["ruff:F401"].current == 1
+
+
+def test_an_analyzer_scoped_check_ignores_and_preserves_every_other_analyzer() -> None:
+    previous = _state(
+        frozen_analyzers=("mypy", "ruff"),
+        rules={
+            "mypy:arg-type": RuleBaseline(baseline=4, current=4, status="draining"),
+            "ruff:F401": RuleBaseline(baseline=2, current=2, status="draining"),
+        },
+    )
+    baseline: CellCounts = {
+        "a.py": {"ruff:F401": 2},
+        "b.py": {"mypy:arg-type": 4},
+    }
+    measurement = Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})})
+
+    decision = check_measurement(previous, baseline, measurement, analyzer="ruff")
+
+    assert decision.result.ok is True
+    assert decision.result.message == "Clean. 1 grandfathered findings left to drain across 1 analyzer."
+    assert decision.state.rules["ruff:F401"].current == 1
+    assert decision.state.rules["mypy:arg-type"].current == 4
 
 
 def test_an_unverified_analyzer_keeps_its_previous_state_rules() -> None:
@@ -615,3 +638,74 @@ def test_check_proceeds_normally_when_config_matches_frozen_roster(
 
     assert result.ok is True
     assert "Clean." in result.message
+
+
+def test_scoped_check_requests_only_the_named_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_cells(
+        tmp_path,
+        {
+            "a.py": {"ruff:F401": 1},
+            "b.py": {"mypy:arg-type": 2},
+        },
+    )
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("mypy", "ruff"),
+            rules={
+                "ruff:F401": RuleBaseline(baseline=1, current=1, status="draining"),
+                "mypy:arg-type": RuleBaseline(baseline=2, current=2, status="draining"),
+            },
+            frozen_at="2026-08-19T00:00:00Z",
+            phase="drain",
+        ),
+    )
+    requested: list[str | None] = []
+
+    def measure(_cwd: Path, analyzer: str | None = None) -> Measurement:
+        requested.append(analyzer)
+        return Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})})
+
+    monkeypatch.setattr(check_command, "measure_repository", measure)
+
+    result = run_check(tmp_path, write=False, analyzer="ruff")
+
+    assert result.ok is True
+    assert requested == ["ruff"]
+
+
+def test_cli_forwards_the_analyzer_and_no_write_options(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[Path, bool, str | None]] = []
+
+    def check(cwd: Path, write: bool, analyzer: str | None = None) -> check_command.CheckResult:
+        calls.append((cwd, write, analyzer))
+        return check_command.CheckResult(ok=True, message="Clean.")
+
+    monkeypatch.setattr(cli_module, "run_check", check)
+
+    code = cli_module.main(["--cwd", str(tmp_path), "check", "--no-write", "--analyzer", "ruff"])
+
+    assert code == 0
+    assert calls == [(tmp_path.resolve(), False, "ruff")]
+
+
+def test_scoped_check_refuses_an_analyzer_outside_the_frozen_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_frozen_ceiling(
+        tmp_path,
+        {"a.py": {"ruff:F401": 1}},
+        {"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
+    )
+    measured: list[bool] = []
+    monkeypatch.setattr(check_command, "measure_repository", lambda *_args: measured.append(True))
+
+    result = run_check(tmp_path, write=False, analyzer="mypy")
+
+    assert result.ok is False
+    assert "mypy is not in the frozen contract" in result.message
+    assert measured == []
