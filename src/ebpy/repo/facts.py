@@ -9,11 +9,14 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ebpy.models import SourceFile, WorkflowFile
 
 from .git import tracked_files
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _SKIPPED_DIRS = {
     ".git",
@@ -31,6 +34,19 @@ _SKIPPED_DIRS = {
 
 
 @dataclass(frozen=True)
+class InvalidToml:
+    """A manifest ebpy could not read, and why — kept apart from a manifest with no clippy config.
+
+    `detail` never carries an absolute path. This value ends up in the diagnosis, which is
+    written to the ledger and to QUALITY.md, and `str(OSError)` would bake this host's
+    directory layout into a committed artifact. The file is named by `path` instead.
+    """
+
+    path: PurePosixPath
+    detail: str
+
+
+@dataclass(frozen=True)
 class RepoFacts:
     """Everything read from disk once, so decisions stay pure: the tree, pyproject, sources and workflows."""
 
@@ -43,6 +59,11 @@ class RepoFacts:
     source_files: tuple[SourceFile, ...]
     workflows: tuple[WorkflowFile, ...]
     extra_config_text: dict[str, str] = field(default_factory=dict)
+    # Cargo manifests, parsed once. A value that is InvalidToml means the file exists and
+    # could not be read — which is not the same as a manifest with no clippy configuration.
+    cargo_manifests: Mapping[PurePosixPath, dict[str, Any] | InvalidToml] = field(default_factory=dict)
+    # clippy.toml / .clippy.toml, ascending. Existence only; the contents are never read.
+    clippy_config_paths: tuple[PurePosixPath, ...] = ()
 
 
 def _walk_files(cwd: Path) -> list[str]:
@@ -113,6 +134,41 @@ _EXTRA_CONFIGS = (
     ".pre-commit-config.yaml",
 )
 
+_CARGO_MANIFEST = "Cargo.toml"
+_CLIPPY_CONFIG_NAMES = ("clippy.toml", ".clippy.toml")
+_TARGET_SEGMENT = "target"
+
+
+def _under_target(path: PurePosixPath) -> bool:
+    return _TARGET_SEGMENT in path.parts[:-1]
+
+
+def _toml_failure(error: Exception) -> str:
+    """Describe a TOML read failure without naming this host's filesystem."""
+    if isinstance(error, OSError):
+        return error.strerror or type(error).__name__
+    if isinstance(error, UnicodeDecodeError):
+        return f"invalid {error.encoding} at byte {error.start}: {error.reason}"
+    return str(error)
+
+
+def _read_cargo_manifests(
+    cwd: Path, all_files: list[str]
+) -> dict[PurePosixPath, dict[str, Any] | InvalidToml]:
+    manifests: dict[PurePosixPath, dict[str, Any] | InvalidToml] = {}
+    for file in sorted(all_files):
+        path = PurePosixPath(file)
+        if path.name != _CARGO_MANIFEST or _under_target(path):
+            continue
+        try:
+            manifests[path] = tomllib.loads((cwd / file).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+            # UnicodeError belongs here: read_text raises UnicodeDecodeError on invalid UTF-8,
+            # which is neither of the other two, and letting it escape would stop every ebpy
+            # command in the repository rather than just this one file's detection.
+            manifests[path] = InvalidToml(path=path, detail=_toml_failure(error))
+    return manifests
+
 
 def gather_facts(cwd: Path) -> RepoFacts:
     """Read everything a diagnosis needs from disk once, so the decision functions stay pure."""
@@ -139,6 +195,13 @@ def gather_facts(cwd: Path) -> RepoFacts:
 
     extra = {name: text for name in _EXTRA_CONFIGS if (text := _read_text(cwd / name)) is not None}
 
+    cargo_manifests = _read_cargo_manifests(cwd, all_files)
+    clippy_config_paths = tuple(
+        path
+        for file in sorted(all_files)
+        if (path := PurePosixPath(file)).name in _CLIPPY_CONFIG_NAMES and not _under_target(path)
+    )
+
     return RepoFacts(
         cwd=cwd,
         root_entries=root_entries,
@@ -147,4 +210,6 @@ def gather_facts(cwd: Path) -> RepoFacts:
         source_files=source_files,
         workflows=workflows,
         extra_config_text=extra,
+        cargo_manifests=cargo_manifests,
+        clippy_config_paths=clippy_config_paths,
     )
