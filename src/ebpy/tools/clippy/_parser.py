@@ -201,20 +201,23 @@ def _scan(stdout: str) -> _Scan:
 
 
 def _failure_detail(scan: _Scan, stderr: str) -> str:
-    """Quote what the compiler said, guaranteeing the errors survive truncation.
+    """Quote what the compiler said: the first of three rules that produces anything wins.
 
-    `observation._describe` keeps only the first lines of a detail, so error-level `rendered`
-    text is quoted ahead of the full, chronologically-interleaved transcript: if it came only
-    in stdout order, warnings emitted earlier in the run could push the actual compiler error
-    out of the kept window. The full transcript still follows, so warnings are not lost either.
-    Only when nothing was rendered at all does the detail fall back to stderr's tail. Never
-    rebuilt from structured fields; that would reimplement rustc's own formatting and drift
-    with every rustc version.
+    `observation._describe` keeps only the first lines of a detail, so a warning must never
+    be able to displace a real compile error out of that window. Excluding the transcript is
+    how this is solved, not ordering within it: if any error-level `rendered` text exists, it
+    is the whole detail, full stop — appending the rest of the transcript after it would let
+    a long error list's own tail get truncated away by trailing warnings, which is the same
+    failure this rule exists to prevent. Only a build with no error-level message at all falls
+    back to every level's `rendered` text; only a build with no `rendered` text anywhere falls
+    back to stderr's tail. Never rebuilt from structured fields; that would reimplement
+    rustc's own formatting and drift with every rustc version.
     """
-    parts = [block for block in ("\n".join(scan.error_rendered), "\n".join(scan.any_rendered)) if block]
-    if not parts:
-        parts.append("\n".join(stderr.splitlines()[-_STDERR_TAIL:]))
-    return "\n".join(parts)
+    if scan.error_rendered:
+        return "\n".join(scan.error_rendered)
+    if scan.any_rendered:
+        return "\n".join(scan.any_rendered)
+    return "\n".join(stderr.splitlines()[-_STDERR_TAIL:])
 
 
 def _measure(scan: _Scan, workspace: RustWorkspace, repo_root: Path) -> AnalysisMeasurement:

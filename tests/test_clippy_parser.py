@@ -127,21 +127,30 @@ def test_a_nonzero_exit_with_a_successful_finish_is_execution_failed(tmp_path: P
         _parse(_FINISHED_OK, tmp_path, code=1)
 
 
-def test_a_failed_build_quotes_the_error_level_rendered_text_before_the_warnings(tmp_path: Path) -> None:
-    """Discarding non-warnings early loses exactly the lines a reader needs.
+def test_a_failed_build_with_any_error_quotes_only_the_errors_not_the_warnings(tmp_path: Path) -> None:
+    """`_describe` keeps only the first lines of a detail; a warning must never displace an error.
 
-    Correction 1: the brief's version of this test only checked that "E0308" appears
-    somewhere in the detail, which is true of any string containing it and pins nothing.
-    This asserts the actual ordering claim: the error's rendered text is quoted at a lower
-    index than the warning's, using two texts distinguishable from one another.
+    Correction 1, round 2: the brief's original assertion pinned nothing (any string
+    containing "E0308" satisfies `index(...) < len(detail)`), and my first replacement rested
+    on a false premise — that the warning's text follows the error's in the detail. The spec
+    (docs/clippy-analyzer-spec.md:1347-1360) settles it: when any error-level message exists,
+    the detail is the errors *alone*; the transcript rule (rule 2) is never reached. This
+    asserts exactly that: the error's text is present, the warning's is not.
     """
     stdout = "\n".join([_warning("src/lib.rs"), _error(rendered="error[E0308]: mismatched"), _FINISHED_BAD])
     with pytest.raises(ClippyFailedError) as caught:
         _parse(stdout, tmp_path, code=101)
     detail = caught.value.detail
     assert "E0308" in detail
-    assert "needless return" in detail
-    assert detail.index("E0308") < detail.index("needless return")
+    assert "needless return" not in detail
+
+
+def test_a_failed_build_with_no_errors_falls_back_to_every_level_rendered(tmp_path: Path) -> None:
+    """Rule 2: no error-level message anywhere means the warnings are all there is to quote."""
+    stdout = "\n".join([_warning("src/lib.rs", code="clippy::needless_return"), _FINISHED_BAD])
+    with pytest.raises(ClippyFailedError) as caught:
+        _parse(stdout, tmp_path, code=101)
+    assert "needless return" in caught.value.detail
 
 
 def test_a_failed_build_with_no_rendered_text_falls_back_to_stderr(tmp_path: Path) -> None:
