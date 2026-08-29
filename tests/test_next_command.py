@@ -45,3 +45,17 @@ def test_next_without_fan_in_still_works_on_a_rust_repository(tmp_path: Path) ->
     _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={"src/lib.rs": {"clippy:x": 1}})
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     assert run_next(tmp_path, as_json=False, fan_in=False)
+
+
+def test_next_with_fan_in_runs_at_the_entry_point_on_a_python_repository(tmp_path: Path) -> None:
+    """Pins the guard to a real `run_next(..., fan_in=True)` call, the only path that reaches it.
+
+    `run_next(..., fan_in=True)` is otherwise called nowhere else in the suite — so an inverted
+    guard condition would refuse this call unconditionally and no other test would catch it.
+    """
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "util.py").write_text("def helper() -> None: ...\n", encoding="utf-8")
+    (tmp_path / "pkg" / "a.py").write_text("from pkg.util import helper\n", encoding="utf-8")
+    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff",), cells={"pkg/util.py": {"ruff:F401": 3}})
+    rendered = run_next(tmp_path, as_json=False, fan_in=True)
+    assert "imported by 1" in rendered
