@@ -4,6 +4,7 @@ The CI gate. It is the only thing that makes the baseline a ratchet rather than 
 
 ```bash
 ebpy check
+ebpy check --analyzer ruff  # run and check only Ruff
 ebpy check --no-write    # do not update the ledger or QUALITY.md
 ```
 
@@ -64,6 +65,13 @@ improvement.
 
 `--no-write` skips all writes regardless of outcome, for a read-only environment or a run you do
 not want to leave a trace.
+
+## Checking one analyzer
+
+`--analyzer NAME` runs and checks only that analyzer. Its current counts are updated normally;
+every other analyzer's ledger counts are left untouched. The named analyzer must already be in the
+frozen contract. This is useful for splitting Ruff and mypy into separate CI jobs without making an
+unrun analyzer look like an unverified ceiling.
 
 ## A configured analyzer the contract does not hold
 
