@@ -21,6 +21,7 @@ from ebpy.repo.detect.tooling import (
 from ebpy.tools import ANALYZERS_BY_NAME, DETECTORS
 
 if TYPE_CHECKING:
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 # Enough to recognise the workflow they live in; the rest is a count, not a wall of refs.
@@ -137,19 +138,27 @@ def _size_gaps(sizes: SizeDistribution) -> list[Gap]:
     ]
 
 
-def diagnose(facts: RepoFacts, frozen_analyzers: tuple[str, ...]) -> Diagnosis:
+def diagnose(
+    facts: RepoFacts, frozen_analyzers: tuple[str, ...], languages: frozenset[Language]
+) -> Diagnosis:
     """Survey the repository, naming every gap.
 
     `frozen_analyzers` is the roster the ledger already holds — empty for a repository that
     has never frozen. It is what tells a configured analyzer apart from a ratcheted one, so
     the "configured but not ratcheted" gap can be raised.
+
+    `languages` narrows the detectors that run: a Cargo-less repository would otherwise carry
+    a permanent clippy row and a gap with no way to close it. A detector with an empty
+    `languages` (secret scanning) is repository-wide and always runs — the `not d.languages`
+    check below, not a membership test, is what lets it through.
     """
-    tool_setups = {detector.name: detector.detect(facts) for detector in DETECTORS}
+    detectors = tuple(d for d in DETECTORS if not d.languages or d.languages & languages)
+    tool_setups = {detector.name: detector.detect(facts) for detector in detectors}
     agent_instructions = detect_agent_instructions(facts.root_entries)
     ci = detect_ci(facts.workflows)
     sizes = summarize_sizes(facts.source_files)
     gaps = [
-        *(gap for detector in DETECTORS for gap in detector.gaps(tool_setups[detector.name])),
+        *(gap for detector in detectors for gap in detector.gaps(tool_setups[detector.name])),
         *_agent_instruction_gaps(agent_instructions),
         *_ci_gaps(ci),
         *_size_gaps(sizes),

@@ -9,6 +9,7 @@ from ebpy.decide.diagnose import diagnose
 from ebpy.errors import CommandError
 from ebpy.quality_file import write_quality_file
 from ebpy.render.report import render_diagnosis
+from ebpy.repo.detect.language import languages_from_files
 from ebpy.repo.facts import gather_facts
 from ebpy.repo.git import head_commit
 from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
@@ -28,7 +29,8 @@ def run_diagnose(cwd: Path, as_json: bool, write: bool) -> str:
     frozen_analyzers = existing.frozen_analyzers if existing is not None else ()
 
     facts = gather_facts(cwd)
-    diagnosis = diagnose(facts, frozen_analyzers)
+    languages = languages_from_files(facts.all_files)
+    diagnosis = diagnose(facts, frozen_analyzers, languages.languages)
 
     if artifacts is not None:
         state = existing or empty_state()

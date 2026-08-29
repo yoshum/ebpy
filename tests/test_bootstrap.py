@@ -37,7 +37,7 @@ def _tool_steps(manager: PackageManager) -> list[str]:
 
 def plan_for(tmp_path: Path) -> BootstrapPlan:
     facts = gather_facts(tmp_path)
-    return build_plan(diagnose(facts, ()), facts.root_entries, facts.all_files, "3.12")
+    return build_plan(diagnose(facts, (), frozenset({"python"})), facts.root_entries, facts.all_files, "3.12")
 
 
 def test_the_target_version_follows_requires_python() -> None:

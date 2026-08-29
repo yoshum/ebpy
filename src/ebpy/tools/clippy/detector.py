@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import PurePosixPath
 
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 # `+toolchain` between the two words is a spelling rustup supports and CI files use;
@@ -74,6 +75,11 @@ class ClippyDetector:
     def name(self) -> str:
         """Unique short identifier for clippy."""
         return "clippy"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Clippy is a Rust tool."""
+        return frozenset({"rust"})
 
     def detect(self, facts: RepoFacts) -> ClippySetup:
         """Return clippy's configuration state, keeping unreadable manifests apart from absent ones."""

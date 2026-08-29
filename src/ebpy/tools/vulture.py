@@ -10,6 +10,7 @@ from ebpy.repo.detect.tooling import _dependency_names, _tool_table
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -27,6 +28,11 @@ class VultureDetector:
     def name(self) -> str:
         """Unique short identifier for vulture."""
         return "vulture"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Vulture is a Python tool."""
+        return frozenset({"python"})
 
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when vulture is configured or declared as a dependency."""

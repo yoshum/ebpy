@@ -18,7 +18,15 @@ def _check(value: bool) -> str:
 def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
     # Each detector renders its own row, in registry order; the repository-level signals that
     # no detector owns (pre-commit, agent rules) follow them.
-    detector_rows = [detector.render_row(diagnosis.tool_setups[detector.name]) for detector in DETECTORS]
+    #
+    # Iterating DETECTORS rather than the setup map's keys: registry order is the display
+    # order, and the ledger reads back whatever keys it holds — a future ebpy's unknown tool
+    # would make a DETECTORS_BY_NAME lookup raise on a file this one can otherwise read.
+    detector_rows = [
+        detector.render_row(diagnosis.tool_setups[detector.name])
+        for detector in DETECTORS
+        if detector.name in diagnosis.tool_setups
+    ]
     return [
         f"  package manager   {diagnosis.package_manager}",
         f"  python            {diagnosis.requires_python or 'unspecified'}",

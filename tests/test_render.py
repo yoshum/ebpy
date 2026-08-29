@@ -279,3 +279,22 @@ def test_each_gap_renders_a_title_row_then_an_indented_detail_row() -> None:
         "  [freeze] no baseline",
         "      run ebpy freeze",
     ]
+
+
+def test_a_diagnosis_missing_a_detector_key_renders_without_a_keyerror() -> None:
+    """A filtered tool_setups map omits some DETECTORS entries; report.py must not index blindly."""
+    diagnosis = replace(
+        _full_diagnosis(mypy_strict=True, pre_commit=True, agent_instructions=()),
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "formatter": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=True, strict=True),
+            "pytest": ToolSetup(configured=True),
+            "vulture": ToolSetup(configured=True),
+            "secret-scan": ToolSetup(configured=True),
+            # clippy deliberately absent, as it would be for a Rust-less repository.
+        },
+    )
+    rendered = render_diagnosis(diagnosis)
+    assert "clippy" not in rendered
+    assert "  ruff              yes" in rendered
