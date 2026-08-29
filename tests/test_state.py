@@ -454,7 +454,12 @@ def test_a_log_cannot_grow_without_bound() -> None:
 
 def test_the_unmeasured_package_set_round_trips_through_the_ledger() -> None:
     state = State(frozen_analyzers=("clippy",), unmeasured_packages=("fuzz",))
-    assert state_to_dict(state)["unmeasuredPackages"] == ["fuzz"]
+    raw = state_to_dict(state)
+    assert raw["unmeasuredPackages"] == ["fuzz"]
+
+    restored = state_from_dict(raw)
+    assert restored is not None
+    assert restored.unmeasured_packages == ("fuzz",)
 
 
 def test_a_ledger_without_the_key_reads_as_an_empty_set() -> None:
@@ -472,7 +477,7 @@ def test_the_schema_version_does_not_move_for_the_new_key() -> None:
 
 @pytest.mark.parametrize(
     "value",
-    ["fuzz", ["fuzz", "fuzz"], [7], ["/abs/fuzz"], ["../outside"], [""]],
+    ["abc", ["fuzz", "fuzz"], [7], ["/abs/fuzz"], ["../outside"], [""]],
 )
 def test_a_malformed_unmeasured_package_set_invalidates_the_whole_ledger(value: object) -> None:
     """The key states part of the contract, so ebpy does not half-read it."""
