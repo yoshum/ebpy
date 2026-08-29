@@ -16,13 +16,16 @@ from ._errors import (
 from ._runner import run_clippy_check
 from ._topology import RustTopology, RustWorkspace, rust_topology
 from .analyzer import ClippyAnalyzer
+from .detector import ClippyDetector, ClippySetup
 
 __all__ = [
     "ClippyAnalyzer",
+    "ClippyDetector",
     "ClippyFailedError",
     "ClippyInvalidOutputError",
     "ClippyNoWorkspaceError",
     "ClippyNotFoundError",
+    "ClippySetup",
     "ClippyUnavailableError",
     "RustTopology",
     "RustWorkspace",

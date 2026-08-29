@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from ebpy.models import ToolSetup, WorkflowFile
-from ebpy.repo.facts import RepoFacts
+from ebpy.repo.facts import RepoFacts, gather_facts
+from ebpy.tools.clippy import ClippyDetector
 from ebpy.tools.gitleaks import GitleaksDetector
 from ebpy.tools.mypy import MypyDetector, MypySetup
 from ebpy.tools.pytest import PytestDetector
@@ -77,3 +78,84 @@ def test_gitleaks_detector_detects_workflow_mention() -> None:
     workflow = WorkflowFile(path=".github/workflows/ci.yml", content="uses: gitleaks/gitleaks-action@v2")
     assert GitleaksDetector().detect(_facts(workflows=(workflow,))).configured is True
     assert GitleaksDetector().detect(_facts()).configured is False
+
+
+def test_a_cargo_manifest_alone_does_not_make_clippy_configured(tmp_path: Path) -> None:
+    """`configured` claims the repository configured clippy, not that it contains Rust."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert not ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_lint_table_makes_clippy_configured(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[lints.clippy]\nall='warn'\n", encoding="utf-8")
+    assert ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_workspace_lint_table_makes_clippy_configured(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[workspace.lints.clippy]\nall='warn'\n", encoding="utf-8")
+    assert ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_clippy_toml_above_a_manifest_makes_clippy_configured(tmp_path: Path) -> None:
+    (tmp_path / "clippy.toml").write_text("msrv = '1.79'\n", encoding="utf-8")
+    (tmp_path / "crates" / "a").mkdir(parents=True)
+    (tmp_path / "crates" / "a" / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_clippy_toml_below_every_manifest_does_not_configure_the_repository(tmp_path: Path) -> None:
+    """One fixture file must not mark a whole repository configured."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    (tmp_path / "tests" / "fixtures").mkdir(parents=True)
+    (tmp_path / "tests" / "fixtures" / "clippy.toml").write_text("", encoding="utf-8")
+    assert not ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_ci_step_running_clippy_makes_it_configured(tmp_path: Path) -> None:
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text(
+        "jobs:\n  a:\n    steps:\n      - run: cargo clippy\n", encoding="utf-8"
+    )
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_a_toolchain_qualified_ci_step_is_recognised(tmp_path: Path) -> None:
+    """`cargo +nightly clippy` is a normal CI spelling a naive regex misses."""
+    workflows = tmp_path / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    (workflows / "ci.yml").write_text("      - run: cargo +nightly clippy -- -D warnings\n", encoding="utf-8")
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert ClippyDetector().detect(gather_facts(tmp_path)).configured
+
+
+def test_an_unreadable_manifest_is_named_in_its_own_gap(tmp_path: Path) -> None:
+    """Aggregating them into one gap makes it impossible to see which are still broken."""
+    (tmp_path / "Cargo.toml").write_text("[lints.clippy\n", encoding="utf-8")
+    (tmp_path / "crates").mkdir()
+    (tmp_path / "crates" / "Cargo.toml").write_text("[lints.clippy\n", encoding="utf-8")
+    gaps = ClippyDetector().gaps(ClippyDetector().detect(gather_facts(tmp_path)))
+    assert [g.id for g in gaps] == ["clippy-manifest:Cargo.toml", "clippy-manifest:crates/Cargo.toml"]
+
+
+def test_an_unconfigured_clippy_reports_no_gap_at_all(tmp_path: Path) -> None:
+    """Clippy needs no repository configuration and has no provisioner, so such a gap cannot close."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert ClippyDetector().gaps(ClippyDetector().detect(gather_facts(tmp_path))) == []
+
+
+def test_an_invalid_manifest_and_a_configured_clippy_coexist(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[lints.clippy]\nall='warn'\n", encoding="utf-8")
+    (tmp_path / "crates").mkdir()
+    (tmp_path / "crates" / "Cargo.toml").write_text("[lints.clippy\n", encoding="utf-8")
+    setup = ClippyDetector().detect(gather_facts(tmp_path))
+    assert setup.configured
+    assert len(setup.invalid_manifests) == 1
+
+
+def test_the_clippy_row_says_it_runs_without_configuration(tmp_path: Path) -> None:
+    """Unlike the other six tools, clippy still works unconfigured; the row must not imply otherwise."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    row = ClippyDetector().render_row(ClippyDetector().detect(gather_facts(tmp_path)))
+    assert "runs with defaults" in row

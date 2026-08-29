@@ -13,6 +13,7 @@ from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_qu
 from ebpy.render.report import render_diagnosis
 from ebpy.render.worklist import build_worklist_items, render_worklist
 from ebpy.store.state import append_log, empty_state
+from ebpy.tools.clippy import ClippySetup
 from ebpy.tools.mypy import MypySetup
 
 CURRENT = Freshness(stale=False, reason="current")
@@ -201,6 +202,7 @@ def _full_diagnosis(*, mypy_strict: bool, pre_commit: bool, agent_instructions: 
             "pytest": ToolSetup(configured=True),
             "vulture": ToolSetup(configured=True),
             "secret-scan": ToolSetup(configured=True),
+            "clippy": ClippySetup(configured=True, invalid_manifests=()),
         },
         pre_commit=pre_commit,
         agent_instructions=agent_instructions,
@@ -219,12 +221,12 @@ def _full_diagnosis(*, mypy_strict: bool, pre_commit: bool, agent_instructions: 
 
 
 def test_tooling_block_renders_every_row_in_order_with_mypy_strict() -> None:
-    """All 11 tooling rows appear in the exact display order when mypy is strict."""
+    """All 12 tooling rows appear in the exact display order when mypy is strict."""
     rendered = render_diagnosis(
         _full_diagnosis(mypy_strict=True, pre_commit=True, agent_instructions=("CLAUDE.md",))
     )
-    # Lines 0-1: header + blank; lines 2-12: the 11 tooling rows.
-    assert rendered.splitlines()[2:13] == [
+    # Lines 0-1: header + blank; lines 2-13: the 12 tooling rows.
+    assert rendered.splitlines()[2:14] == [
         "  package manager   uv",
         "  python            >=3.11",
         "  framework         none",
@@ -234,15 +236,16 @@ def test_tooling_block_renders_every_row_in_order_with_mypy_strict() -> None:
         "  pytest            yes",
         "  vulture           yes",
         "  secret scanning   yes",
+        "  clippy            configured",
         "  pre-commit        yes",
         "  agent rules       CLAUDE.md",
     ]
 
 
 def test_tooling_block_renders_every_row_in_order_with_mypy_configured_but_not_strict() -> None:
-    """All 11 tooling rows appear in the exact display order when mypy is configured but not strict."""
+    """All 12 tooling rows appear in the exact display order when mypy is configured but not strict."""
     rendered = render_diagnosis(_full_diagnosis(mypy_strict=False, pre_commit=False, agent_instructions=()))
-    assert rendered.splitlines()[2:13] == [
+    assert rendered.splitlines()[2:14] == [
         "  package manager   uv",
         "  python            >=3.11",
         "  framework         none",
@@ -252,6 +255,7 @@ def test_tooling_block_renders_every_row_in_order_with_mypy_configured_but_not_s
         "  pytest            yes",
         "  vulture           yes",
         "  secret scanning   yes",
+        "  clippy            configured",
         "  pre-commit        no",
         "  agent rules       none",
     ]

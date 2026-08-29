@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from ebpy.measurement import Measurement
 
-from .clippy import ClippyAnalyzer
+from .clippy import ClippyAnalyzer, ClippyDetector
 from .gitleaks import GitleaksDetector, GitleaksProvisioner
 from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
 from .pytest import PytestDetector, PytestProvisioner
@@ -51,6 +51,7 @@ _detectors: list[ToolDetector[Any]] = [
     PytestDetector(),
     VultureDetector(),
     GitleaksDetector(),
+    ClippyDetector(),
 ]
 
 DETECTORS: tuple[ToolDetector[Any], ...] = tuple(_detectors)
@@ -59,7 +60,9 @@ DETECTORS_BY_NAME: Mapping[str, ToolDetector[Any]] = MappingProxyType({d.name: d
 
 # Build via a typed list so mypy can verify Protocol compatibility and infer
 # tuple[Provisioner, ...] for PROVISIONERS rather than the narrower concrete tuple.
-# Order matches DETECTORS: it is the canonical tool sequence across the whole CLI.
+# Order follows DETECTORS for the tools that have one. The correspondence is no longer
+# one-to-one: clippy has a detector and deliberately no provisioner, because provisioning it
+# is `rustup component add`, not a dev dependency the plan's single install command can carry.
 _provisioners: list[Provisioner] = [
     RuffProvisioner(),
     RuffFormatProvisioner(),

@@ -56,9 +56,9 @@ def test_provisioners_registry_covers_all_tools() -> None:
 
 
 def test_detectors_registry_lists_all_tools() -> None:
-    """DETECTORS contains exactly the six expected tools; DETECTORS_BY_NAME keys match."""
+    """DETECTORS contains exactly the seven expected tools; DETECTORS_BY_NAME keys match."""
     names = {d.name for d in DETECTORS}
-    assert names == {"ruff", "mypy", "formatter", "pytest", "vulture", "secret-scan"}
+    assert names == {"ruff", "mypy", "formatter", "pytest", "vulture", "secret-scan", "clippy"}
     assert set(DETECTORS_BY_NAME) == names
 
 
