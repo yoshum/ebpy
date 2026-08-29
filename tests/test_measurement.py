@@ -38,6 +38,28 @@ def test_each_capability_has_one_observation(tmp_path: Path, monkeypatch: pytest
     assert result.analyzers["mypy"] == Measured(tool="mypy", value=mypy_result)
 
 
+def test_measure_repository_can_run_only_one_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+
+    def run_ruff(_cwd: Path) -> AnalysisMeasurement:
+        calls.append("ruff")
+        return AnalysisMeasurement(cells={})
+
+    def run_mypy(_cwd: Path) -> AnalysisMeasurement:
+        calls.append("mypy")
+        return AnalysisMeasurement(cells={})
+
+    monkeypatch.setattr(ruff_tool, "run_ruff_check", run_ruff)
+    monkeypatch.setattr(mypy_tool, "run_mypy_check", run_mypy)
+
+    result = measure_repository(tmp_path, analyzer="ruff")
+
+    assert calls == ["ruff"]
+    assert set(result.analyzers) == {"ruff"}
+
+
 def test_mypy_is_measured_after_ruff_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
