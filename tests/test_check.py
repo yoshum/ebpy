@@ -17,9 +17,10 @@ from ebpy.models import (
     SizeDistribution,
     State,
     ToolSetup,
+    UnmeasuredScope,
 )
 from ebpy.store.baseline import write_cells
-from ebpy.store.state import write_state
+from ebpy.store.state import read_ledger, write_state
 from ebpy.tools.mypy import MypySetup
 
 if TYPE_CHECKING:
@@ -66,19 +67,24 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
     )
 
 
-def _write_frozen_ceiling(
+def _write_frozen_pair(
     cwd: Path,
-    cells: CellCounts,
-    rules: dict[str, RuleBaseline],
+    cells: CellCounts | None = None,
+    rules: dict[str, RuleBaseline] | None = None,
     *,
     frozen_analyzers: tuple[str, ...] = ("ruff",),
+    unmeasured_packages: tuple[str, ...] = (),
 ) -> None:
     # A pyproject.toml so language detection evidences Python here — without it, an
     # unconfigured repository has no analyzer scope no matter what the ledger records.
     (cwd / "pyproject.toml").touch()
-    write_cells(cwd, cells)
+    write_cells(cwd, cells or {})
     state = State(
-        frozen_analyzers=frozen_analyzers, rules=rules, frozen_at="2026-08-19T00:00:00Z", phase="drain"
+        frozen_analyzers=frozen_analyzers,
+        rules=rules or {},
+        frozen_at="2026-08-19T00:00:00Z",
+        phase="drain",
+        unmeasured_packages=unmeasured_packages,
     )
     write_state(cwd, state)
 
@@ -353,7 +359,7 @@ def test_check_measurement_does_not_mutate_its_input_state_or_measurement() -> N
 def test_no_write_persists_nothing_on_success_or_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _write_frozen_ceiling(
+    _write_frozen_pair(
         tmp_path,
         {"a.py": {"ruff:F401": 1}},
         {"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
@@ -465,7 +471,7 @@ def test_check_shell_persists_state_and_quality_even_after_a_failure(
     run_check must persist state and QUALITY.md on `write=True` even when the result is a
     failure, so a complete analyzer's progress is not lost to a neighbour's failure.
     """
-    _write_frozen_ceiling(
+    _write_frozen_pair(
         tmp_path,
         {"a.py": {"ruff:F401": 1}},
         {"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
@@ -632,7 +638,7 @@ def test_check_refuses_before_measuring_when_the_contract_names_an_undetected_an
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Reconciling before measuring is what keeps a skipped analyzer from becoming `no-runner`."""
-    _write_frozen_ceiling(tmp_path, {}, {}, frozen_analyzers=("ruff", "clippy"))
+    _write_frozen_pair(tmp_path, {}, {}, frozen_analyzers=("ruff", "clippy"))
     (tmp_path / ".ebpy" / "config.json").write_text(
         json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
     )
@@ -644,3 +650,61 @@ def test_check_refuses_before_measuring_when_the_contract_names_an_undetected_an
     result = check_command.run_check(tmp_path, write=False)
     assert not result.ok
     assert "clippy" in result.message
+
+
+# --- A package leaving the ceiling's coverage fails closed ------------------------------
+
+
+def test_check_refuses_when_a_workspace_that_held_a_ceiling_stops_compiling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Written with a fixture that has no cells at all: a cell-based rule would pass here."""
+    # A Cargo.toml puts clippy in this repository's analyzer scope; without it the run
+    # would refuse on a scope mismatch before ever reaching the new coverage check.
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={})
+    measurement = Measurement(
+        {
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("core",)),)
+                ),
+            )
+        }
+    )
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
+    result = check_command.run_check(tmp_path, write=False)
+    assert not result.ok
+    assert "core" in result.message
+    assert "freeze --force" in result.message
+
+
+def test_check_records_a_widened_contract_so_a_second_break_is_still_caught(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If only freeze and prune wrote the key, breaking it a second time would pass silently."""
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={}, unmeasured_packages=("fuzz",))
+    measurement = Measurement({"clippy": Measured(tool="clippy", value=AnalysisMeasurement(cells={}))})
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
+    assert check_command.run_check(tmp_path, write=True).ok
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ()
+
+
+def test_a_failing_check_persists_state_without_emptying_the_unmeasured_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Persisting the state and replacing this key are different events."""
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={}, unmeasured_packages=("fuzz",))
+    measurement = Measurement(
+        {"clippy": Failed(tool="clippy", failure_kind="execution-failed", detail="boom")}
+    )
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
+    assert not check_command.run_check(tmp_path, write=True).ok
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("fuzz",)

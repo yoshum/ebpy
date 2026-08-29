@@ -16,13 +16,14 @@ from ebpy.commands import freeze
 from ebpy.commands.freeze import build_global_freeze, build_scoped_freeze, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import AnalysisMeasurement, UnattributedFinding
+from ebpy.models import AnalysisMeasurement, State, UnattributedFinding, UnmeasuredScope
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import CeilingArtifacts, read_ceiling_artifacts
 from ebpy.store.state import (
     Ledger,
     apply_analyzer_rule_counts,
     empty_state,
+    read_ledger,
     state_path,
     with_phase,
     write_state,
@@ -956,3 +957,96 @@ def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
     assert result.ledger.state is not None
     assert result.ledger.state.frozen_analyzers == ("ruff",)
     assert not any(k.startswith("mypy:") for k in result.ledger.state.rules)
+
+
+# --- A package leaving the ceiling's coverage fails closed ------------------------------
+
+
+def test_freeze_force_rewrites_the_contract_despite_a_coverage_regression(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--force` is the deliberate narrowing: it proceeds and rewrites the key from this run."""
+    (tmp_path / "pyproject.toml").touch()
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("clippy", "mypy", "ruff"),
+            unmeasured_packages=("fuzz",),
+            frozen_at=_FROZEN_AT,
+            phase="drain",
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("core", "fuzz")),)
+                ),
+            ),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=True, analyzer=None)
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("core", "fuzz")
+
+
+def test_freeze_of_an_unrelated_analyzer_leaves_the_unmeasured_contract_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`freeze --analyzer ruff` never measures clippy, so the key it holds is carried through."""
+    (tmp_path / "pyproject.toml").touch()
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("clippy", "mypy"),
+            unmeasured_packages=("fuzz",),
+            frozen_at=_FROZEN_AT,
+            phase="drain",
+        ),
+    )
+    measurement = Measurement(analyzers={"ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={}))})
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=False, analyzer="ruff")
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("fuzz",)
+
+
+def test_scoped_freeze_of_clippy_records_its_own_unmeasured_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The initial `freeze --analyzer clippy` writes this run's set — there is no prior one."""
+    (tmp_path / "pyproject.toml").touch()
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {})
+    write_state(tmp_path, State(frozen_analyzers=("mypy",), frozen_at=_FROZEN_AT, phase="drain"))
+    measurement = Measurement(
+        analyzers={
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root="fuzz", packages=("fuzz",)),)
+                ),
+            )
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=False, analyzer="clippy")
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("fuzz",)

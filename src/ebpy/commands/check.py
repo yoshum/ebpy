@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
+from ebpy.decide.unmeasured import (
+    next_unmeasured_packages,
+    regression_refusal,
+    unmeasured_notice,
+    unmeasured_verdict,
+)
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
 from ebpy.repo.detect.language import detect_languages
@@ -190,8 +196,20 @@ def run_check(cwd: Path, write: bool) -> CheckResult:
     if not scope.to_measure:
         return CheckResult(ok=False, message=empty_scope_message(scope))
 
-    decision = check_measurement(previous, artifacts.cells, measure_repository(cwd, scope.to_measure))
+    measurement = measure_repository(cwd, scope.to_measure)
+    verdict = unmeasured_verdict(measurement, previous, artifacts.cells)
+    decision = check_measurement(previous, artifacts.cells, measurement)
+    # Persisting the state and replacing this key are different events: state is written even
+    # after a failing gate, but the contract's coverage is only rewritten by a run that
+    # actually measured clippy and stayed inside it.
+    decision.state.unmeasured_packages = next_unmeasured_packages(previous, verdict)
+    if verdict.regressed:
+        result = CheckResult(ok=False, message=regression_refusal(verdict))
+    else:
+        notice = unmeasured_notice(verdict)
+        message = "\n\n".join([decision.result.message, *(["\n".join(notice)] if notice else [])])
+        result = CheckResult(ok=decision.result.ok, message=message)
     if write:
         write_state(cwd, decision.state)
         write_quality_file(cwd, decision.state)
-    return decision.result
+    return result

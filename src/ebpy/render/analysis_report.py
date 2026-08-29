@@ -24,6 +24,22 @@ def _analyzer_table(report: AnalysisReport) -> list[str]:
     return lines
 
 
+def _unmeasured_notes(report: AnalysisReport) -> list[str]:
+    """One line per analyzer carrying an unmeasured range, naming the workspace and its packages.
+
+    Under the analyzer table rather than folded into it: a table cell cannot hold a variable
+    number of workspaces, and a reader scanning for coverage gaps needs them named, not counted.
+    """
+    lines: list[str] = []
+    for name, summary in report.analyzers:
+        for scope in summary.unmeasured:
+            packages = ", ".join(scope.packages)
+            lines.append(f"- `{name}` did not measure {scope.root} ({packages}).")
+    if not lines:
+        return []
+    return [*lines, ""]
+
+
 def _headline(report: AnalysisReport) -> list[str]:
     return [
         f"- New violations beyond the ceiling: **{report.new_total}**",
@@ -160,6 +176,7 @@ def render_analysis_report(report: AnalysisReport) -> str:
         "",
         *_failure_banners(report),
         *_analyzer_table(report),
+        *_unmeasured_notes(report),
         *_headline(report),
         *_new_rules(report),
     ]

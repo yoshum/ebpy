@@ -12,7 +12,7 @@ from ebpy.commands.report import run_report
 from ebpy.decide.analysis_report import report_from_measurement
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State
+from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State, UnmeasuredScope
 from ebpy.render.analysis_report import render_analysis_report
 from ebpy.store.baseline import write_cells
 from ebpy.store.state import write_state
@@ -200,3 +200,47 @@ def test_report_refuses_on_a_fresh_repository_with_nothing_to_measure(tmp_path: 
     """With no contract and no analyzer there is no standing for the report to show."""
     with pytest.raises(CommandError):
         run_report(tmp_path, as_json=False)
+
+
+# --- A package leaving the ceiling's coverage fails closed ------------------------------
+
+
+def test_carrying_the_backlog_stops_a_regressed_workspace_from_looking_drained() -> None:
+    """Pruning against this run's cells would erase the dropped workspace's backlog on screen."""
+    baseline = {"core/src/lib.rs": {"clippy:clippy::x": 3}}
+    measurement = Measurement({"clippy": Measured(tool="clippy", value=AnalysisMeasurement(cells={}))})
+
+    pruned = report_from_measurement(baseline, ("clippy",), measurement)
+    carried = report_from_measurement(baseline, ("clippy",), measurement, carry_backlog=frozenset({"clippy"}))
+
+    assert pruned.backlog_total == 0
+    assert carried.backlog_total == 3
+
+
+def test_report_never_refuses_but_carries_the_backlog_of_a_regressed_workspace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`report` renders the coverage notice and keeps the baseline backlog, rather than refusing."""
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(
+        tmp_path,
+        frozen_analyzers=("clippy",),
+        cells={"core/src/lib.rs": {"clippy:clippy::x": 3}},
+        rules={"clippy:clippy::x": RuleBaseline(baseline=3, current=3, status="draining")},
+    )
+    measurement = Measurement(
+        {
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("core",)),)
+                ),
+            )
+        }
+    )
+    monkeypatch.setattr(report_command, "measure_repository", lambda _cwd, _scope: measurement)
+
+    output = run_report(tmp_path, as_json=False)
+
+    assert "did not measure" in output
+    assert "**3**" in output  # the backlog is carried, not pruned to zero
