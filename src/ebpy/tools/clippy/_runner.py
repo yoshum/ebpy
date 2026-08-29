@@ -66,11 +66,16 @@ def _measure_workspace(directory: Path, workspace: RustWorkspace, repo_root: Pat
     argv = [
         "cargo",
         "clippy",
+        # Without it, a non-virtual workspace builds only the root package or `default-members`.
+        # The rest vanish silently, enter the ceiling as zero, and the next prune lowers it wrongly.
         "--workspace",
         "--message-format=json",
         "--target-dir",
         str(workspace.target_directory / _TARGET_SUBDIR),
         "--",
+        # `[lints.clippy] all = "deny"`, `#![deny(...)]` and `RUSTFLAGS=-Dwarnings` all promote
+        # lints to errors and set `success: false`, so a repository following Clippy's own CI
+        # guide could never freeze. This caps lint *levels* only; E0308 stays an error.
         "--cap-lints",
         "warn",
     ]
