@@ -25,7 +25,11 @@ def test_analyzer_protocol_exposes_name_noun_language_measure() -> None:
 
 def test_every_analyzer_declares_the_language_it_measures() -> None:
     """Each analyzer names its own language, which is intrinsic to the tool, not to a repository."""
-    assert {a.name: a.language for a in ANALYZERS} == {"ruff": "python", "mypy": "python"}
+    assert {a.name: a.language for a in ANALYZERS} == {
+        "ruff": "python",
+        "mypy": "python",
+        "clippy": "rust",
+    }
 
 
 def test_tools_package_imports_without_measurement_preloaded() -> None:
@@ -58,11 +62,11 @@ def test_detectors_registry_lists_all_tools() -> None:
     assert set(DETECTORS_BY_NAME) == names
 
 
-def test_registry_lists_ruff_and_mypy_with_valid_names() -> None:
-    """ANALYZERS contains exactly ruff and mypy, with valid names and non-empty nouns."""
+def test_registry_lists_the_three_analyzers_with_valid_names() -> None:
+    """ANALYZERS contains exactly ruff, mypy and clippy, with valid names and non-empty nouns."""
     names = tuple(a.name for a in ANALYZERS)
-    assert set(names) == {"ruff", "mypy"}
+    assert set(names) == {"ruff", "mypy", "clippy"}
     assert all(is_analyzer_name(a.name) for a in ANALYZERS)
-    assert all(a.noun for a in ANALYZERS)  # noun is non-empty
+    assert all(a.noun for a in ANALYZERS)
     assert set(ANALYZERS_BY_NAME) == set(names)
     assert tuple(sorted(names)) == ANALYZER_NAMES

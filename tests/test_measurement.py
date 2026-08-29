@@ -234,13 +234,14 @@ def test_analyzer_names_are_derived_from_the_registry() -> None:
 def test_measure_repository_produces_one_observation_per_registered_analyzer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Every analyzer in the registry is attempted, and no other name appears."""
+    """Every analyzer named in scope is attempted, and no other name appears."""
     monkeypatch.setattr(ruff_tool, "run_ruff_check", lambda _cwd: AnalysisMeasurement(cells={}))
     monkeypatch.setattr(mypy_tool, "run_mypy_check", lambda _cwd: AnalysisMeasurement(cells={}))
 
-    result = measure_repository(tmp_path, ("ruff", "mypy"))
+    scope = ("ruff", "mypy")
+    result = measure_repository(tmp_path, scope)
 
-    assert set(result.analyzers) == set(ANALYZER_NAMES)
+    assert set(result.analyzers) == set(scope)
 
 
 def test_measure_repository_runs_only_the_analyzers_in_scope(tmp_path: Path) -> None:

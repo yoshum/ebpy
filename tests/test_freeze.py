@@ -27,7 +27,6 @@ from ebpy.store.state import (
     with_phase,
     write_state,
 )
-from ebpy.tools import ANALYZER_NAMES
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -300,10 +299,15 @@ def test_an_incomplete_mypy_refusal_does_not_tell_the_user_to_edit_ruff() -> Non
 
 
 def test_an_unavailable_analyzer_refuses_a_normal_freeze_and_names_bootstrap() -> None:
+    """The refusal quotes mypy's own detail, which names `ebpy bootstrap`, not a fixed line."""
     measurement = Measurement(
         analyzers={
             "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
-            "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
+            "mypy": Unavailable(
+                tool="mypy",
+                detail="mypy is not installed here (looked in .venv, venv and PATH)."
+                " Run `ebpy bootstrap` first.",
+            ),
         }
     )
 
@@ -416,9 +420,14 @@ def test_force_refuses_an_incomplete_analyzer_too() -> None:
 
 
 def test_the_unavailable_refusal_points_at_bootstrap() -> None:
+    """The refusal quotes ruff's own detail, which names `ebpy bootstrap`, not a fixed line."""
     measurement = Measurement(
         analyzers={
-            "ruff": Unavailable(tool="ruff", detail="ruff not found"),
+            "ruff": Unavailable(
+                tool="ruff",
+                detail="ruff is not installed here (looked in .venv, venv and PATH)."
+                " Run `ebpy bootstrap` first.",
+            ),
             "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
         }
     )
@@ -429,6 +438,23 @@ def test_the_unavailable_refusal_points_at_bootstrap() -> None:
         )
 
     assert "bootstrap" in str(exc_info.value)
+
+
+def test_an_unavailable_analyzer_is_refused_with_its_own_installation_advice(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`ebpy bootstrap` provisions no clippy, so a fixed sentence naming it opens on nothing."""
+    # A Cargo.toml puts clippy in this repository's analyzer scope; without it `run_freeze`
+    # refuses "clippy is not in this repository's analyzer scope" before ever measuring.
+    (tmp_path / "Cargo.toml").touch()
+    measurement = Measurement(
+        {"clippy": Unavailable(tool="clippy", detail="run `rustup component add clippy`")}
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+    with pytest.raises(CommandError) as caught:
+        freeze.run_freeze(tmp_path, force=False, analyzer="clippy")
+    assert "rustup component add clippy" in str(caught.value)
+    assert "ebpy bootstrap" not in str(caught.value)
 
 
 def test_scoped_freeze_is_allowed_on_a_fresh_pair() -> None:
@@ -877,7 +903,11 @@ def test_scoped_freeze_rejects_undeclared_analyzer(tmp_path: Path) -> None:
 def test_global_freeze_with_no_config_uses_union_scope(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """No config: global freeze covers every analyzer this repository's language evidences."""
+    """No config: global freeze covers every analyzer this repository's language evidences.
+
+    Only `pyproject.toml` is present, so the repository evidences python and not rust —
+    the union is {ruff, mypy}, not every analyzer this build happens to have a runner for.
+    """
     (tmp_path / "pyproject.toml").touch()
     measurement = _both_analyzers_measurement()
     monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
@@ -888,7 +918,7 @@ def test_global_freeze_with_no_config_uses_union_scope(
     artifacts = read_ceiling_artifacts(tmp_path)
     assert artifacts.kind == "frozen"
     assert artifacts.ledger.state is not None
-    assert set(artifacts.ledger.state.frozen_analyzers) == set(ANALYZER_NAMES)
+    assert set(artifacts.ledger.state.frozen_analyzers) == {"ruff", "mypy"}
 
 
 def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(

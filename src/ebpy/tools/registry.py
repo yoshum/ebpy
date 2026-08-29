@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from ebpy.measurement import Measurement
 
+from .clippy import ClippyAnalyzer
 from .gitleaks import GitleaksDetector, GitleaksProvisioner
 from .mypy import MypyAnalyzer, MypyDetector, MypyProvisioner
 from .pytest import PytestDetector, PytestProvisioner
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 
 # Build via a typed list so mypy can verify Protocol compatibility and infer
 # tuple[Analyzer, ...] for ANALYZERS rather than the narrower concrete tuple.
-_registry: list[Analyzer] = [RuffAnalyzer(), MypyAnalyzer()]
+_registry: list[Analyzer] = [RuffAnalyzer(), MypyAnalyzer(), ClippyAnalyzer()]
 
 ANALYZERS: tuple[Analyzer, ...] = tuple(_registry)
 
