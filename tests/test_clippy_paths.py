@@ -131,3 +131,31 @@ def test_a_path_that_resolves_outside_the_repository_is_unattributed(tmp_path: P
 def test_a_nul_byte_in_a_path_is_unattributed_not_an_exception(tmp_path: Path) -> None:
     """Clippy's output is external input; a raw ValueError must not escape the parser."""
     assert _verdict(tmp_path, "src/li\x00b.rs")[0] == "unattributed"
+
+
+def test_collapsing_before_prefixing_prevents_the_workspace_root_from_becoming_a_cell_key(
+    tmp_path: Path,
+) -> None:
+    """Two collapses in order refuse a file at the workspace root itself.
+
+    With one collapse, `a/sub/..` collapses to `a`, which is a real file, incorrectly
+    giving `PathVerdict(kind="cell", path="a")`. Only two collapses — collapsing the
+    reported path before prefixing the workspace root — refuse it correctly.
+    """
+    _place(tmp_path, "a")
+    assert _verdict(tmp_path, "sub/..", root="a")[0] == "unattributed"
+
+
+def test_the_cell_key_is_the_collapsed_lexical_path_not_the_resolved_one(tmp_path: Path) -> None:
+    """A ceiling keyed on resolved paths does not reproduce on another machine's symlinks.
+
+    Create a real file, symlink to it from inside the repository, and report the symlinked
+    path. The returned cell key must be the collapsed lexical path that was reported,
+    not the resolved path that normalization would need to produce a reproducible ceiling.
+    """
+    _place(tmp_path, "vendor/other/lib.rs")
+    (tmp_path / "crates").mkdir(exist_ok=True)
+    (tmp_path / "crates" / "shared").symlink_to("../vendor/other", target_is_directory=True)
+    kind, path = _verdict(tmp_path, "crates/shared/lib.rs")
+    assert kind == "cell"
+    assert path == "crates/shared/lib.rs"
