@@ -114,6 +114,10 @@ def test_a_rule_id_keeps_its_clippy_prefix_through_the_work_log(tmp_path: Path) 
     assert main(["log", "--kind", "drained", "fixed one", "--rule", _RULE, "--cwd", str(tmp_path)]) == 0
 
 
+@pytest.mark.skipif(
+    shutil.which("ruff") is None or shutil.which("mypy") is None,
+    reason="needs real ruff and mypy on PATH",
+)
 def test_a_mixed_repository_freezes_every_analyzer_together(tmp_path: Path) -> None:
     _crate(tmp_path, _DIRTY)
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\nversion='0'\n", encoding="utf-8")
