@@ -27,7 +27,6 @@ from ebpy.store.state import (
     with_phase,
     write_state,
 )
-from ebpy.tools import ANALYZER_NAMES
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -103,6 +102,7 @@ def test_freeze_refuses_a_baseline_without_its_ledger(
 def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    (tmp_path / "pyproject.toml").touch()
     write_cells(tmp_path, {"src/old.py": {"ruff:F401": 1}})
     monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
@@ -115,6 +115,7 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
 def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    (tmp_path / "pyproject.toml").touch()
     baseline_target = tmp_path / "outside-baseline.json"
     state_target = tmp_path / "outside-state.json"
     baseline_text = "{}\n"
@@ -143,6 +144,7 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
 def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_target(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    (tmp_path / "pyproject.toml").touch()
     outside = tmp_path / "outside-artifacts"
     outside.mkdir()
     baseline_text = "{}\n"
@@ -475,6 +477,7 @@ def test_scoped_freeze_on_a_fresh_pair_yields_a_valid_frozen_contract(
     Driving the whole command on a fresh repository with `--analyzer` writes a pair that
     reads back as a valid frozen contract, not an invalid half-freeze.
     """
+    (tmp_path / "pyproject.toml").touch()
     measurement = Measurement(
         analyzers={
             "ruff": Measured(
@@ -873,7 +876,12 @@ def test_scoped_freeze_rejects_undeclared_analyzer(tmp_path: Path) -> None:
 def test_global_freeze_with_no_config_uses_union_scope(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """No config: global freeze covers all registered analyzers, identical to pre-config behavior."""
+    """No config: global freeze covers every analyzer this repository's language evidences.
+
+    Only `pyproject.toml` is present, so the repository evidences python and not rust — the
+    union is {ruff, mypy}, not every analyzer this build happens to have a runner for.
+    """
+    (tmp_path / "pyproject.toml").touch()
     measurement = _both_analyzers_measurement()
     monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
@@ -883,7 +891,7 @@ def test_global_freeze_with_no_config_uses_union_scope(
     artifacts = read_ceiling_artifacts(tmp_path)
     assert artifacts.kind == "frozen"
     assert artifacts.ledger.state is not None
-    assert set(artifacts.ledger.state.frozen_analyzers) == set(ANALYZER_NAMES)
+    assert set(artifacts.ledger.state.frozen_analyzers) == {"ruff", "mypy"}
 
 
 def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
@@ -921,3 +929,17 @@ def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
     assert result.ledger.state is not None
     assert result.ledger.state.frozen_analyzers == ("ruff",)
     assert not any(k.startswith("mypy:") for k in result.ledger.state.rules)
+
+
+def test_a_global_freeze_refuses_when_no_analyzer_applies_to_this_repository(tmp_path: Path) -> None:
+    """A ceiling written from no analyzers would record "nothing was found" for "nobody looked"."""
+    with pytest.raises(CommandError, match="No analyzer applies here"):
+        run_freeze(tmp_path, force=False, analyzer=None)
+
+
+def test_a_scoped_freeze_refuses_an_analyzer_outside_this_repository_scope(tmp_path: Path) -> None:
+    """The scope, not the config alone, is what a named analyzer must belong to."""
+    (tmp_path / "Cargo.toml").touch()
+    with pytest.raises(CommandError) as caught:
+        run_freeze(tmp_path, force=False, analyzer="ruff")
+    assert "analyzer scope" in str(caught.value)

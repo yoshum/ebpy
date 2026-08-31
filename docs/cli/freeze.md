@@ -41,19 +41,35 @@ If an analyzer cannot run, fix the toolchain first — `ebpy bootstrap` can inst
 intentionally unparseable (a template, a fixture, a legacy file), add it to `exclude` /
 `extend-exclude` in the Ruff config, then re-run.
 
+## When nothing applies
+
+A global `freeze` refuses if the contract it would write is empty: `.ebpy/config.json` declares no
+analyzers, or (with no declaration) the repository evidences none of the languages its analyzers
+measure **and** no earlier contract already covered one — an existing frozen roster is carried
+through even when its language later disappears, so a marker file removed by mistake cannot
+silently drop an analyzer from the contract. `freeze --analyzer NAME` refuses on a related but
+distinct condition: NAME itself not being in this run's detected or declared scope. Declare it in
+`.ebpy/config.json`, or check that what it measures is actually present here. Either refusal writes
+nothing — measuring nothing is not the same as measuring zero.
+
 ## The scope × force contract
 
 | Invocation | Artifact precondition | What changes |
 | --- | --- | --- |
-| `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | All analyzers' complete cells become the initial contract. |
-| `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; all analyzers' complete cells become a new contract. |
+| `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | The in-scope set's complete cells become the initial contract. |
+| `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; the in-scope set's complete cells become a new contract. |
 | `freeze --analyzer NAME` | A fresh pair, or a valid frozen pair; NAME must not be in the contract yet. | On a fresh pair, builds a narrow contract holding only NAME. On a frozen pair, adds NAME's cells to the existing contract, leaving every other namespace untouched. |
 | `freeze --force --analyzer NAME` | A fresh pair, or a valid frozen pair. | Replaces (or on a fresh pair, installs) NAME's cells and rules, leaving every other namespace untouched. |
 
-**No invocation removes an analyzer from a contract.** A global `freeze` covers every analyzer this
-build ships and refuses if any is missing, so it cannot silently narrow the roster. `--force`
-governs only the artifact precondition — whether an existing contract may be overwritten — and does
-not change which analyzers a global freeze puts in scope.
+A global freeze's "in-scope set" is `.ebpy/config.json`'s declared analyzers when there is a
+declaration, or detected analyzers unioned with whatever is already frozen when there is not — so
+an undeclared repository can never lose an analyzer from its contract just because the language
+that justified it went away. **No invocation narrows a contract implicitly.** The only way to drop
+an analyzer is to declare a narrower set in `.ebpy/config.json` and run `ebpy freeze --force`:
+`--force` alone only governs the artifact precondition, but combined with a narrowed declaration it
+becomes the in-scope set for the new contract, and analyzers that fall out of it are dropped. This
+is the recovery path the mismatch message itself names when the frozen contract and the declaration
+disagree.
 
 Scoped operations (`--analyzer NAME`) accept a fresh pair or a valid frozen pair. On a fresh pair
 they build a narrow contract from the start; on a frozen pair they read and preserve the existing
