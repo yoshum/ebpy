@@ -18,7 +18,8 @@ ebpy report --json
 - per-analyzer status — complete, incomplete, unavailable, failed, no-runner, or scope-mismatch —
   and the details when a measurement could not be taken or the contract disagrees with this run's
   scope;
-- how many files have findings, per analyzer.
+- how many files have findings, per analyzer;
+- which ranges an analyzer's own runner could not measure this run, if any.
 
 Every in-scope analyzer is measured independently. If Ruff cannot run but mypy can, the report
 still includes the mypy backlog alongside the last known Ruff ceiling. If an analyzer cannot run, the report names
@@ -90,7 +91,8 @@ frozen contract names even when this run did not measure it — that second case
       "filesWithFindings": 3,
       "failure": null,
       "unattributedTotal": 0,
-      "unattributed": []
+      "unattributed": [],
+      "unmeasured": []
     },
     "ruff": {
       "inContract": true,
@@ -101,7 +103,8 @@ frozen contract names even when this run did not measure it — that second case
       "unattributedTotal": 1,
       "unattributed": [
         {"file": "fixtures/broken.py", "line": 7, "message": "Expected an expression"}
-      ]
+      ],
+      "unmeasured": []
     }
   }
 }
@@ -128,6 +131,12 @@ observation flagged `scope-mismatch` still reports real `findings` and can still
 - `unattributedTotal` and `unattributed` reflect the `Measured` observation's own unattributed
   findings — syntax errors and the like — whenever it is `Measured`, regardless of `status`. They
   are `0` and `[]` for `unavailable`, `failed` and `no-runner`.
+- `unmeasured` lists the ranges that analyzer's own runner could not measure this run (a Rust
+  workspace that does not compile in the configuration ebpy measures, for clippy) — present as `[]`
+  unless the runner actually reported one, and `[]` for `unavailable`, `failed` or `no-runner`.
+  Each entry is `{"root": ..., "packages": [...]}`. See
+  [the unmeasured-package regression](check.md#a-workspace-clippy-can-no-longer-measure) for what a
+  non-empty list means to the gate.
 
 ## Reading it
 
