@@ -694,6 +694,31 @@ def test_check_records_a_widened_contract_so_a_second_break_is_still_caught(
     assert state.unmeasured_packages == ()
 
 
+def test_check_reports_the_unmeasured_notice_for_a_range_already_outside_coverage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A passing check is the only place a range holding no ceiling is said out loud."""
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={}, unmeasured_packages=("fuzz",))
+    measurement = Measurement(
+        {
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("fuzz",)),)
+                ),
+            )
+        }
+    )
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
+
+    result = check_command.run_check(tmp_path, write=False)
+
+    assert result.ok is True
+    assert "1 workspace(s) not measured in this configuration:" in result.message
+    assert "does not compile in the configuration ebpy measures" in result.message
+
+
 def test_a_failing_check_persists_state_without_emptying_the_unmeasured_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
