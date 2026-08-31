@@ -23,6 +23,15 @@ The reclaimed count is measured against the baseline **file**, not the ledger: a
 the fix has already lowered the ledger's current numbers, so comparing that would report every prune
 as a no-op.
 
+## The contract and this run's scope must agree
+
+Before measuring, `prune` reconciles what `.ebpy/config.json` declares, what language detection
+finds, and what the frozen contract already covers. Any disagreement between them refuses outright,
+naming what disagrees and how to reconcile it — the same check `check` makes, and for the same
+reason: lowering a ceiling nobody could verify would be a false "reclaimed". An empty scope (no
+declaration and no evidenced language, or a declaration naming none) refuses the same way: there is
+nothing to prune.
+
 ## Commit it with the fix
 
 ```bash

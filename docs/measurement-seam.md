@@ -76,10 +76,16 @@ Commands decide what partial success means:
 | `prune` | preserves that namespace without touching it | preserves that namespace without touching it |
 
 `report --json` exposes per-analyzer status in the `analyzers` object. Each entry includes
-`status` (`complete`, `incomplete`, `unavailable`, or `failed`), `findings`, `filesWithFindings`,
-`failure` (the bounded multi-line detail when unavailable or failed, otherwise `null`), and
-`unattributedTotal` / `unattributed` samples when incomplete. A detail that reaches the line or
-character bound ends with `... (truncated)`.
+`status` (`complete`, `incomplete`, `unavailable`, `failed`, `no-runner`, or `scope-mismatch`),
+`findings`, `filesWithFindings`, `failure` (the bounded multi-line detail when unavailable or
+failed, otherwise `null`), and `unattributedTotal` / `unattributed` samples whenever the
+observation carries unattributed findings — which is not exclusive to `incomplete`: a `Measured`
+observation flagged `scope-mismatch` still reports the unattributed findings it measured.
+`no-runner` is `report`'s own name for `classify(None)` — a contract analyzer this build has no
+runner for at all. `scope-mismatch` is `report`'s own widening of the seam's vocabulary: an
+analyzer the frozen contract names but this run's detected or declared scope does not (see
+"Command shape" below). A detail that reaches the line or character bound ends with
+`... (truncated)`.
 
 ## Command shape
 
@@ -89,13 +95,24 @@ order:
 ```text
 read and classify CeilingArtifacts
   → enforce the command's precondition
+  → scope decision + reconciliation
   → measure_repository
   → pure decision over values
   → persist and render
 ```
 
 The precondition stays first. An invalid or already-frozen contract must be refused before any tool
-runs. Measurement never reads or repairs `.ebpy/baseline.json` or `.ebpy/state.json`.
+runs — with one deliberate exception: a global `freeze --force` is the recovery path for an invalid
+pair, so it skips this refusal on purpose and proceeds straight to scope and measurement, discarding
+the old contract rather than reading it. Measurement never reads or repairs `.ebpy/baseline.json` or
+`.ebpy/state.json`.
+
+Scope decision comes next, once the precondition has cleared: `scope_decision` reconciles what
+`.ebpy/config.json` declares, what language detection finds, and what the frozen contract already
+covers into one `ScopeDecision`. Its `to_measure` (or, for a global freeze, `global_freeze_scope`)
+is the analyzer-name tuple `measure_repository` is actually called with — the seam itself never
+sees the three authorities, only the names they agreed on (see `docs/cli/freeze.md`, `check.md`,
+`prune.md` and `report.md` for what each command does with a disagreement between those three).
 
 The public decision functions are the test surface:
 
