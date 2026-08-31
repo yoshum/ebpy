@@ -1,24 +1,27 @@
 # Measurement seam
 
 `Measurement` is the value seam between a repository's toolchain and ebpy's ratchet decisions.
-It exists so Ruff and mypy may change without teaching every command their executable discovery,
-arguments, exit codes or output formats.
+It exists so an analyzer's toolchain may change without teaching every command its executable
+discovery, arguments, exit codes or output formats.
 
 The seam owns measured facts. It does not own ceilings, gate policy or persistence.
 
 ## The value
 
-`measure_repository(cwd)` returns one frozen `Measurement`. There is no protocol, adapter registry
-or plugin framework: callers need a value, and a second production implementation does not yet
-exist.
+`measure_repository(cwd, scope)` returns one frozen `Measurement`. `scope` is the analyzer names
+this run measures — decided by the caller, never by the registry itself — and a name the scope
+names but this build has no runner for is skipped rather than raised. There is no protocol,
+adapter registry or plugin framework: callers need a value, and a second production
+implementation does not yet exist.
 
-Each analyzer has exactly one observation:
+Each analyzer in scope has exactly one observation:
 
 ```text
 Measurement
 └── analyzers
-    ├── ruff: Measured[AnalysisMeasurement] | Unavailable | Failed
-    └── mypy: Measured[AnalysisMeasurement] | Unavailable | Failed
+    ├── ruff:   Measured[AnalysisMeasurement] | Unavailable | Failed
+    ├── mypy:   Measured[AnalysisMeasurement] | Unavailable | Failed
+    └── clippy: Measured[AnalysisMeasurement] | Unavailable | Failed
 ```
 
 There is no parallel status array. A value cannot simultaneously say that an analyzer failed and
@@ -53,16 +56,19 @@ The command layer sees ebpy concepts rather than tool output:
 - files carrying findings;
 - measured, unavailable or failed capabilities.
 
-Ruff and mypy are the two analyzers in the initial implementation. Their runners own executable
-discovery, CLI arguments, exit-code interpretation and parsing. `CellCounts` and `AnalysisMeasurement`
-live in `models.py` because both measurement and ceiling modules share them; measurement does not
-import the baseline persistence module.
+Ruff, mypy and clippy are the analyzers this build ships. Each carries a `language` (Ruff and mypy
+are Python; clippy is Rust), which is what lets a caller project a repository's detected languages
+onto the analyzer set instead of hardcoding one. Their runners own executable discovery, CLI
+arguments, exit-code interpretation and parsing. `CellCounts` and `AnalysisMeasurement` live in
+`models.py` because both measurement and ceiling modules share them; measurement does not import
+the baseline persistence module.
 
 ## Independent capabilities
 
-Ruff and mypy are attempted independently. A Ruff failure does not skip mypy. This keeps
-Measurement a snapshot of everything that could be measured instead of a trace of which subprocess
-happened to run first.
+Every in-scope analyzer is attempted independently. One analyzer's failure does not skip another —
+a Ruff failure does not skip mypy, a clippy failure does not skip either. This keeps Measurement a
+snapshot of everything that could be measured instead of a trace of which subprocess happened to
+run first.
 
 Commands decide what partial success means:
 
@@ -74,10 +80,16 @@ Commands decide what partial success means:
 | `prune` | preserves that namespace without touching it | preserves that namespace without touching it |
 
 `report --json` exposes per-analyzer status in the `analyzers` object. Each entry includes
-`status` (`complete`, `incomplete`, `unavailable`, or `failed`), `findings`, `filesWithFindings`,
-`failure` (the bounded multi-line detail when unavailable or failed, otherwise `null`), and
-`unattributedTotal` / `unattributed` samples when incomplete. A detail that reaches the line or
-character bound ends with `... (truncated)`.
+`status` (`complete`, `incomplete`, `unavailable`, `failed`, `no-runner`, or `scope-mismatch`),
+`findings`, `filesWithFindings`, `failure` (the bounded multi-line detail when unavailable or
+failed, otherwise `null`), and `unattributedTotal` / `unattributed` samples whenever the
+observation carries unattributed findings — which is not exclusive to `incomplete`: a `Measured`
+observation flagged `scope-mismatch` still reports the unattributed findings it measured.
+`no-runner` is `report`'s own name for `classify(None)` — a contract analyzer this build has no
+runner for at all. `scope-mismatch` is `report`'s own widening of the seam's vocabulary: an
+analyzer the frozen contract names but this run's detected or declared scope does not (see
+"Command shape" below). A detail that reaches the line or character bound ends with
+`... (truncated)`.
 
 ## Command shape
 
@@ -87,13 +99,24 @@ order:
 ```text
 read and classify CeilingArtifacts
   → enforce the command's precondition
+  → scope decision + reconciliation
   → measure_repository
   → pure decision over values
   → persist and render
 ```
 
 The precondition stays first. An invalid or already-frozen contract must be refused before any tool
-runs. Measurement never reads or repairs `.ebpy/baseline.json` or `.ebpy/state.json`.
+runs — with one deliberate exception: a global `freeze --force` is the recovery path for an invalid
+pair, so it skips this refusal on purpose and proceeds straight to scope and measurement, discarding
+the old contract rather than reading it. Measurement never reads or repairs `.ebpy/baseline.json` or
+`.ebpy/state.json`.
+
+Scope decision comes next, once the precondition has cleared: `scope_decision` reconciles what
+`.ebpy/config.json` declares, what language detection finds, and what the frozen contract already
+covers into one `ScopeDecision`. Its `to_measure` (or, for a global freeze, `global_freeze_scope`)
+is the analyzer-name tuple `measure_repository` is actually called with — the seam itself never
+sees the three authorities, only the names they agreed on (see `docs/cli/freeze.md`, `check.md`,
+`prune.md` and `report.md` for what each command does with a disagreement between those three).
 
 The public decision functions are the test surface:
 

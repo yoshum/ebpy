@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ebpy"
 version = "0.9.0"
-description = "Make an existing Python codebase one that can only get better — a Python port of ever-better."
+description = "Make an existing codebase one that can only get better — a Python port of ever-better."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"

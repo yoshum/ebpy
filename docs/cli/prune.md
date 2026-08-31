@@ -23,6 +23,24 @@ The reclaimed count is measured against the baseline **file**, not the ledger: a
 the fix has already lowered the ledger's current numbers, so comparing that would report every prune
 as a no-op.
 
+## The contract and this run's scope must agree
+
+Before measuring, `prune` reconciles what `.ebpy/config.json` declares, what language detection
+finds, and what the frozen contract already covers. Any disagreement between them refuses outright,
+naming what disagrees and how to reconcile it — the same check `check` makes, and for the same
+reason: lowering a ceiling nobody could verify would be a false "reclaimed". An empty scope (no
+declaration and no evidenced language, or a declaration naming none) refuses the same way: there is
+nothing to prune.
+
+## A workspace clippy can no longer measure
+
+If a Rust workspace clippy's contract previously covered no longer compiles in the configuration
+ebpy measures, `prune` refuses rather than lowering that workspace's cells against a measurement
+simply missing them — which would look like the debt drained rather than like coverage narrowing.
+Fix the `cfg` so the workspace compiles again, or run `ebpy freeze --force` to accept the narrower
+contract deliberately; `prune` itself never narrows what the contract covers, only `freeze --force`
+does.
+
 ## Commit it with the fix
 
 ```bash

@@ -1,4 +1,4 @@
-"""ebpy — make a Python codebase that can only get better."""
+"""ebpy — make a codebase that can only get better."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the ebpy argument parser, repeating the global --cwd/--json flags after each subcommand."""
     parser = argparse.ArgumentParser(
         prog="ebpy",
-        description="Make a Python codebase that can only get better.",
+        description="Make a codebase that can only get better.",
         epilog=USAGE_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

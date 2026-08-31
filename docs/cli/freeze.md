@@ -9,9 +9,10 @@ ebpy freeze --analyzer NAME         # add one analyzer to an existing contract
 ebpy freeze --force --analyzer NAME # replace one analyzer in an existing contract
 ```
 
-It runs Ruff and mypy, writes today's **per-file per-rule** counts to `.ebpy/baseline.json` with
-rule IDs namespaced as `ruff:F401`, `mypy:arg-type` and so on, records the contract in
-`.ebpy/state.json`, and renders `QUALITY.md`.
+It measures every analyzer in scope for this repository — Ruff and mypy for Python, clippy for
+Rust — writes today's **per-file per-rule** counts to `.ebpy/baseline.json` with rule IDs
+namespaced as `ruff:F401`, `mypy:arg-type`, `clippy:clippy::needless_return` and so on, records the
+contract in `.ebpy/state.json`, and renders `QUALITY.md`.
 
 From that commit on, every rule is an error for new code and no existing line had to change.
 
@@ -40,6 +41,36 @@ incomplete analyzer and proceeds.
 If an analyzer cannot run, fix the toolchain first — `ebpy bootstrap` can install it. If a file is
 intentionally unparseable (a template, a fixture, a legacy file), add it to `exclude` /
 `extend-exclude` in the Ruff config, then re-run.
+
+## When nothing applies
+
+A global `freeze` refuses if the contract it would write is empty: `.ebpy/config.json` declares no
+analyzers, or (with no declaration) the repository evidences none of Ruff, mypy or clippy's
+languages **and** no earlier contract already covered one — an existing frozen roster is carried
+through even when its language later disappears, so a `Cargo.toml` removed by mistake cannot
+silently drop clippy from the contract. `freeze --analyzer NAME` refuses on a related but distinct
+condition: NAME itself not being in this run's detected or declared scope. Declare it in
+`.ebpy/config.json`, or check that what it measures is actually present here. Either refusal writes
+nothing — measuring nothing is not the same as measuring zero.
+
+## Coverage clippy could not measure
+
+If a Rust workspace clippy measures does not compile in the configuration ebpy uses — typically
+because it references items hidden behind a `cfg` — the freeze message names it: "N workspace(s)
+not measured in this configuration: ...". That workspace's packages are recorded as outside the
+contract's coverage once this freeze completes, and [`check`](check.md), `prune` and `report` all
+then say the same thing about it on every later run, until clippy measures it again.
+
+This can only ever *narrow* an existing clippy contract under `--force`. An ordinary freeze cannot
+walk into that state on its own: re-freezing an analyzer already in the contract is refused before
+measurement even runs, coverage aside — "already frozen" for a global freeze, "already in the
+frozen contract" for `freeze --analyzer clippy`. `--force` is what lets you replace an existing
+contract, and a coverage drop found while doing so is accepted as part of that deliberate
+replacement rather than refused a second time. It is
+[`check`](check.md#a-workspace-clippy-can-no-longer-measure) and
+[`prune`](prune.md#a-workspace-clippy-can-no-longer-measure) that refuse — they run against an
+already-frozen contract on every invocation, so a coverage drop is exactly the kind of surprise
+they exist to catch.
 
 ## The scope × force contract
 

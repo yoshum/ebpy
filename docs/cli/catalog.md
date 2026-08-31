@@ -19,6 +19,14 @@ Nothing else reports the same function written a sixth time under a sixth name �
 failure this exists to prevent, and the one an agent starting a fresh session is most likely to
 commit.
 
+## Python-only
+
+`catalog` walks `.py` files for public callables; it has nothing to extract from any other
+language. On a repository with no Python it refuses rather than writing an empty
+`docs/shared-helpers.md` — an empty catalog would read as "this repository has no duplication
+risk" when it is really "nothing was looked at". `ebpy freeze`, `check`, `prune`, `report`,
+`status`, `log`, `secrets` and `next` all still work there.
+
 ## What it lists
 
 Public module-level callables — names not starting with `_` — from the repository's own source

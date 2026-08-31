@@ -41,6 +41,10 @@ hard is this" is how far the fix reaches.
   the fix is local however many modules import it.
 - The number is printed only where it is above zero. Printing "imported by 0" on every row of a
   repository that never asked for the graph would read as a measurement rather than an absence.
+- **Python-only.** The import graph is built by parsing `.py` files with `ast`; on a repository with
+  no Python, `--fan-in` refuses rather than silently printing every row as "imported by 0". Plain
+  `ebpy next` (no `--fan-in`) has no such restriction — it ranks whatever the baseline already
+  holds, for every analyzer.
 
 ## Reading it during a drain
 
