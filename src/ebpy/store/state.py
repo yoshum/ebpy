@@ -11,6 +11,7 @@ import operator
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 from ebpy.cell_key import analyzer_of, is_analyzer_name, is_rule_id
@@ -130,6 +131,23 @@ def _valid_frozen_analyzers(value: object) -> TypeGuard[list[str]]:
     )
 
 
+def _valid_unmeasured_packages(value: object) -> bool:
+    """Validate as strictly as the roster: a key that states the contract is never half-read."""
+    if value is None:
+        return True
+    return (
+        isinstance(value, list)
+        and all(
+            isinstance(package, str)
+            and bool(package)
+            and not package.startswith("/")
+            and ".." not in PurePosixPath(package).parts
+            for package in value
+        )
+        and len(set(value)) == len(value)
+    )
+
+
 def _valid_v2_rule(rule: object) -> bool:
     baseline = rule.get("baseline") if isinstance(rule, dict) else None
     current = rule.get("current") if isinstance(rule, dict) else None
@@ -162,6 +180,7 @@ def _has_valid_v2_shape(raw: dict[str, Any]) -> bool:
         and _valid_common_fields(raw)
         and _valid_v2_rules(raw.get("rules"), frozen_analyzers)
         and _valid_log(raw.get("log", []))
+        and _valid_unmeasured_packages(raw.get("unmeasuredPackages"))
     )
 
 
@@ -181,6 +200,7 @@ def state_from_dict(raw: dict[str, Any]) -> State | None:
             diagnosed_commit=raw.get("diagnosedCommit"),
             diagnosis=diagnosis_from_dict(diagnosis_raw) if isinstance(diagnosis_raw, dict) else None,
             frozen_analyzers=tuple(raw["frozenAnalyzers"]),
+            unmeasured_packages=tuple(raw.get("unmeasuredPackages") or ()),
             rules={
                 name: RuleBaseline(baseline=rule["baseline"], current=rule["current"], status=rule["status"])
                 for name, rule in raw["rules"].items()
@@ -207,6 +227,7 @@ def state_to_dict(state: State) -> dict[str, Any]:
         "diagnosedCommit": state.diagnosed_commit,
         "diagnosis": state.diagnosis.to_dict() if state.diagnosis else None,
         "frozenAnalyzers": sorted(state.frozen_analyzers),
+        "unmeasuredPackages": sorted(state.unmeasured_packages),
         "rules": {
             name: {"baseline": rule.baseline, "current": rule.current, "status": rule.status}
             for name, rule in sorted(state.rules.items(), key=operator.itemgetter(0))
