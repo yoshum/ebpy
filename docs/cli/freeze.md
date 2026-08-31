@@ -72,6 +72,15 @@ replacement rather than refused a second time. It is
 already-frozen contract on every invocation, so a coverage drop is exactly the kind of surprise
 they exist to catch.
 
+## Pin the Rust toolchain
+
+Clippy's lint set moves between rustc releases, and rustup resolves the toolchain per directory —
+a nested `rust-toolchain.toml` changes what `cargo clippy` runs without changing anything ebpy
+reads. If `freeze` measures with one toolchain and a later `check` runs with another, the two can
+disagree, and the difference surfaces as findings beyond the ceiling — a regression nobody
+introduced. Commit a `rust-toolchain.toml` pinning the toolchain so `freeze` and `check` always
+measure the same clippy.
+
 ## The scope × force contract
 
 | Invocation | Artifact precondition | What changes |
