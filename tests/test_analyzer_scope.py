@@ -7,7 +7,7 @@ from ebpy.models import State
 from ebpy.repo.detect.language import RepoLanguages
 from ebpy.store.config import EbpyConfig
 
-REGISTERED = frozenset({"ruff", "mypy"})
+REGISTERED = frozenset({"ruff", "mypy", "clippy"})
 
 
 def _decision(
@@ -52,9 +52,9 @@ def test_a_declared_set_must_match_the_contract_in_both_directions() -> None:
 def test_a_detected_set_is_reconciled_in_one_direction_only() -> None:
     """Detected-but-unfrozen is a diagnose gap, not an error; frozen-but-undetected fails closed."""
     unfrozen = _decision(detected=frozenset({"ruff", "mypy"}), frozen=frozenset({"ruff"}))
-    undetected = _decision(detected=frozenset({"ruff"}), frozen=frozenset({"ruff", "mypy"}))
+    undetected = _decision(detected=frozenset({"ruff"}), frozen=frozenset({"ruff", "clippy"}))
     assert unfrozen.mismatch() is None
-    assert undetected.scope_mismatches == frozenset({"mypy"})
+    assert undetected.scope_mismatches == frozenset({"clippy"})
 
 
 def test_an_unregistered_frozen_analyzer_stays_a_no_runner_case() -> None:
@@ -71,10 +71,10 @@ def test_reconciliation_does_not_depend_on_ordering() -> None:
 
 
 def test_a_forced_freeze_without_a_config_keeps_the_existing_contract() -> None:
-    """A repository that stopped evidencing a language must not silently lose it from the contract."""
-    decision = _decision(detected=frozenset(), frozen=frozenset({"mypy"}))
+    """Deleting Cargo.toml must not drop clippy from the contract just because nothing declared it."""
+    decision = _decision(detected=frozenset(), frozen=frozenset({"clippy"}))
     assert decision.to_measure == ()
-    assert decision.global_freeze_scope == ("mypy",)
+    assert decision.global_freeze_scope == ("clippy",)
 
 
 def test_a_declared_set_is_the_whole_freeze_scope() -> None:
@@ -87,11 +87,18 @@ def test_scope_decision_projects_languages_onto_analyzer_names() -> None:
     state = State(frozen_analyzers=("ruff",))
     decision = scope_decision(None, RepoLanguages(frozenset({"python"})), state)
     assert decision.detected_analyzers == frozenset({"ruff", "mypy"})
+    assert "clippy" not in decision.detected_analyzers
     assert decision.frozen == frozenset({"ruff"})
 
 
+def test_a_rust_only_repository_detects_only_the_rust_analyzer() -> None:
+    """The projection is over languages, so ruff and mypy fall out of a Cargo-only tree."""
+    decision = scope_decision(None, RepoLanguages(frozenset({"rust"})), State())
+    assert decision.detected_analyzers == frozenset({"clippy"})
+
+
 def test_a_repository_evidencing_no_measured_language_detects_no_analyzer() -> None:
-    """The projection is over languages, so a tree evidencing none reaches the empty-scope refusal."""
+    """An empty language set reaches the empty-scope refusal rather than measuring everything."""
     assert scope_decision(None, RepoLanguages(frozenset()), State()).detected_analyzers == frozenset()
 
 
