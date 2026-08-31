@@ -45,6 +45,11 @@ class PytestDetector:
         """Pytest is a Python tool."""
         return frozenset({"python"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt pytest before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when pytest is configured via any standard mechanism."""
         return ToolSetup(

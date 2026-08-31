@@ -254,19 +254,39 @@ def test_a_non_analyzer_tool_never_becomes_an_unratcheted_gap(tmp_path: Path) ->
     assert not any(gap_id.startswith("unratcheted:") for gap_id in gap_ids)
 
 
-def test_diagnose_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
-    """Its size distribution counts only .py, so it would report "0 files over 600 lines"."""
-    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
-    with pytest.raises(CommandError) as caught:
-        run_diagnose(tmp_path, as_json=False, write=False)
-    assert "Python" in str(caught.value)
-
-
-def test_a_mixed_repository_still_runs_every_python_command(tmp_path: Path) -> None:
-    """The refusal is for repositories with no Python, never for repositories that also have Rust."""
+def test_a_python_only_repository_gets_no_clippy_setup(tmp_path: Path) -> None:
+    """A Cargo-less repository must not carry a permanent, uncloseable clippy row and gap."""
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    facts = gather_facts(tmp_path)
+    diagnosis = diagnose(facts, (), frozenset({"python"}))
+    assert "clippy" not in diagnosis.tool_setups
+    assert "ruff" in diagnosis.tool_setups
+
+
+def test_a_rust_repository_without_a_clippy_config_is_still_offered_the_ratchet(tmp_path: Path) -> None:
+    """The mixed-repository case the whole feature exists for."""
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
-    assert run_diagnose(tmp_path, as_json=False, write=False)
+    gaps = diagnose(gather_facts(tmp_path), (), frozenset({"rust"})).gaps
+    assert "unratcheted:clippy" in {g.id for g in gaps}
+
+
+def test_an_unconfigured_ruff_is_not_offered_the_ratchet(tmp_path: Path) -> None:
+    """`ebpy freeze --analyzer ruff` would fail: ruff is not installed, so the advice is unusable."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    gaps = diagnose(gather_facts(tmp_path), (), frozenset({"python"})).gaps
+    assert "unratcheted:ruff" not in {g.id for g in gaps}
+
+
+def test_a_frozen_clippy_produces_no_unratcheted_gap(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    gaps = diagnose(gather_facts(tmp_path), ("clippy",), frozenset({"rust"})).gaps
+    assert "unratcheted:clippy" not in {g.id for g in gaps}
+
+
+def test_a_python_only_repository_does_not_crash_on_a_missing_clippy_setup(tmp_path: Path) -> None:
+    """After the language filter there is no clippy setup at all; the None guard is what saves it."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    assert diagnose(gather_facts(tmp_path), (), frozenset({"python"})).gaps is not None
 
 
 def test_secret_scanning_runs_in_every_repository(tmp_path: Path) -> None:
@@ -283,3 +303,24 @@ def test_the_diagnosis_renders_without_a_key_for_every_detector(tmp_path: Path) 
     output = render_diagnosis(diagnose(gather_facts(tmp_path), (), frozenset()))
     assert "ruff" not in output
     assert "secret scan" in output
+
+
+def test_the_diagnosis_renders_an_unknown_stored_setup_without_raising() -> None:
+    """The ledger reads back whatever keys it holds, including a future ebpy's unknown tool."""
+    diagnosis = diagnosis_from_dict({"toolSetups": {"pylint": {"configured": True}}})
+    assert render_diagnosis(diagnosis)
+
+
+def test_diagnose_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
+    """Its size distribution counts only .py, so it would report "0 files over 600 lines"."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    with pytest.raises(CommandError) as caught:
+        run_diagnose(tmp_path, as_json=False, write=False)
+    assert "Python" in str(caught.value)
+
+
+def test_a_mixed_repository_still_runs_every_python_command(tmp_path: Path) -> None:
+    """The refusal is for repositories with no Python, never for repositories that also have Rust."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    assert run_diagnose(tmp_path, as_json=False, write=False)

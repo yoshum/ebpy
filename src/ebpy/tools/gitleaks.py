@@ -93,6 +93,11 @@ class GitleaksDetector:
         """Empty: secret scanning reads workflows and pre-commit config, not source in any language."""
         return frozenset()
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt secret scanning before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when a known secret-scanning tool is referenced."""
         workflow_text = "\n".join(workflow.content for workflow in facts.workflows)
