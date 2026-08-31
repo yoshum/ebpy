@@ -131,7 +131,7 @@ def _valid_frozen_analyzers(value: object) -> TypeGuard[list[str]]:
     )
 
 
-def _valid_unmeasured_packages(value: object) -> TypeGuard[list[str]]:
+def _valid_unmeasured_packages(value: object) -> bool:
     """Validate as strictly as the roster: a key that states the contract is never half-read."""
     if value is None:
         return True
