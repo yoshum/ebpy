@@ -92,7 +92,7 @@ def _failure_banners(report: AnalysisReport) -> list[str]:
             lines.extend(
                 _banner(f"{name} did not run", f"{name} has no runner in this ebpy build", consequence)
             )
-        elif summary.status == "incomplete":
+        elif summary.unattributed_total > 0:
             lines.extend(
                 _banner(f"{name} could not lint every file", _incomplete_detail(summary), consequence)
             )
