@@ -275,3 +275,21 @@ def test_each_gap_renders_a_title_row_then_an_indented_detail_row() -> None:
         "  [freeze] no baseline",
         "      run ebpy freeze",
     ]
+
+
+def test_a_diagnosis_missing_a_detector_key_renders_without_a_keyerror() -> None:
+    """A ledger written before a detector existed holds no key for it; report must not index blindly."""
+    diagnosis = replace(
+        _full_diagnosis(mypy_strict=True, pre_commit=True, agent_instructions=()),
+        tool_setups={
+            "ruff": ToolSetup(configured=True),
+            "formatter": ToolSetup(configured=True),
+            "mypy": MypySetup(configured=True, strict=True),
+            "pytest": ToolSetup(configured=True),
+            "secret-scan": ToolSetup(configured=True),
+            # vulture deliberately absent, as it would be in a ledger predating that detector.
+        },
+    )
+    rendered = render_diagnosis(diagnosis)
+    assert "vulture" not in rendered
+    assert "  ruff              yes" in rendered
