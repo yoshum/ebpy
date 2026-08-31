@@ -76,15 +76,20 @@ they exist to catch.
 
 | Invocation | Artifact precondition | What changes |
 | --- | --- | --- |
-| `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | All analyzers' complete cells become the initial contract. |
-| `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; all analyzers' complete cells become a new contract. |
+| `freeze` | Fresh repository, or a pre-freeze ledger. Refused if already frozen. | The in-scope set's complete cells become the initial contract. |
+| `freeze --force` | Any — overwrites an existing, invalid, or absent contract. | Discards the old contract entirely; the in-scope set's complete cells become a new contract. |
 | `freeze --analyzer NAME` | A fresh pair, or a valid frozen pair; NAME must not be in the contract yet. | On a fresh pair, builds a narrow contract holding only NAME. On a frozen pair, adds NAME's cells to the existing contract, leaving every other namespace untouched. |
 | `freeze --force --analyzer NAME` | A fresh pair, or a valid frozen pair. | Replaces (or on a fresh pair, installs) NAME's cells and rules, leaving every other namespace untouched. |
 
-**No invocation removes an analyzer from a contract.** A global `freeze` covers every analyzer this
-build ships and refuses if any is missing, so it cannot silently narrow the roster. `--force`
-governs only the artifact precondition — whether an existing contract may be overwritten — and does
-not change which analyzers a global freeze puts in scope.
+A global freeze's "in-scope set" is `.ebpy/config.json`'s declared analyzers when there is a
+declaration, or detected analyzers unioned with whatever is already frozen when there is not — so
+an undeclared repository can never lose an analyzer from its contract just because the language
+that justified it (e.g. a `Cargo.toml`) went away. **No invocation narrows a contract implicitly.**
+The only way to drop an analyzer is to declare a narrower set in `.ebpy/config.json` and run
+`ebpy freeze --force`: `--force` alone only governs the artifact precondition, but combined with a
+narrowed declaration it becomes the in-scope set for the new contract, and analyzers that fall out
+of it are dropped. This is the recovery path the mismatch message itself names when the frozen
+contract and the declaration disagree.
 
 Scoped operations (`--analyzer NAME`) accept a fresh pair or a valid frozen pair. On a fresh pair
 they build a narrow contract from the start; on a frozen pair they read and preserve the existing

@@ -114,8 +114,8 @@ Drives: [`diagnose`](cli/diagnose.md), [`bootstrap`](cli/bootstrap.md).
 
 **P2. One command, run once, and it is the commit the whole approach hangs off.**
 
-It pins today's per-file per-rule counts as the ceiling for every analyzer (Ruff and mypy),
-renders `QUALITY.md`, and makes sure CI actually gates on the result.
+It pins today's per-file per-rule counts as the ceiling for every in-scope analyzer (Ruff and mypy
+for Python, clippy for Rust), renders `QUALITY.md`, and makes sure CI actually gates on the result.
 
 Reach for it straight after bootstrap, or when somebody says "grandfather what is there and stop the
 new stuff".
