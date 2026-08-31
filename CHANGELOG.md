@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.12.1 (2026-08-31)
+
+### Bug Fixes
+
+- **render**: Skip detector rows a stored diagnosis has no setup for
+  ([`65b779c`](https://github.com/yoshum/ebpy/commit/65b779c98543f2af32e177906f78010facfc8ee9))
+
+
 ## v0.12.0 (2026-08-29)
 
 ### Features
