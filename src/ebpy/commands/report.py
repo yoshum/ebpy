@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from ebpy.decide.analysis_report import report_from_measurement
 from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
-from ebpy.decide.unmeasured import unmeasured_verdict
+from ebpy.decide.unmeasured import UNMEASURED_ANALYZER, unmeasured_verdict
 from ebpy.errors import CommandError
 from ebpy.render.analysis_report import render_analysis_report
 from ebpy.repo.detect.language import detect_languages
@@ -67,7 +67,7 @@ def run_report(cwd: Path, as_json: bool) -> str:
     # report never refuses and never writes, but a regressed run's backlog must not be pruned
     # against a measurement that is simply missing the dropped workspace's cells — that would
     # read as the debt having drained rather than as coverage having narrowed.
-    carry_backlog = frozenset({"clippy"}) if verdict.regressed else frozenset()
+    carry_backlog = frozenset({UNMEASURED_ANALYZER}) if verdict.regressed else frozenset()
 
     report = report_from_measurement(
         artifacts.cells,

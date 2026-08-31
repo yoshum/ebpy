@@ -18,7 +18,9 @@ if TYPE_CHECKING:
     from ebpy.measurement import Measurement
     from ebpy.models import CellCounts, State, UnmeasuredScope
 
-_ANALYZER = "clippy"
+# Exported: report.py must agree with this module on which analyzer's regressed backlog to
+# carry forward rather than let a missing measurement read as drained debt.
+UNMEASURED_ANALYZER = "clippy"
 _NAMED_CELLS = 5
 
 
@@ -40,7 +42,7 @@ class UnmeasuredVerdict:
 
 def unmeasured_verdict(measurement: Measurement, previous: State, baseline: CellCounts) -> UnmeasuredVerdict:
     """Decide whether this run's unmeasured ranges leave the contract's coverage."""
-    observation = measurement.analyzers.get(_ANALYZER)
+    observation = measurement.analyzers.get(UNMEASURED_ANALYZER)
     measured = isinstance(observation, Measured) and classify(observation) == "complete"
     scopes = observation.value.unmeasured if isinstance(observation, Measured) else ()
     packages = tuple(sorted({package for scope in scopes for package in scope.packages}))
@@ -50,7 +52,7 @@ def unmeasured_verdict(measurement: Measurement, previous: State, baseline: Cell
     # would gate on a ceiling that does not exist — which is the invariant
     # `test_a_non_contract_analyzer_is_named_but_never_gates` already pins. Without it, a
     # Python repository's check fails because of a Rust fuzz workspace sitting beside it.
-    regressed = _ANALYZER in previous.frozen_analyzers and bool(newly)
+    regressed = UNMEASURED_ANALYZER in previous.frozen_analyzers and bool(newly)
     return UnmeasuredVerdict(
         scopes=scopes,
         packages=packages,
@@ -64,7 +66,7 @@ def _cells_under(baseline: CellCounts, packages: list[str]) -> tuple[str, ...]:
     prefixes = tuple(f"{package}/" for package in packages if package != ".")
     named = [
         f"{file}:{rule}"
-        for file, rules in sorted(cells_for(baseline, _ANALYZER).items())
+        for file, rules in sorted(cells_for(baseline, UNMEASURED_ANALYZER).items())
         for rule in sorted(rules)
         if not prefixes or file.startswith(prefixes)
     ]
