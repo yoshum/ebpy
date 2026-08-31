@@ -18,7 +18,15 @@ def _check(value: bool) -> str:
 def _tooling_lines(diagnosis: Diagnosis) -> list[str]:
     # Each detector renders its own row, in registry order; the repository-level signals that
     # no detector owns (pre-commit, agent rules) follow them.
-    detector_rows = [detector.render_row(diagnosis.tool_setups[detector.name]) for detector in DETECTORS]
+    #
+    # The setup map comes back from `.ebpy/state.json` and holds whatever keys the ebpy that
+    # wrote it had, so it may have none for a detector this build knows. A missing row is not
+    # a reason to fail a ledger that is otherwise readable.
+    detector_rows = [
+        detector.render_row(diagnosis.tool_setups[detector.name])
+        for detector in DETECTORS
+        if detector.name in diagnosis.tool_setups
+    ]
     return [
         f"  package manager   {diagnosis.package_manager}",
         f"  python            {diagnosis.requires_python or 'unspecified'}",
