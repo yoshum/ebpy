@@ -329,7 +329,7 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     previous = _previous_state(artifacts, force and analyzer is None)
     frozen_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
-    measurement = measure_repository(cwd)
+    measurement = measure_repository(cwd, ANALYZER_NAMES)
     if analyzer is None:
         if config is not None:
             scope = sorted(config.analyzers)

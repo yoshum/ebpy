@@ -10,7 +10,7 @@ from ebpy.decide.analysis_report import report_from_measurement
 from ebpy.errors import CommandError
 from ebpy.render.analysis_report import render_analysis_report
 from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ebpy.tools import measure_repository
+from ebpy.tools import ANALYZER_NAMES, measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -48,7 +48,9 @@ def run_report(cwd: Path, as_json: bool) -> str:
         assert state is not None
         frozen_analyzers = state.frozen_analyzers
 
-    report = report_from_measurement(artifacts.cells, frozen_analyzers, measure_repository(cwd))
+    report = report_from_measurement(
+        artifacts.cells, frozen_analyzers, measure_repository(cwd, ANALYZER_NAMES)
+    )
 
     if as_json:
         return json.dumps(report.to_dict(), indent=2)

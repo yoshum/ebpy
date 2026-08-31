@@ -83,7 +83,7 @@ def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pyt
         }
     )
 
-    def gather(cwd: Path) -> Measurement:
+    def gather(cwd: Path, _scope: tuple[str, ...]) -> Measurement:
         calls.append(cwd)
         return measurement
 
@@ -147,7 +147,7 @@ def test_report_exits_zero_when_every_analyzer_failed(
         }
     )
 
-    monkeypatch.setattr(report_command, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(report_command, "measure_repository", lambda _cwd, _scope: measurement)
 
     # run_report returns a string (not raises) for any non-invalid artifact pair
     result = run_report(tmp_path, as_json=False)

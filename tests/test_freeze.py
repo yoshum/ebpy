@@ -104,7 +104,7 @@ def test_force_replaces_an_invalid_pair_with_a_complete_new_contract(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_cells(tmp_path, {"src/old.py": {"ruff:F401": 1}})
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -128,7 +128,7 @@ def test_force_replaces_artifact_symlinks_without_touching_their_targets(
     state_path(tmp_path).symlink_to(state_target)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -152,7 +152,7 @@ def test_force_replaces_a_symlinked_artifact_directory_without_touching_its_targ
     (tmp_path / ".ebpy").symlink_to(outside, target_is_directory=True)
     assert read_ceiling_artifacts(tmp_path).kind == "invalid"
 
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: _both_analyzers_measurement())
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: _both_analyzers_measurement())
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)
@@ -484,7 +484,7 @@ def test_scoped_freeze_on_a_fresh_pair_yields_a_valid_frozen_contract(
             "mypy": Unavailable(tool="mypy", detail="mypy is not installed"),
         }
     )
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=False, analyzer="ruff")
@@ -845,7 +845,7 @@ def test_global_freeze_scope_follows_config(tmp_path: Path, monkeypatch: pytest.
             "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
         }
     )
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=False, analyzer=None)
@@ -875,7 +875,7 @@ def test_global_freeze_with_no_config_uses_union_scope(
 ) -> None:
     """No config: global freeze covers all registered analyzers, identical to pre-config behavior."""
     measurement = _both_analyzers_measurement()
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=False, analyzer=None)
@@ -911,7 +911,7 @@ def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
             ),
         }
     )
-    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(freeze, "write_quality_file", lambda _cwd, _state: None)
 
     run_freeze(tmp_path, force=True, analyzer=None)

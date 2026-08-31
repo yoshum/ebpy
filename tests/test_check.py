@@ -377,7 +377,7 @@ def test_no_write_persists_nothing_on_success_or_failure(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
     )
     passing = run_check(tmp_path, write=False)
     assert passing.ok is True
@@ -386,7 +386,7 @@ def test_no_write_persists_nothing_on_success_or_failure(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 5}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 5}})}),
     )
     failing = run_check(tmp_path, write=False)
     assert failing.ok is False
@@ -486,7 +486,7 @@ def test_check_shell_persists_state_and_quality_even_after_a_failure(
         analyzers={"ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff failed")}
     )
     writes: list[str] = []
-    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd: measurement)
+    monkeypatch.setattr(check_command, "measure_repository", lambda _cwd, _scope: measurement)
     monkeypatch.setattr(check_command, "write_state", lambda _cwd, _state: writes.append("state"))
     monkeypatch.setattr(check_command, "write_quality_file", lambda _cwd, _state: writes.append("quality"))
 
@@ -597,7 +597,7 @@ def test_check_fails_when_declared_set_diverges_from_roster(
 
     measured: list[bool] = []
 
-    def _no_measure(_cwd: Path) -> Measurement:
+    def _no_measure(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
         measured.append(True)
         return Measurement(analyzers={})
 
@@ -631,7 +631,7 @@ def test_check_proceeds_normally_when_config_matches_frozen_roster(
     monkeypatch.setattr(
         check_command,
         "measure_repository",
-        lambda _cwd: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
+        lambda _cwd, _scope: Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})}),
     )
 
     result = run_check(tmp_path, write=False)
@@ -662,10 +662,10 @@ def test_scoped_check_requests_only_the_named_analyzer(
             phase="drain",
         ),
     )
-    requested: list[str | None] = []
+    requested: list[tuple[str, ...]] = []
 
-    def measure(_cwd: Path, analyzer: str | None = None) -> Measurement:
-        requested.append(analyzer)
+    def measure(_cwd: Path, scope: tuple[str, ...]) -> Measurement:
+        requested.append(scope)
         return Measurement(analyzers={"ruff": _measured("ruff", {"a.py": {"ruff:F401": 1}})})
 
     monkeypatch.setattr(check_command, "measure_repository", measure)
@@ -673,7 +673,7 @@ def test_scoped_check_requests_only_the_named_analyzer(
     result = run_check(tmp_path, write=False, analyzer="ruff")
 
     assert result.ok is True
-    assert requested == ["ruff"]
+    assert requested == [("ruff",)]
 
 
 def test_cli_forwards_the_analyzer_and_no_write_options(

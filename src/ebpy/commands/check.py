@@ -12,7 +12,7 @@ from ebpy.store.baseline import cells_for, finding_total, split_against_baseline
 from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
 from ebpy.store.config import read_config
 from ebpy.store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
-from ebpy.tools import ANALYZERS_BY_NAME, measure_repository
+from ebpy.tools import ANALYZER_NAMES, ANALYZERS_BY_NAME, measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -210,7 +210,7 @@ def run_check(cwd: Path, write: bool, analyzer: str | None = None) -> CheckResul
                 ),
             )
 
-    measurement = measure_repository(cwd, analyzer) if analyzer is not None else measure_repository(cwd)
+    measurement = measure_repository(cwd, (analyzer,) if analyzer is not None else ANALYZER_NAMES)
     decision = check_measurement(previous, artifacts.cells, measurement, analyzer)
     if write:
         write_state(cwd, decision.state)

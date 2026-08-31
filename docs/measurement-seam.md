@@ -8,11 +8,13 @@ The seam owns measured facts. It does not own ceilings, gate policy or persisten
 
 ## The value
 
-`measure_repository(cwd)` returns one frozen `Measurement`. There is no protocol, adapter registry
-or plugin framework: callers need a value, and a second production implementation does not yet
-exist.
+`measure_repository(cwd, scope)` returns one frozen `Measurement`. `scope` is the analyzer names
+this run measures — decided by the caller, never by the registry itself — and a name the scope
+names but this build has no runner for is skipped rather than raised. There is no protocol,
+adapter registry or plugin framework: callers need a value, and a second production
+implementation does not yet exist.
 
-Each analyzer has exactly one observation:
+Each analyzer in scope has exactly one observation:
 
 ```text
 Measurement

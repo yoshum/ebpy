@@ -73,7 +73,16 @@ PROVISIONERS: tuple[Provisioner, ...] = tuple(_provisioners)
 PROVISIONERS_BY_NAME: Mapping[str, Provisioner] = MappingProxyType({p.name: p for p in PROVISIONERS})
 
 
-def measure_repository(cwd: Path, analyzer: str | None = None) -> Measurement:
-    """Measure one named analyzer, or every registered analyzer when no name is given."""
-    selected = ANALYZERS if analyzer is None else (ANALYZERS_BY_NAME[analyzer],)
-    return Measurement(analyzers={item.name: item.measure(cwd) for item in selected})
+def measure_repository(cwd: Path, scope: tuple[str, ...]) -> Measurement:
+    """Measure the analyzers named in ``scope``, retaining partial success as data.
+
+    The registry holds no policy about which analyzers apply to a repository: `scope` arrives
+    as a value from the caller that computed it. Iteration is over the registry rather than
+    over `scope`, so the run order stays the registry's however the caller ordered its set.
+
+    A name with no runner here is skipped rather than raised: that missing key is exactly how
+    `classify(None)` reports "no runner in this build", and a KeyError would replace the one
+    message a reader could act on.
+    """
+    selected = frozenset(scope)
+    return Measurement(analyzers={a.name: a.measure(cwd) for a in ANALYZERS if a.name in selected})
