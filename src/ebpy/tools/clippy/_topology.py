@@ -224,7 +224,14 @@ def rust_topology(cwd: Path) -> RustTopology:
         workspaces.setdefault(workspace.root.as_posix(), workspace)
 
     if not workspaces and first_failure is not None:
-        raise first_failure
+        raise type(first_failure)(
+            first_failure.summary,
+            detail=(
+                f"{first_failure.detail}\n"
+                "If no Cargo.toml here is meant to be a crate ebpy measures, declare the "
+                "analyzers you do want ratcheted in .ebpy/config.json to take clippy out of scope."
+            ),
+        ) from first_failure
     return RustTopology(
         workspaces=tuple(workspaces[key] for key in sorted(workspaces)),
         unmeasured=tuple(unmeasured),

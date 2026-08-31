@@ -97,7 +97,11 @@ def run_clippy_check(cwd: Path) -> AnalysisMeasurement:
     if not topology.workspaces:
         raise ClippyNoWorkspaceError(
             "no Cargo workspace in this repository",
-            detail="cargo resolved no workspace here, so clippy has nothing to measure.",
+            detail=(
+                "cargo resolved no workspace here, so clippy has nothing to measure. If no "
+                "Cargo.toml here is meant to be a crate ebpy measures, declare the analyzers "
+                "you do want ratcheted in .ebpy/config.json to take clippy out of scope."
+            ),
         )
 
     # Ascending by repository-relative root, never by the order metadata happened to run:

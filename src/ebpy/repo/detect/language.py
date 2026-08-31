@@ -20,10 +20,14 @@ if TYPE_CHECKING:
 
     from ebpy.models import Language
 
-# Deliberately wide. Too wide only means ruff and mypy report "nothing here"; too narrow
-# means a repository ebpy gates today silently falls out of scope. `.ipynb` is here because
-# `ruff check .` already walks notebooks, and `.pyi`/`.pyw` because today's unscoped
-# `measure_repository` measures a stub-only repository.
+# Deliberately wide. For Python, too wide only means ruff and mypy report "nothing here";
+# too narrow means a repository ebpy gates today silently falls out of scope. `.ipynb` is
+# here because `ruff check .` already walks notebooks, and `.pyi`/`.pyw` because today's
+# unscoped `measure_repository` measures a stub-only repository. The same width is applied
+# to Rust detection below (any non-`target` `Cargo.toml` counts), but there "too wide" is not
+# harmless: clippy fails closed on a manifest that is not a resolvable crate, rather than
+# reporting nothing. `tools/clippy/_runner.py` and `_topology.py` name the recovery —
+# declaring a narrower `analyzers` set in `.ebpy/config.json` — for exactly that case.
 _PYTHON_SUFFIXES = (".py", ".pyi", ".pyw", ".ipynb")
 
 _PYTHON_NAMES = frozenset(
