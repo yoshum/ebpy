@@ -9,9 +9,10 @@ ebpy freeze --analyzer NAME         # add one analyzer to an existing contract
 ebpy freeze --force --analyzer NAME # replace one analyzer in an existing contract
 ```
 
-It runs Ruff and mypy, writes today's **per-file per-rule** counts to `.ebpy/baseline.json` with
-rule IDs namespaced as `ruff:F401`, `mypy:arg-type` and so on, records the contract in
-`.ebpy/state.json`, and renders `QUALITY.md`.
+It measures every analyzer in scope for this repository — Ruff and mypy for Python, clippy for
+Rust — writes today's **per-file per-rule** counts to `.ebpy/baseline.json` with rule IDs
+namespaced as `ruff:F401`, `mypy:arg-type`, `clippy:clippy::needless_return` and so on, records the
+contract in `.ebpy/state.json`, and renders `QUALITY.md`.
 
 From that commit on, every rule is an error for new code and no existing line had to change.
 
@@ -44,13 +45,22 @@ intentionally unparseable (a template, a fixture, a legacy file), add it to `exc
 ## When nothing applies
 
 A global `freeze` refuses if the contract it would write is empty: `.ebpy/config.json` declares no
-analyzers, or (with no declaration) the repository evidences none of the languages its analyzers
-measure **and** no earlier contract already covered one — an existing frozen roster is carried
-through even when its language later disappears, so a marker file removed by mistake cannot
-silently drop an analyzer from the contract. `freeze --analyzer NAME` refuses on a related but
+analyzers, or (with no declaration) the repository evidences none of Ruff, mypy or clippy's
+languages **and** no earlier contract already covered one — an existing frozen roster is carried
+through even when its language later disappears, so a `Cargo.toml` removed by mistake cannot
+silently drop clippy from the contract. `freeze --analyzer NAME` refuses on a related but
 distinct condition: NAME itself not being in this run's detected or declared scope. Declare it in
 `.ebpy/config.json`, or check that what it measures is actually present here. Either refusal writes
 nothing — measuring nothing is not the same as measuring zero.
+
+## Pin the Rust toolchain
+
+Clippy's lint set moves between rustc releases, and rustup resolves the toolchain per directory —
+a nested `rust-toolchain.toml` changes what `cargo clippy` runs without changing anything ebpy
+reads. If `freeze` measures with one toolchain and a later `check` runs with another, the two can
+disagree, and the difference surfaces as findings beyond the ceiling — a regression nobody
+introduced. Commit a `rust-toolchain.toml` pinning the toolchain so `freeze` and `check` always
+measure the same clippy.
 
 ## The scope × force contract
 
@@ -64,7 +74,7 @@ nothing — measuring nothing is not the same as measuring zero.
 A global freeze's "in-scope set" is `.ebpy/config.json`'s declared analyzers when there is a
 declaration, or detected analyzers unioned with whatever is already frozen when there is not — so
 an undeclared repository can never lose an analyzer from its contract just because the language
-that justified it went away. **No invocation narrows a contract implicitly.** The only way to drop
+that justified it (e.g. a `Cargo.toml`) went away. **No invocation narrows a contract implicitly.** The only way to drop
 an analyzer is to declare a narrower set in `.ebpy/config.json` and run `ebpy freeze --force`:
 `--force` alone only governs the artifact precondition, but combined with a narrowed declaration it
 becomes the in-scope set for the new contract, and analyzers that fall out of it are dropped. This

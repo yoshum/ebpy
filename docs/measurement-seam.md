@@ -1,8 +1,8 @@
 # Measurement seam
 
 `Measurement` is the value seam between a repository's toolchain and ebpy's ratchet decisions.
-It exists so Ruff and mypy may change without teaching every command their executable discovery,
-arguments, exit codes or output formats.
+It exists so an analyzer's toolchain may change without teaching every command its executable
+discovery, arguments, exit codes or output formats.
 
 The seam owns measured facts. It does not own ceilings, gate policy or persistence.
 
@@ -19,8 +19,9 @@ Each analyzer in scope has exactly one observation:
 ```text
 Measurement
 └── analyzers
-    ├── ruff: Measured[AnalysisMeasurement] | Unavailable | Failed
-    └── mypy: Measured[AnalysisMeasurement] | Unavailable | Failed
+    ├── ruff:   Measured[AnalysisMeasurement] | Unavailable | Failed
+    ├── mypy:   Measured[AnalysisMeasurement] | Unavailable | Failed
+    └── clippy: Measured[AnalysisMeasurement] | Unavailable | Failed
 ```
 
 There is no parallel status array. A value cannot simultaneously say that an analyzer failed and
@@ -55,16 +56,19 @@ The command layer sees ebpy concepts rather than tool output:
 - files carrying findings;
 - measured, unavailable or failed capabilities.
 
-Ruff and mypy are the two analyzers in the initial implementation. Their runners own executable
-discovery, CLI arguments, exit-code interpretation and parsing. `CellCounts` and `AnalysisMeasurement`
-live in `models.py` because both measurement and ceiling modules share them; measurement does not
-import the baseline persistence module.
+Ruff, mypy and clippy are the analyzers this build ships. Each carries a `language` (Ruff and mypy
+are Python; clippy is Rust), which is what lets a caller project a repository's detected languages
+onto the analyzer set instead of hardcoding one. Their runners own executable discovery, CLI
+arguments, exit-code interpretation and parsing. `CellCounts` and `AnalysisMeasurement` live in
+`models.py` because both measurement and ceiling modules share them; measurement does not import
+the baseline persistence module.
 
 ## Independent capabilities
 
-Ruff and mypy are attempted independently. A Ruff failure does not skip mypy. This keeps
-Measurement a snapshot of everything that could be measured instead of a trace of which subprocess
-happened to run first.
+Every in-scope analyzer is attempted independently. One analyzer's failure does not skip another —
+a Ruff failure does not skip mypy, a clippy failure does not skip either. This keeps Measurement a
+snapshot of everything that could be measured instead of a trace of which subprocess happened to
+run first.
 
 Commands decide what partial success means:
 

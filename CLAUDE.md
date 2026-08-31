@@ -21,9 +21,10 @@ checklist cannot express belongs in a skill.
   `decide/bootstrap_plan.py`, `decide/freshness.py`, `decide/analyzer_scope.py`), and everything
   under `render/` turns a verdict into text. None of these touch the filesystem, so all are
   testable without one.
-- `measurement/` is the toolchain seam. Ruff and mypy become one Measurement value before any
-  command applies ratchet policy; the per-tool runners are `measurement/_ruff.py` and
-  `measurement/_mypy.py`, private to the package. See `docs/measurement-seam.md`.
+- `measurement/` is the toolchain seam. Every registered analyzer becomes one Measurement value
+  before any command applies ratchet policy; the per-tool runners live under `tools/` — one
+  package per tool (`tools/ruff/_runner.py`, `tools/mypy/_runner.py`, `tools/clippy/`) — and
+  `measurement/` holds none of them. See `docs/measurement-seam.md`.
 - `store/` owns the `.ebpy/` files: `store/baseline.py` the ratchet file, `store/state.py` the
   ledger, `store/ceiling_artifacts.py` the pair. Nothing outside `store/` writes either.
 - Commands under `commands/` are thin: validate ceiling artifacts, gather, decide, render, persist.
