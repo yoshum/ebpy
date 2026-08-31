@@ -10,6 +10,14 @@ ebpy bootstrap                    # do it
 ebpy bootstrap --python 3.11      # python version for the generated workflow (default: 3.12)
 ```
 
+## Python-only
+
+`bootstrap` installs and configures a Python toolchain — Ruff, mypy, pytest, vulture — and has
+nothing to set up for any other language. On a repository with no Python it refuses outright
+rather than running a plan with nothing in it: an empty plan would read as "this repository needs
+no tooling" when it is really "nothing was looked at". `ebpy freeze`, `check`, `prune`, `report`,
+`status`, `log`, `secrets` and `next` all still work there.
+
 ## What it installs
 
 Whichever of `ruff`, `mypy`, `pytest` and `vulture` the diagnosis did not find, using the
