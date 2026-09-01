@@ -80,24 +80,6 @@ def test_gitleaks_detector_detects_workflow_mention() -> None:
     assert GitleaksDetector().detect(_facts()).configured is False
 
 
-def test_the_five_python_detectors_declare_the_python_language() -> None:
-    """ruff, formatter, mypy, pytest and vulture all belong to Python and only Python."""
-    detectors = (
-        RuffDetector(),
-        RuffFormatDetector(),
-        MypyDetector(),
-        PytestDetector(),
-        VultureDetector(),
-    )
-    for detector in detectors:
-        assert detector.languages == frozenset({"python"})
-
-
-def test_gitleaks_declares_no_language_because_it_is_repository_wide() -> None:
-    """Empty `languages` means "always runs": gitleaks reads workflows and configs, no source."""
-    assert GitleaksDetector().languages == frozenset()
-
-
 def test_a_cargo_manifest_alone_does_not_make_clippy_configured(tmp_path: Path) -> None:
     """`configured` claims the repository configured clippy, not that it contains Rust."""
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
@@ -190,3 +172,25 @@ def test_the_clippy_row_says_it_runs_without_configuration(tmp_path: Path) -> No
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     row = ClippyDetector().render_row(ClippyDetector().detect(gather_facts(tmp_path)))
     assert "runs with defaults" in row
+
+
+def test_the_five_python_detectors_declare_the_python_language() -> None:
+    """ruff, formatter, mypy, pytest and vulture all belong to Python and only Python."""
+    detectors = (
+        RuffDetector(),
+        RuffFormatDetector(),
+        MypyDetector(),
+        PytestDetector(),
+        VultureDetector(),
+    )
+    for detector in detectors:
+        assert detector.languages == frozenset({"python"})
+
+
+def test_clippy_declares_the_rust_language() -> None:
+    assert ClippyDetector().languages == frozenset({"rust"})
+
+
+def test_gitleaks_declares_no_language_because_it_is_repository_wide() -> None:
+    """Empty `languages` means "always runs": gitleaks reads workflows and configs, no source."""
+    assert GitleaksDetector().languages == frozenset()

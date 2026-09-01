@@ -7,7 +7,16 @@ from dataclasses import replace
 from ebpy.decide.drain_order import build_drain_plan
 from ebpy.decide.freshness import Freshness
 from ebpy.decide.worklist import build_worklist
-from ebpy.models import CiCoverage, Diagnosis, Gap, RuleBaseline, SizeDistribution, Suppression, ToolSetup
+from ebpy.models import (
+    CiCoverage,
+    Diagnosis,
+    Gap,
+    RuleBaseline,
+    SizeDistribution,
+    State,
+    Suppression,
+    ToolSetup,
+)
 from ebpy.render.next import render_next
 from ebpy.render.quality import NOTES_END, NOTES_START, extract_notes, render_quality
 from ebpy.render.report import render_diagnosis
@@ -20,15 +29,12 @@ CURRENT = Freshness(stale=False, reason="current")
 STALE = Freshness(stale=True, reason="42 commits since the diagnosis")
 
 
-def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
+def _diagnosis_with_gaps(gaps: list[Gap]) -> Diagnosis:
     return Diagnosis(
         package_manager="uv",
         requires_python=None,
         framework="none",
-        tool_setups={
-            "ruff": ToolSetup(configured=True),
-            "mypy": MypySetup(configured=mypy_configured, strict=False),
-        },
+        tool_setups={},
         pre_commit=False,
         agent_instructions=(),
         ci=CiCoverage(
@@ -41,7 +47,7 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
             runs_ebpy_check=False,
         ),
         sizes=SizeDistribution(total=0, over_file_limit=0, largest=()),
-        gaps=(),
+        gaps=tuple(gaps),
     )
 
 
@@ -102,17 +108,21 @@ def test_quality_says_none_when_no_analyzer_ceiling_is_held() -> None:
 def test_quality_flags_a_configured_analyzer_the_contract_does_not_hold() -> None:
     state = empty_state()
     state.frozen_analyzers = ("ruff",)
-    state.diagnosis = _diagnosis(mypy_configured=True)
+    state.diagnosis = _diagnosis_with_gaps(
+        [Gap(id="unratcheted:mypy", title="t", detail="d", phase="tighten")]
+    )
     rendered = render_quality(state, "", CURRENT)
-    assert "- Analyzers: **ruff** (mypy is configured but not ratcheted)" in rendered
+    assert "- Analyzers: **ruff** (mypy is not ratcheted)" in rendered
 
 
 def test_quality_omits_the_marker_once_the_roster_covers_every_configured_analyzer() -> None:
     state = empty_state()
     state.frozen_analyzers = ("mypy", "ruff")
-    state.diagnosis = _diagnosis(mypy_configured=True)
+    state.diagnosis = _diagnosis_with_gaps(
+        [Gap(id="unratcheted:mypy", title="t", detail="d", phase="tighten")]
+    )
     rendered = render_quality(state, "", CURRENT)
-    assert "configured but not ratcheted" not in rendered
+    assert "is not ratcheted" not in rendered
 
 
 def test_quality_never_invents_the_marker_without_a_diagnosis_to_compare_against() -> None:
@@ -122,7 +132,21 @@ def test_quality_never_invents_the_marker_without_a_diagnosis_to_compare_against
     state.frozen_analyzers = ("ruff",)
     assert state.diagnosis is None
     rendered = render_quality(state, "", CURRENT)
-    assert "configured but not ratcheted" not in rendered
+    assert "is not ratcheted" not in rendered
+
+
+def test_the_quality_marker_names_a_language_derived_unratcheted_analyzer() -> None:
+    """Building the marker from `configured` leaves the heading silent while Outstanding lists it."""
+    diagnosis = _diagnosis_with_gaps([Gap(id="unratcheted:clippy", title="t", detail="d", phase="tighten")])
+    state = State(frozen_analyzers=("ruff",), diagnosis=diagnosis)
+    assert "clippy" in render_quality(state, "", CURRENT)
+
+
+def test_the_quality_marker_clears_as_soon_as_the_analyzer_is_frozen() -> None:
+    """The diagnosis is last-run's snapshot; without a re-filter the note lingers until the next one."""
+    diagnosis = _diagnosis_with_gaps([Gap(id="unratcheted:clippy", title="t", detail="d", phase="tighten")])
+    state = State(frozen_analyzers=("clippy", "ruff"), diagnosis=diagnosis)
+    assert "is configured but not ratcheted" not in render_quality(state, "", CURRENT)
 
 
 def test_deferred_work_carries_the_commit_it_was_seen_at() -> None:
@@ -282,7 +306,7 @@ def test_each_gap_renders_a_title_row_then_an_indented_detail_row() -> None:
 
 
 def test_a_diagnosis_missing_a_detector_key_renders_without_a_keyerror() -> None:
-    """A ledger written before a detector existed holds no key for it; report must not index blindly."""
+    """A filtered tool_setups map omits some DETECTORS entries; report.py must not index blindly."""
     diagnosis = replace(
         _full_diagnosis(mypy_strict=True, pre_commit=True, agent_instructions=()),
         tool_setups={
@@ -290,10 +314,11 @@ def test_a_diagnosis_missing_a_detector_key_renders_without_a_keyerror() -> None
             "formatter": ToolSetup(configured=True),
             "mypy": MypySetup(configured=True, strict=True),
             "pytest": ToolSetup(configured=True),
+            "vulture": ToolSetup(configured=True),
             "secret-scan": ToolSetup(configured=True),
-            # vulture deliberately absent, as it would be in a ledger predating that detector.
+            # clippy deliberately absent, as it would be for a Rust-less repository.
         },
     )
     rendered = render_diagnosis(diagnosis)
-    assert "vulture" not in rendered
+    assert "clippy" not in rendered
     assert "  ruff              yes" in rendered

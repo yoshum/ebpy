@@ -31,6 +31,17 @@ class ToolDetector(Protocol[S]):
         """The languages this detector's tool belongs to; empty means repository-wide."""
         ...
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """Whether ebpy requires repository-side setup before proposing this tool for ratcheting.
+
+        A statement of ebpy's policy, not of the tool's nature: ruff and mypy both run without
+        a config file, so a name asserting they need one would be false. What is true is that
+        ebpy waits for a repository to have adopted them — through bootstrap or a detected
+        config — before proposing a ceiling. clippy has no adoption step to wait for.
+        """
+        ...
+
     def detect(self, facts: RepoFacts) -> S:
         """Inspect repo facts and return the tool's setup state."""
         ...

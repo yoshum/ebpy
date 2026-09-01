@@ -81,6 +81,11 @@ class ClippyDetector:
         """Clippy is a Rust tool."""
         return frozenset({"rust"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """False: clippy has no adoption step to wait for, so the language's presence is enough."""
+        return False
+
     def detect(self, facts: RepoFacts) -> ClippySetup:
         """Return clippy's configuration state, keeping unreadable manifests apart from absent ones."""
         invalid = tuple(

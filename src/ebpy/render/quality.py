@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from ebpy.decide.worklist import build_worklist
 from ebpy.models import PHASE_ORDER, Gap, LogEntry, RuleBaseline, State
 from ebpy.store.state import improvements, log_of_kind, total_violations
-from ebpy.tools import ANALYZERS_BY_NAME
 
 from .worklist import build_worklist_items, render_worklist
 
@@ -134,25 +133,29 @@ def _freshness_banner(freshness: Freshness) -> list[str]:
 
 
 def _unratcheted_marker(state: State, roster: set[str]) -> str:
-    """Name a configured analyzer the frozen contract omits.
+    """Name an analyzer the repository could ratchet but the frozen contract omits.
 
-    Skipped when there is no diagnosis to compare against — a repository that never ran
-    `diagnose` has nothing to compare against, and inventing a complaint from missing
-    data is exactly what "absence and zero are different" forbids. A contract with a
-    narrower roster than the repository configures — a ruff-only freeze in a repository
-    that also runs mypy — is never told its type errors are unratcheted without this note.
+    Read from the diagnosis's gaps rather than rebuilt from `configured`: after clippy, a
+    repository can earn this gap from its language alone, and a marker derived from
+    `configured` would leave the heading silent while Outstanding lists it. Skipped with no
+    diagnosis at all — inventing a complaint from missing data is what "absence and zero are
+    different" forbids.
     """
     if state.diagnosis is None:
         return ""
-    setups = state.diagnosis.tool_setups
+    # Re-filtered against today's roster: the diagnosis is the last `diagnose`'s snapshot, so
+    # an analyzer frozen since then still carries its gap and would read as unratcheted until
+    # somebody ran `diagnose` again.
     unratcheted = sorted(
-        name
-        for name in ANALYZERS_BY_NAME
-        if name in setups and setups[name].configured and name not in roster
+        suffix
+        for gap in state.diagnosis.gaps
+        if gap.id.startswith("unratcheted:")
+        and (suffix := gap.id.removeprefix("unratcheted:"))
+        and suffix not in roster
     )
     if not unratcheted:
         return ""
-    return " (" + ", ".join(f"{analyzer} is configured but not ratcheted" for analyzer in unratcheted) + ")"
+    return " (" + ", ".join(f"{analyzer} is not ratcheted" for analyzer in unratcheted) + ")"
 
 
 def _analyzers_line(state: State) -> str:

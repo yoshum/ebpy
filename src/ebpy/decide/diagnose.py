@@ -18,7 +18,7 @@ from ebpy.repo.detect.tooling import (
     pre_commit_configured,
     requires_python,
 )
-from ebpy.tools import ANALYZERS_BY_NAME, DETECTORS
+from ebpy.tools import ANALYZERS_BY_NAME, DETECTORS, DETECTORS_BY_NAME
 
 if TYPE_CHECKING:
     from ebpy.models import Language
@@ -42,28 +42,44 @@ def _agent_instruction_gaps(agent_instructions: tuple[str, ...]) -> list[Gap]:
     ]
 
 
-def _unratcheted_gaps(tool_setups: dict[str, ToolSetup], frozen_analyzers: tuple[str, ...]) -> list[Gap]:
-    """Report a gap per analyzer this repository configures but the frozen contract omits.
+def _unratcheted_gaps(
+    tool_setups: dict[str, ToolSetup],
+    frozen_analyzers: tuple[str, ...],
+    languages: frozenset[Language],
+) -> list[Gap]:
+    """Report a gap per analyzer this repository could ratchet but the frozen contract omits.
 
-    Only the registered analyzers (ruff, mypy) can be ratcheted, so only they can be
-    "configured but not ratcheted"; the other tools are report-only. These derive from
-    detected configuration, which is always present here — there is no absence to confuse
-    with zero.
+    Two routes to a proposal, because ebpy has two policies. For ruff and mypy it waits until
+    the repository adopted the tool, so an unconfigured one gets a bootstrap gap instead —
+    proposing a freeze there would advise a command that fails, since the tool is not
+    installed. clippy needs no adoption, so the language's presence is the whole condition.
     """
     roster = set(frozen_analyzers)
     gaps: list[Gap] = []
     for name in ANALYZERS_BY_NAME:
+        if name in roster:
+            continue
         setup = tool_setups.get(name)
-        if setup is not None and setup.configured and name not in roster:
-            gaps.append(
-                Gap(
-                    id=f"unratcheted:{name}",
-                    title=f"{name} is configured but not ratcheted",
-                    detail=f"{name} runs in this repository but is not in the frozen contract, so its "
-                    f"findings hold no ceiling. `ebpy freeze --analyzer {name}` pins them.",
-                    phase="tighten",
-                )
+        # Absent whenever the language filter dropped this detector — a Python-only
+        # repository holds no clippy setup at all.
+        if setup is None:
+            continue
+        detector = DETECTORS_BY_NAME[name]
+        if setup.configured:
+            title = f"{name} is configured but not ratcheted"
+            detail = (
+                f"{name} runs in this repository but is not in the frozen contract, so its "
+                f"findings hold no ceiling. `ebpy freeze --analyzer {name}` pins them."
             )
+        elif not detector.requires_repository_setup and detector.languages & languages:
+            title = f"{name} can ratchet this repository but is not in the contract"
+            detail = (
+                f"{name} needs no configuration here, and what it measures is present, but it "
+                f"holds no ceiling. `ebpy freeze --analyzer {name}` pins today's findings."
+            )
+        else:
+            continue
+        gaps.append(Gap(id=f"unratcheted:{name}", title=title, detail=detail, phase="tighten"))
     return gaps
 
 
@@ -147,10 +163,10 @@ def diagnose(
     has never frozen. It is what tells a configured analyzer apart from a ratcheted one, so
     the "configured but not ratcheted" gap can be raised.
 
-    `languages` narrows the detectors that run: a repository would otherwise carry a permanent
-    row for a tool whose language is not here at all, and a gap with no way to close it. A
-    detector with an empty `languages` (secret scanning) is repository-wide and always runs —
-    the `not d.languages` check below, not a membership test, is what lets it through.
+    `languages` narrows the detectors that run: a Cargo-less repository would otherwise carry
+    a permanent clippy row and a gap with no way to close it. A detector with an empty
+    `languages` (secret scanning) is repository-wide and always runs — the `not d.languages`
+    check below, not a membership test, is what lets it through.
     """
     detectors = tuple(d for d in DETECTORS if not d.languages or d.languages & languages)
     tool_setups = {detector.name: detector.detect(facts) for detector in detectors}
@@ -162,7 +178,7 @@ def diagnose(
         *_agent_instruction_gaps(agent_instructions),
         *_ci_gaps(ci),
         *_size_gaps(sizes),
-        *_unratcheted_gaps(tool_setups, frozen_analyzers),
+        *_unratcheted_gaps(tool_setups, frozen_analyzers, languages),
     ]
     return Diagnosis(
         package_manager=detect_package_manager(facts.root_entries, facts.pyproject),

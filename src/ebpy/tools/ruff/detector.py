@@ -36,6 +36,11 @@ class RuffDetector:
         """Ruff is a Python tool."""
         return frozenset({"python"})
 
+    @property
+    def requires_repository_setup(self) -> bool:
+        """True: ebpy waits for the repository to adopt ruff before proposing to ratchet it."""
+        return True
+
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when a ruff config is present in the repository root."""
         return ToolSetup(configured=has_ruff_config(facts.root_entries, facts.pyproject))
