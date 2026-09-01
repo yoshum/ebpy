@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Protocol, TypeVar
 from ebpy.models import ToolSetup
 
 if TYPE_CHECKING:
-    from ebpy.models import Gap
+    from ebpy.models import Gap, Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -24,6 +24,11 @@ class ToolDetector(Protocol[S]):
     @property
     def name(self) -> str:
         """Unique short identifier for the tool (e.g. "mypy")."""
+        ...
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """The languages this detector's tool belongs to; empty means repository-wide."""
         ...
 
     def detect(self, facts: RepoFacts) -> S:

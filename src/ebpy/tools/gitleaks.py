@@ -12,6 +12,7 @@ from ebpy.models import Gap, ToolSetup
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 # The MIT CLI rather than gitleaks-action, which needs a licence key under a GitHub
@@ -86,6 +87,11 @@ class GitleaksDetector:
     def name(self) -> str:
         """Unique short identifier for secret scanning."""
         return "secret-scan"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Empty: secret scanning reads workflows and pre-commit config, not source in any language."""
+        return frozenset()
 
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when a known secret-scanning tool is referenced."""

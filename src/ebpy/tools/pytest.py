@@ -11,6 +11,7 @@ from ebpy.repo.detect.tooling import _dependency_names, _ini_has_section, _tool_
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -38,6 +39,11 @@ class PytestDetector:
     def name(self) -> str:
         """Unique short identifier for pytest."""
         return "pytest"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Pytest is a Python tool."""
+        return frozenset({"python"})
 
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when pytest is configured via any standard mechanism."""

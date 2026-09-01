@@ -12,6 +12,7 @@ from ebpy.commands.diagnose import run_diagnose
 from ebpy.decide.diagnose import diagnose
 from ebpy.errors import CommandError
 from ebpy.models import SourceFile, ToolSetup, WorkflowFile, diagnosis_from_dict
+from ebpy.render.report import render_diagnosis
 from ebpy.repo.detect.ci import detect_ci, missing_runners, unpinned_actions
 from ebpy.repo.detect.package_manager import detect_package_manager
 from ebpy.repo.detect.sizes import summarize_sizes
@@ -156,7 +157,7 @@ def test_unpinned_actions_are_reported_as_a_gap(tmp_path: Path) -> None:
     workflows = tmp_path / ".github" / "workflows"
     workflows.mkdir(parents=True)
     (workflows / "ci.yml").write_text("  - uses: actions/checkout@v4\n", encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     gap = next(gap for gap in diagnosis.gaps if gap.id == "ci-action-pins")
     assert "actions/checkout@v4" in gap.detail
 
@@ -175,7 +176,7 @@ def test_sizes_report_the_backlog_before_any_limit_is_switched_on() -> None:
 
 def test_a_bare_repository_produces_a_gap_for_everything(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     ids = {gap.id for gap in diagnosis.gaps}
     assert {"ruff", "mypy", "pytest", "secret-scan", "ci"} <= ids
 
@@ -187,13 +188,13 @@ def test_a_configured_repository_reports_no_bootstrap_gaps(tmp_path: Path) -> No
     )
     (tmp_path / "CLAUDE.md").write_text("rules\n", encoding="utf-8")
     (tmp_path / ".gitleaks.toml").write_text("", encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     assert [gap.id for gap in diagnosis.gaps if gap.phase == "bootstrap"] == []
 
 
 def test_mypy_present_but_loose_is_a_tighten_gap_not_a_bootstrap_one(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text("[tool.mypy]\nstrict = false\n", encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     gap = next(gap for gap in diagnosis.gaps if gap.id == "mypy-strict")
     assert gap.phase == "tighten"
 
@@ -206,7 +207,7 @@ def test_the_mypy_gap_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path
     wording is refused here where it would otherwise slip past CI unpinned.
     """
     (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     gap = next(gap for gap in diagnosis.gaps if gap.id == "mypy")
     assert "per file per rule" in gap.detail
     assert "counter" not in gap.detail
@@ -214,7 +215,7 @@ def test_the_mypy_gap_describes_per_cell_ratcheting_not_a_counter(tmp_path: Path
 
 def test_a_diagnosis_survives_a_round_trip_through_json(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text('[project]\nrequires-python = ">=3.12"\n', encoding="utf-8")
-    diagnosis = diagnose(gather_facts(tmp_path), ())
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset({"python"}))
     restored = diagnosis_from_dict(diagnosis.to_dict())
     # Every setup reads back as a base ToolSetup: subtype provenance (mypy's strictness) is
     # regenerated on the next diagnose, so the round trip preserves only `configured`.
@@ -234,10 +235,10 @@ def test_a_configured_analyzer_outside_the_roster_becomes_an_unratcheted_gap(tmp
     """
     (tmp_path / "pyproject.toml").write_text("[tool.ruff]\nline-length = 100\n", encoding="utf-8")
 
-    unrostered = {gap.id for gap in diagnose(gather_facts(tmp_path), ()).gaps}
+    unrostered = {gap.id for gap in diagnose(gather_facts(tmp_path), (), frozenset({"python"})).gaps}
     assert "unratcheted:ruff" in unrostered
 
-    rostered = {gap.id for gap in diagnose(gather_facts(tmp_path), ("ruff",)).gaps}
+    rostered = {gap.id for gap in diagnose(gather_facts(tmp_path), ("ruff",), frozenset({"python"})).gaps}
     assert "unratcheted:ruff" not in rostered
 
 
@@ -249,7 +250,7 @@ def test_a_non_analyzer_tool_never_becomes_an_unratcheted_gap(tmp_path: Path) ->
     (tmp_path / "pyproject.toml").write_text(
         "[tool.ruff]\nline-length = 100\n\n[tool.pytest.ini_options]\n", encoding="utf-8"
     )
-    gap_ids = {gap.id for gap in diagnose(gather_facts(tmp_path), ("ruff",)).gaps}
+    gap_ids = {gap.id for gap in diagnose(gather_facts(tmp_path), ("ruff",), frozenset({"python"})).gaps}
     assert not any(gap_id.startswith("unratcheted:") for gap_id in gap_ids)
 
 
@@ -266,3 +267,19 @@ def test_a_mixed_repository_still_runs_every_python_command(tmp_path: Path) -> N
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
     (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
     assert run_diagnose(tmp_path, as_json=False, write=False)
+
+
+def test_secret_scanning_runs_in_every_repository(tmp_path: Path) -> None:
+    """It reads workflows and pre-commit config; claiming it belongs to Python would be false."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    diagnosis = diagnose(gather_facts(tmp_path), (), frozenset())
+    assert "secret-scan" in diagnosis.tool_setups
+    assert "ruff" not in diagnosis.tool_setups
+
+
+def test_the_diagnosis_renders_without_a_key_for_every_detector(tmp_path: Path) -> None:
+    """render/report.py indexes the setup map; a filtered map makes that a KeyError."""
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    output = render_diagnosis(diagnose(gather_facts(tmp_path), (), frozenset()))
+    assert "ruff" not in output
+    assert "secret scan" in output
