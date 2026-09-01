@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ebpy.models import AnalysisMeasurement
+    from ebpy.models import AnalysisMeasurement, Language
 
     from .observation import Observation
 
@@ -27,6 +27,11 @@ class Analyzer(Protocol):
     @property
     def noun(self) -> str:
         """Human-readable noun for violations this tool finds (e.g. "Lint violations")."""
+        ...
+
+    @property
+    def language(self) -> Language:
+        """The language this analyzer measures — intrinsic to the tool, not to any repository."""
         ...
 
     def measure(self, cwd: Path) -> Observation[AnalysisMeasurement]:

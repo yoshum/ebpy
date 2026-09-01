@@ -19,6 +19,12 @@ PackageManager = Literal["uv", "poetry", "pdm", "pipenv", "pip"]
 
 Framework = Literal["django", "fastapi", "flask", "none"]
 
+# Singular deliberately: every analyzer measures exactly one language, and widening to a
+# tuple later is a change the type checker points at every call site. A member meaning
+# "every language" must never be added — `Framework`'s "none" is an absence, but "any" would
+# be a universal, and conflating the two is what "absence and zero are different" forbids.
+Language = Literal["python"]
+
 Phase = Literal["diagnose", "bootstrap", "freeze", "drain", "tighten", "split", "review"]
 
 PHASE_ORDER: tuple[Phase, ...] = ("diagnose", "bootstrap", "freeze", "drain", "tighten", "split", "review")
