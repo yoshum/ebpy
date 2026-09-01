@@ -69,11 +69,31 @@ class SourceFile:
 
 @dataclass(frozen=True)
 class UnattributedFinding:
-    """A finding no rule can grandfather — typically a syntax error that hides a file from every rule."""
+    """A finding no cell can hold — typically a syntax error that hides a file from every rule.
+
+    Not only syntax errors: any finding whose reported location cannot be placed in the
+    ceiling's coordinate system lands here, such as a clippy diagnostic for a path outside
+    the repository. The invariant is the same either way — a location the ratchet cannot
+    key on cannot be grandfathered.
+    """
 
     file: str
     line: int
     message: str
+
+
+@dataclass(frozen=True)
+class UnmeasuredScope:
+    """One range of a repository an analyzer could not measure, as the runner saw it.
+
+    Two fields because the identity of the range and the identity of its container are
+    different questions. `packages` is what the contract compares — a workspace root can stay
+    the same while `members` and `exclude` move packages across it. `root` is what a message
+    names, because "which workspace lost the ceiling" needs the container.
+    """
+
+    root: str
+    packages: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -84,6 +104,9 @@ class AnalysisMeasurement:
     # Syntax errors cannot be grandfathered: a file that does not parse is invisible
     # to every rule, so recording a rule count for it would be a lie.
     unattributed: tuple[UnattributedFinding, ...] = ()
+    # Ranges this run did not measure at all. Distinct from an empty cell mapping, which
+    # means the analyzer looked and found nothing.
+    unmeasured: tuple[UnmeasuredScope, ...] = ()
 
     def __post_init__(self) -> None:
         """Freeze ``cells`` into nested read-only proxies so the frozen value is deeply immutable."""
