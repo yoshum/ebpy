@@ -16,13 +16,14 @@ from ebpy.commands import freeze
 from ebpy.commands.freeze import build_global_freeze, build_scoped_freeze, run_freeze
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import AnalysisMeasurement, UnattributedFinding
+from ebpy.models import AnalysisMeasurement, State, UnattributedFinding, UnmeasuredScope
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import CeilingArtifacts, read_ceiling_artifacts
 from ebpy.store.state import (
     Ledger,
     apply_analyzer_rule_counts,
     empty_state,
+    read_ledger,
     state_path,
     with_phase,
     write_state,
@@ -905,8 +906,8 @@ def test_global_freeze_with_no_config_uses_union_scope(
 ) -> None:
     """No config: global freeze covers every analyzer this repository's language evidences.
 
-    Only `pyproject.toml` is present, so the repository evidences python and not rust — the
-    union is {ruff, mypy}, not every analyzer this build happens to have a runner for.
+    Only `pyproject.toml` is present, so the repository evidences python and not rust —
+    the union is {ruff, mypy}, not every analyzer this build happens to have a runner for.
     """
     (tmp_path / "pyproject.toml").touch()
     measurement = _both_analyzers_measurement()
@@ -958,15 +959,94 @@ def test_force_freeze_with_narrower_config_drops_the_undeclared_analyzer(
     assert not any(k.startswith("mypy:") for k in result.ledger.state.rules)
 
 
-def test_a_global_freeze_refuses_when_no_analyzer_applies_to_this_repository(tmp_path: Path) -> None:
-    """A ceiling written from no analyzers would record "nothing was found" for "nobody looked"."""
-    with pytest.raises(CommandError, match="No analyzer applies here"):
-        run_freeze(tmp_path, force=False, analyzer=None)
+# --- A package leaving the ceiling's coverage fails closed ------------------------------
 
 
-def test_a_scoped_freeze_refuses_an_analyzer_outside_this_repository_scope(tmp_path: Path) -> None:
-    """The scope, not the config alone, is what a named analyzer must belong to."""
+def test_freeze_force_rewrites_the_contract_despite_a_coverage_regression(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--force` is the deliberate narrowing: it proceeds and rewrites the key from this run."""
+    (tmp_path / "pyproject.toml").touch()
     (tmp_path / "Cargo.toml").touch()
-    with pytest.raises(CommandError) as caught:
-        run_freeze(tmp_path, force=False, analyzer="ruff")
-    assert "analyzer scope" in str(caught.value)
+    write_cells(tmp_path, {})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("clippy", "mypy", "ruff"),
+            unmeasured_packages=("fuzz",),
+            frozen_at=_FROZEN_AT,
+            phase="drain",
+        ),
+    )
+    measurement = Measurement(
+        analyzers={
+            "ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={})),
+            "mypy": Measured(tool="mypy", value=AnalysisMeasurement(cells={})),
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("core", "fuzz")),)
+                ),
+            ),
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=True, analyzer=None)
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("core", "fuzz")
+
+
+def test_freeze_of_an_unrelated_analyzer_leaves_the_unmeasured_contract_untouched(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`freeze --analyzer ruff` never measures clippy, so the key it holds is carried through."""
+    (tmp_path / "pyproject.toml").touch()
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("clippy", "mypy"),
+            unmeasured_packages=("fuzz",),
+            frozen_at=_FROZEN_AT,
+            phase="drain",
+        ),
+    )
+    measurement = Measurement(analyzers={"ruff": Measured(tool="ruff", value=AnalysisMeasurement(cells={}))})
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=False, analyzer="ruff")
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("fuzz",)
+
+
+def test_scoped_freeze_of_clippy_records_its_own_unmeasured_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The initial `freeze --analyzer clippy` writes this run's set — there is no prior one."""
+    (tmp_path / "pyproject.toml").touch()
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {})
+    write_state(tmp_path, State(frozen_analyzers=("mypy",), frozen_at=_FROZEN_AT, phase="drain"))
+    measurement = Measurement(
+        analyzers={
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root="fuzz", packages=("fuzz",)),)
+                ),
+            )
+        }
+    )
+    monkeypatch.setattr(freeze, "measure_repository", lambda _cwd, _scope: measurement)
+
+    run_freeze(tmp_path, force=False, analyzer="clippy")
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ("fuzz",)

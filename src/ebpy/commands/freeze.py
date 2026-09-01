@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
+from ebpy.decide.unmeasured import regression_refusal, unmeasured_notice, unmeasured_verdict
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Unavailable, classify
 from ebpy.quality_file import write_quality_file
@@ -38,6 +39,7 @@ from ebpy.tools import measure_repository
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from ebpy.decide.unmeasured import UnmeasuredVerdict
     from ebpy.models import AnalysisMeasurement, CellCounts, CellCountsView, State
 
 _UNATTRIBUTED_SHOWN = 5
@@ -309,6 +311,41 @@ def build_scoped_freeze(
     return FreezeDecision(cells, state, message)
 
 
+def _coverage_verdict(
+    measurement: Measurement, previous: State, baseline: CellCounts, force: bool
+) -> UnmeasuredVerdict:
+    """Judge this run's coverage, refusing before proceeding unless `--force` overrides it.
+
+    A non-force scoped freeze can only reach a regressed verdict under `--force` — clippy
+    already being frozen is what `_check_scope_preconditions` would otherwise have refused
+    on — and a non-force global freeze on an already-frozen contract is refused earlier still
+    by `_already_frozen`. The check stays explicit here regardless, since a fresh pair's first
+    freeze reaches this point with an empty roster and every future caller of this helper
+    should not have to re-derive why it is safe.
+    """
+    verdict = unmeasured_verdict(measurement, previous, baseline)
+    if verdict.regressed and not force:
+        raise CommandError(regression_refusal(verdict))
+    return verdict
+
+
+def _fold_unmeasured(decision: FreezeDecision, previous: State, verdict: UnmeasuredVerdict) -> FreezeDecision:
+    """Apply this run's clippy coverage to a freeze decision.
+
+    Only a run that actually measured clippy completely may replace the recorded set —
+    `--force` is what lets a regressed run reach here at all, and it is the deliberate
+    narrowing this key exists to record. A run that never measured clippy (an unrelated
+    `--analyzer`, or a clippy measurement that failed) carries the previous set through,
+    which is a no-op when clippy was outside this run's scope to begin with.
+    """
+    state = decision.state
+    state.unmeasured_packages = verdict.packages if verdict.measured else previous.unmeasured_packages
+    notice = unmeasured_notice(verdict)
+    if not notice:
+        return decision
+    return FreezeDecision(decision.cells, state, "\n\n".join([decision.message, "\n".join(notice)]))
+
+
 def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
     """Run ``ebpy freeze``: pin today's counts as the ceiling for one analyzer or the whole roster."""
     config = read_config(cwd)
@@ -342,7 +379,9 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
                 " Declare it in .ebpy/config.json, or check that what it measures is present here."
             )
         measurement = measure_repository(cwd, (analyzer,))
+        verdict = _coverage_verdict(measurement, previous, artifacts.cells, force)
         decision = build_scoped_freeze(previous, artifacts.cells, measurement, analyzer, frozen_at)
+        decision = _fold_unmeasured(decision, previous, verdict)
     else:
         contract = scope.global_freeze_scope
         if not contract:
@@ -351,7 +390,10 @@ def run_freeze(cwd: Path, force: bool, analyzer: str | None) -> str:
         # freezing `global_freeze_scope` would make an analyzer that was never run report
         # "no runner in this build", when the runner is right here.
         measurement = measure_repository(cwd, contract)
+        verdict = _coverage_verdict(measurement, previous, artifacts.cells, force)
         decision = build_global_freeze(previous, measurement, force, frozen_at, list(contract))
+        decision = _fold_unmeasured(decision, previous, verdict)
+
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)

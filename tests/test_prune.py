@@ -19,10 +19,17 @@ from ebpy.commands import prune as prune_command
 from ebpy.commands.prune import prune_measurement, run_prune
 from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State, UnattributedFinding
+from ebpy.models import (
+    AnalysisMeasurement,
+    CellCounts,
+    RuleBaseline,
+    State,
+    UnattributedFinding,
+    UnmeasuredScope,
+)
 from ebpy.store.baseline import BASELINE_FILE, baseline_path, write_cells
 from ebpy.store.ceiling_artifacts import read_ceiling_artifacts
-from ebpy.store.state import empty_state, state_path, write_state
+from ebpy.store.state import empty_state, read_ledger, state_path, write_state
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -38,13 +45,18 @@ def _write_frozen_pair(
     frozen_analyzers: tuple[str, ...],
     cells: CellCounts,
     rules: dict[str, RuleBaseline] | None = None,
+    unmeasured_packages: tuple[str, ...] = (),
 ) -> None:
     # A pyproject.toml so language detection evidences Python here — without it, an
     # unconfigured repository has no analyzer scope no matter what the ledger records.
     (cwd / "pyproject.toml").touch()
     write_cells(cwd, cells)
     state = State(
-        frozen_analyzers=frozen_analyzers, rules=rules or {}, frozen_at="2026-08-19T00:00:00Z", phase="drain"
+        frozen_analyzers=frozen_analyzers,
+        rules=rules or {},
+        frozen_at="2026-08-19T00:00:00Z",
+        phase="drain",
+        unmeasured_packages=unmeasured_packages,
     )
     write_state(cwd, state)
 
@@ -370,8 +382,16 @@ def test_prune_carries_an_incomplete_analyzer_through_unchanged() -> None:
 def test_prune_refuses_before_measuring_when_the_scope_and_contract_disagree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Prune lowers the ceiling, so it fails closed exactly where check does."""
-    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "mypy"), cells={})
+    """Prune lowers the ceiling, so it fails closed exactly where check does.
+
+    `clippy` alone in `frozen_analyzers` cannot produce a mismatch here: this build's
+    registry has no clippy runner, and `registered_analyzers` deliberately excludes an
+    unregistered contract analyzer from the mismatch set so it reaches `classify(None)`'s
+    "no-runner" case instead (see `ebpy.decide.analyzer_scope`). A declared config that
+    disagrees with the frozen roster — the same shape `test_check.py` uses — is what
+    produces a real mismatch to refuse on.
+    """
+    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "clippy"), cells={})
     (tmp_path / ".ebpy" / "config.json").write_text(
         json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
     )
@@ -381,27 +401,47 @@ def test_prune_refuses_before_measuring_when_the_scope_and_contract_disagree(
 
     monkeypatch.setattr(prune_command, "measure_repository", _never)
     with pytest.raises(CommandError):
-        run_prune(tmp_path)
+        prune_command.run_prune(tmp_path)
 
 
-def test_prune_refuses_before_measuring_when_no_analyzer_applies(
+# --- A package leaving the ceiling's coverage fails closed ------------------------------
+
+
+def test_prune_refuses_when_a_workspace_that_held_a_ceiling_stops_compiling(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Measuring nothing is not measuring zero: a prune here would drop every cell it holds.
-
-    The contract names only an analyzer this build has no runner for, which is deliberately
-    not a scope mismatch — so the run reaches the empty-scope refusal rather than the
-    mismatch one, with nothing detected to measure.
-    """
-    write_cells(tmp_path, {})
-    write_state(
-        tmp_path,
-        State(frozen_analyzers=("pylint",), frozen_at="2026-08-19T00:00:00Z", phase="drain"),
+    """Prune touches the ceiling, so a coverage regression is refused before anything is written."""
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={})
+    before = (tmp_path / BASELINE_FILE).read_text(encoding="utf-8")
+    measurement = Measurement(
+        {
+            "clippy": Measured(
+                tool="clippy",
+                value=AnalysisMeasurement(
+                    cells={}, unmeasured=(UnmeasuredScope(root=".", packages=("core",)),)
+                ),
+            )
+        }
     )
+    monkeypatch.setattr(prune_command, "measure_repository", lambda _cwd, _scope: measurement)
 
-    def _never(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
-        raise AssertionError("prune must refuse before measuring")
+    with pytest.raises(CommandError, match="core"):
+        prune_command.run_prune(tmp_path)
 
-    monkeypatch.setattr(prune_command, "measure_repository", _never)
-    with pytest.raises(CommandError, match="No analyzer applies here"):
-        run_prune(tmp_path)
+    assert (tmp_path / BASELINE_FILE).read_text(encoding="utf-8") == before
+
+
+def test_prune_records_a_widened_contract_so_a_second_break_is_still_caught(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "Cargo.toml").touch()
+    _write_frozen_pair(tmp_path, frozen_analyzers=("clippy",), cells={}, unmeasured_packages=("fuzz",))
+    measurement = Measurement({"clippy": Measured(tool="clippy", value=AnalysisMeasurement(cells={}))})
+    monkeypatch.setattr(prune_command, "measure_repository", lambda _cwd, _scope: measurement)
+
+    prune_command.run_prune(tmp_path)
+
+    state = read_ledger(tmp_path).state
+    assert state is not None
+    assert state.unmeasured_packages == ()

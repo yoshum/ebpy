@@ -450,3 +450,37 @@ def test_a_log_cannot_grow_without_bound() -> None:
         state = append_log(state, "note", f"entry {index}", None)
     assert len(state.log) == 200
     assert state.log[-1].text == "entry 249"
+
+
+def test_the_unmeasured_package_set_round_trips_through_the_ledger() -> None:
+    state = State(frozen_analyzers=("clippy",), unmeasured_packages=("fuzz",))
+    raw = state_to_dict(state)
+    assert raw["unmeasuredPackages"] == ["fuzz"]
+
+    restored = state_from_dict(raw)
+    assert restored is not None
+    assert restored.unmeasured_packages == ("fuzz",)
+
+
+def test_a_ledger_without_the_key_reads_as_an_empty_set() -> None:
+    """Absent is the default and never an error: no clippy ledger predates the key."""
+    raw = state_to_dict(State(frozen_analyzers=("ruff",)))
+    del raw["unmeasuredPackages"]
+    restored = state_from_dict(raw)
+    assert restored is not None
+    assert restored.unmeasured_packages == ()
+
+
+def test_the_schema_version_does_not_move_for_the_new_key() -> None:
+    assert state_to_dict(State())["version"] == 2
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["abc", ["fuzz", "fuzz"], [7], ["/abs/fuzz"], ["../outside"], [""]],
+)
+def test_a_malformed_unmeasured_package_set_invalidates_the_whole_ledger(value: object) -> None:
+    """The key states part of the contract, so ebpy does not half-read it."""
+    raw = state_to_dict(State(frozen_analyzers=("clippy",)))
+    raw["unmeasuredPackages"] = value
+    assert state_from_dict(raw) is None

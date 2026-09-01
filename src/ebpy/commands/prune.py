@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
+from ebpy.decide.unmeasured import (
+    next_unmeasured_packages,
+    regression_refusal,
+    unmeasured_notice,
+    unmeasured_verdict,
+)
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
@@ -201,8 +207,18 @@ def run_prune(cwd: Path) -> str:
 
     # Compare with the baseline file, not the ledger: check may already have lowered
     # the ledger's current values, which would make every prune look like a no-op.
-    decision = prune_measurement(previous, artifacts.cells, measure_repository(cwd, scope.to_measure))
+    measurement = measure_repository(cwd, scope.to_measure)
+    verdict = unmeasured_verdict(measurement, previous, artifacts.cells)
+    if verdict.regressed:
+        # prune only ever lowers the ceiling; it never carries a narrower contract through,
+        # so a regression here is refused rather than written with the previous value.
+        raise CommandError(regression_refusal(verdict))
+
+    decision = prune_measurement(previous, artifacts.cells, measurement)
+    decision.state.unmeasured_packages = next_unmeasured_packages(previous, verdict)
+    notice = unmeasured_notice(verdict)
+    message = "\n\n".join([decision.message, *(["\n".join(notice)] if notice else [])])
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)
-    return decision.message
+    return message

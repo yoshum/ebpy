@@ -20,7 +20,7 @@ from ebpy.store.baseline import (
 )
 
 if TYPE_CHECKING:
-    from ebpy.models import CellCounts, CellCountsView, UnattributedFinding
+    from ebpy.models import CellCounts, CellCountsView, UnattributedFinding, UnmeasuredScope
 
 # report's own widening of the seam's vocabulary. `AnalyzerStatus` itself is not widened:
 # check, freeze and prune reconcile before measuring, so they never reach this state, and a
@@ -76,6 +76,9 @@ class AnalyzerSummary:
     failure: str | None
     unattributed_total: int
     unattributed: tuple[UnattributedFinding, ...]
+    # Ranges this run could not measure, from a Measured observation; () for any other
+    # status. Named here so a reader sees a coverage gap without cross-referencing check.
+    unmeasured: tuple[UnmeasuredScope, ...]
 
 
 @dataclass(frozen=True)
@@ -119,6 +122,9 @@ class AnalysisReport:
                     "unattributedTotal": summary.unattributed_total,
                     "unattributed": [
                         {"file": u.file, "line": u.line, "message": u.message} for u in summary.unattributed
+                    ],
+                    "unmeasured": [
+                        {"root": s.root, "packages": list(s.packages)} for s in summary.unmeasured
                     ],
                 }
                 for name, summary in self.analyzers
@@ -179,6 +185,7 @@ def _analyzer_summary(
             failure=detail,
             unattributed_total=0,
             unattributed=(),
+            unmeasured=(),
         )
     value = observation.value
     unattributed_total = len(value.unattributed)
@@ -191,18 +198,22 @@ def _analyzer_summary(
         failure=None,
         unattributed_total=unattributed_total,
         unattributed=unattributed,
+        unmeasured=value.unmeasured,
     )
 
 
-def _backlog_cells_for(analyzer: str, baseline: CellCounts, measurement: Measurement) -> CellCounts:
+def _backlog_cells_for(
+    analyzer: str, baseline: CellCounts, measurement: Measurement, carry: bool
+) -> CellCounts:
     """Backlog cells for one contract analyzer.
 
-    A complete observation is pruned to only what still exists; anything else falls
-    back to the analyzer's baseline unchanged, and the caller flags the fallback via
-    the analyzer's status.
+    `carry` forces the fallback even for a complete observation. Under a coverage regression
+    the dropped workspace's cells are simply absent from this run, so pruning against it
+    would erase them from the displayed backlog — the debt would look fixed. `report` writes
+    nothing, but a backlog that falls only on screen is as misleading as one that falls.
     """
     observation = measurement.analyzers.get(analyzer)
-    if isinstance(observation, Measured) and classify(observation) == "complete":
+    if not carry and isinstance(observation, Measured) and classify(observation) == "complete":
         return prune_cells(cells_for(baseline, analyzer), cells_for(observation.value.cells, analyzer))
     return cells_for(baseline, analyzer)
 
@@ -212,6 +223,7 @@ def report_from_measurement(
     frozen_analyzers: tuple[str, ...],
     measurement: Measurement,
     scope_mismatches: frozenset[str] = frozenset(),
+    carry_backlog: frozenset[str] = frozenset(),
 ) -> AnalysisReport:
     """Build a report from facts; tool failure changes its detail, never its exit status.
 
@@ -219,6 +231,10 @@ def report_from_measurement(
     three authorities. Deriving it here from `frozen - measurement.analyzers` would miss the
     config-declared-but-unfrozen direction entirely, since a declared analyzer is always
     measured.
+
+    `carry_backlog` names the analyzers whose backlog must not be pruned against this run's
+    measurement despite a complete observation — a coverage regression, decided by the caller
+    against the ledger this function never sees.
     """
     contract_set = set(frozen_analyzers)
     all_analyzers = sorted(set(measurement.analyzers) | contract_set)
@@ -234,7 +250,7 @@ def report_from_measurement(
     for analyzer in sorted(frozen_analyzers):
         observation = measurement.analyzers.get(analyzer)
         status = classify(observation)
-        backlog_parts.append(_backlog_cells_for(analyzer, baseline, measurement))
+        backlog_parts.append(_backlog_cells_for(analyzer, baseline, measurement, analyzer in carry_backlog))
         if status == "complete":
             assert isinstance(observation, Measured)
             excess, _ = split_against_baseline(

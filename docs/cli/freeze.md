@@ -53,6 +53,25 @@ distinct condition: NAME itself not being in this run's detected or declared sco
 `.ebpy/config.json`, or check that what it measures is actually present here. Either refusal writes
 nothing — measuring nothing is not the same as measuring zero.
 
+## Coverage clippy could not measure
+
+If a Rust workspace clippy measures does not compile in the configuration ebpy uses — typically
+because it references items hidden behind a `cfg` — the freeze message names it: "N workspace(s)
+not measured in this configuration: ...". That workspace's packages are recorded as outside the
+contract's coverage once this freeze completes, and [`check`](check.md), `prune` and `report` all
+then say the same thing about it on every later run, until clippy measures it again.
+
+This can only ever *narrow* an existing clippy contract under `--force`. An ordinary freeze cannot
+walk into that state on its own: re-freezing an analyzer already in the contract is refused before
+measurement even runs, coverage aside — "already frozen" for a global freeze, "already in the
+frozen contract" for `freeze --analyzer clippy`. `--force` is what lets you replace an existing
+contract, and a coverage drop found while doing so is accepted as part of that deliberate
+replacement rather than refused a second time. It is
+[`check`](check.md#a-workspace-clippy-can-no-longer-measure) and
+[`prune`](prune.md#a-workspace-clippy-can-no-longer-measure) that refuse — they run against an
+already-frozen contract on every invocation, so a coverage drop is exactly the kind of surprise
+they exist to catch.
+
 ## Pin the Rust toolchain
 
 Clippy's lint set moves between rustc releases, and rustup resolves the toolchain per directory —

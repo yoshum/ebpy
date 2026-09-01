@@ -32,6 +32,15 @@ reason: lowering a ceiling nobody could verify would be a false "reclaimed". An 
 declaration and no evidenced language, or a declaration naming none) refuses the same way: there is
 nothing to prune.
 
+## A workspace clippy can no longer measure
+
+If a Rust workspace clippy's contract previously covered no longer compiles in the configuration
+ebpy measures, `prune` refuses rather than lowering that workspace's cells against a measurement
+simply missing them — which would look like the debt drained rather than like coverage narrowing.
+Fix the `cfg` so the workspace compiles again, or run `ebpy freeze --force` to accept the narrower
+contract deliberately; `prune` itself never narrows what the contract covers, only `freeze --force`
+does.
+
 ## Commit it with the fix
 
 ```bash
