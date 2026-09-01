@@ -129,9 +129,14 @@ def _refusal_reason(
             ]
         )
     if status == "unavailable":
+        assert isinstance(observation, Unavailable)
+        # The observation carries how to fix it; a fixed sentence naming `ebpy bootstrap`
+        # was only ever right because every analyzer used to have a provisioner. The Failed
+        # branch below has always quoted the detail for the same reason.
         return "\n".join(
             [
-                f"{analyzer} is not installed. Install it first: `ebpy bootstrap` is the step.",
+                f"{analyzer} could not be run here:",
+                *(f"  {line}" for line in observation.detail.splitlines()),
                 "Do not freeze without it — a ceiling that omits an analyzer cannot be trusted.",
             ]
         )
