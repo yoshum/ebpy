@@ -23,7 +23,7 @@ Framework = Literal["django", "fastapi", "flask", "none"]
 # tuple later is a change the type checker points at every call site. A member meaning
 # "every language" must never be added — `Framework`'s "none" is an absence, but "any" would
 # be a universal, and conflating the two is what "absence and zero are different" forbids.
-Language = Literal["python"]
+Language = Literal["python", "rust"]
 
 Phase = Literal["diagnose", "bootstrap", "freeze", "drain", "tighten", "split", "review"]
 

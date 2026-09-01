@@ -42,6 +42,13 @@ _PYTHON_NAMES = frozenset(
     }
 )
 
+_CARGO_MANIFEST = "Cargo.toml"
+
+# Excluded by path segment, not by prefix: the claim is "a segment named `target`", which is
+# all the arithmetic supports. A repository that renamed its target directory keeps those
+# manifests as candidates, and `cargo metadata` rejects or de-duplicates them later.
+_RUST_EXCLUDED_SEGMENT = "target"
+
 
 @dataclass(frozen=True)
 class RepoLanguages:
@@ -59,12 +66,19 @@ def _is_python_marker(file: str) -> bool:
     )
 
 
+def _is_rust_marker(file: str) -> bool:
+    parts = PurePosixPath(file).parts
+    return bool(parts) and parts[-1] == _CARGO_MANIFEST and _RUST_EXCLUDED_SEGMENT not in parts[:-1]
+
+
 def languages_from_files(all_files: Iterable[str]) -> RepoLanguages:
     """Return the languages these files evidence. Pure: for callers that already listed the tree."""
     found: set[Language] = set()
     for file in all_files:
         if "python" not in found and _is_python_marker(file):
             found.add("python")
+        if "rust" not in found and _is_rust_marker(file):
+            found.add("rust")
     return RepoLanguages(languages=frozenset(found))
 
 
