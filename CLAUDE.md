@@ -18,8 +18,9 @@ checklist cannot express belongs in a skill.
   `repo/git.py`, `repo/fan_in.py`, `repo/detect/`, including `repo/detect/language.py` for which
   languages a repository contains); `decide/` turns those facts into verdicts
   (`decide/diagnose.py`, `decide/analysis_report.py`, `decide/drain_order.py`,
-  `decide/bootstrap_plan.py`, `decide/freshness.py`), and everything under `render/` turns a
-  verdict into text. None of these touch the filesystem, so all are testable without one.
+  `decide/bootstrap_plan.py`, `decide/freshness.py`, `decide/analyzer_scope.py`), and everything
+  under `render/` turns a verdict into text. None of these touch the filesystem, so all are
+  testable without one.
 - `measurement/` is the toolchain seam. Ruff and mypy become one Measurement value before any
   command applies ratchet policy; the per-tool runners are `measurement/_ruff.py` and
   `measurement/_mypy.py`, private to the package. See `docs/measurement-seam.md`.
