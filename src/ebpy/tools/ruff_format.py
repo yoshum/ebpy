@@ -12,6 +12,7 @@ from .ruff import has_ruff_config
 
 if TYPE_CHECKING:
     from ebpy.decide.provisioner import FileAction, ProvisionContext
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -34,6 +35,11 @@ class RuffFormatDetector:
     def name(self) -> str:
         """Unique short identifier for the formatter tool."""
         return "formatter"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """The formatter (ruff or black) is a Python tool."""
+        return frozenset({"python"})
 
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when ruff or black is configured in the repository."""

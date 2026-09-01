@@ -10,6 +10,7 @@ from ebpy.models import Gap, ToolSetup
 from ebpy.repo.detect.tooling import _ini_has_section, _tool_table
 
 if TYPE_CHECKING:
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -63,6 +64,11 @@ class MypyDetector:
     def name(self) -> str:
         """Unique short identifier for mypy."""
         return "mypy"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Mypy is a Python tool."""
+        return frozenset({"python"})
 
     def detect(self, facts: RepoFacts) -> MypySetup:
         """Return configured and strict state based on mypy config found in the repository."""

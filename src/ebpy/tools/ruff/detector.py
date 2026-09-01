@@ -9,6 +9,7 @@ from ebpy.models import Gap, ToolSetup
 from ebpy.repo.detect.tooling import _tool_table
 
 if TYPE_CHECKING:
+    from ebpy.models import Language
     from ebpy.repo.facts import RepoFacts
 
 
@@ -29,6 +30,11 @@ class RuffDetector:
     def name(self) -> str:
         """Unique short identifier for ruff."""
         return "ruff"
+
+    @property
+    def languages(self) -> frozenset[Language]:
+        """Ruff is a Python tool."""
+        return frozenset({"python"})
 
     def detect(self, facts: RepoFacts) -> ToolSetup:
         """Return configured=True when a ruff config is present in the repository root."""

@@ -77,3 +77,21 @@ def test_gitleaks_detector_detects_workflow_mention() -> None:
     workflow = WorkflowFile(path=".github/workflows/ci.yml", content="uses: gitleaks/gitleaks-action@v2")
     assert GitleaksDetector().detect(_facts(workflows=(workflow,))).configured is True
     assert GitleaksDetector().detect(_facts()).configured is False
+
+
+def test_the_five_python_detectors_declare_the_python_language() -> None:
+    """ruff, formatter, mypy, pytest and vulture all belong to Python and only Python."""
+    detectors = (
+        RuffDetector(),
+        RuffFormatDetector(),
+        MypyDetector(),
+        PytestDetector(),
+        VultureDetector(),
+    )
+    for detector in detectors:
+        assert detector.languages == frozenset({"python"})
+
+
+def test_gitleaks_declares_no_language_because_it_is_repository_wide() -> None:
+    """Empty `languages` means "always runs": gitleaks reads workflows and configs, no source."""
+    assert GitleaksDetector().languages == frozenset()
