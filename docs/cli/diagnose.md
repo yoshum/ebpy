@@ -9,6 +9,14 @@ ebpy diagnose --write    # also persist .ebpy/state.json and QUALITY.md
 ebpy diagnose --json     # the raw diagnosis
 ```
 
+## Python-only
+
+`diagnose` reads Python sources and Python-specific configuration — every row in the table below
+depends on it. On a repository with no Python it refuses outright rather than printing an empty
+survey: an empty result would read as a finding ("no framework", "0 files over 600 lines") when it
+is really "nothing to look at". `ebpy freeze`, `check`, `prune`, `report`, `status`, `log`,
+`secrets` and `next` all still work on such a repository.
+
 ## What it reports
 
 | Section | Read from |

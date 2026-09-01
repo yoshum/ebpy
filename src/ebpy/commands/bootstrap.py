@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
+from ebpy.errors import CommandError
+from ebpy.repo.detect.language import has_python, no_python_message
 from ebpy.repo.facts import gather_facts
 from ebpy.util import run
 
@@ -35,6 +37,8 @@ def _apply(cwd: Path, plan: BootstrapPlan) -> list[str]:
 
 def run_bootstrap(cwd: Path, dry_run: bool, python_version: str) -> str:
     """Run ``ebpy bootstrap``: plan the toolchain setup and, unless a dry run, apply it."""
+    if not has_python(cwd):
+        raise CommandError(no_python_message("bootstrap"))
     facts = gather_facts(cwd)
     # The plan reads only the tool setups and required Python; the roster feeds the
     # "configured but not ratcheted" gap, which the plan ignores, so an empty roster is enough.

@@ -71,3 +71,25 @@ def languages_from_files(all_files: Iterable[str]) -> RepoLanguages:
 def detect_languages(cwd: Path) -> RepoLanguages:
     """Return the languages in the repository at cwd, for callers holding no RepoFacts."""
     return languages_from_files(list_all_files(cwd))
+
+
+def has_python(cwd: Path) -> bool:
+    """Report whether the repository at cwd contains Python."""
+    return "python" in detect_languages(cwd).languages
+
+
+def no_python_message(command: str) -> str:
+    """Explain why a Python-only command will not run here.
+
+    Refusing rather than returning empty results: every one of these reads `.py` files and
+    would otherwise report "nobody looked" as "zero" — a cargo project shown as using pip,
+    or "0 files over 600 lines" for a repository with no Python files to count.
+    """
+    return "\n".join(
+        [
+            f"`ebpy {command}` reads Python sources, and this repository has none.",
+            "Its answer would be an empty result rather than a finding, so nothing was run.",
+            "`ebpy freeze`, `check`, `prune`, `report`, `status`, `log`, `secrets` and `next`",
+            "all work here.",
+        ]
+    )

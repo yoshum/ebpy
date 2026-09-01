@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from ebpy._toml import loads
+from ebpy.commands.bootstrap import run_bootstrap
 from ebpy.decide.bootstrap_plan import BootstrapPlan, build_plan, render_plan
 from ebpy.decide.diagnose import diagnose
 from ebpy.decide.provisioner import AppendText
+from ebpy.errors import CommandError
 from ebpy.generate.configs import DEPENDABOT_CONTENT, GITATTRIBUTES_CONTENT
 from ebpy.generate.workflows import (
     PinnedAction,
@@ -266,3 +270,20 @@ def test_an_already_configured_tool_still_shows_the_config_it_would_have_written
     assert withheld.would_have.path == "pyproject.toml"
     assert "[tool.ruff.lint]" in withheld.would_have.content
     assert "max-complexity" in render_plan(plan, dry_run=False)
+
+
+def test_bootstrap_refuses_a_repository_with_no_python(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='a'\n", encoding="utf-8")
+    with pytest.raises(CommandError):
+        run_bootstrap(tmp_path, dry_run=True, python_version="3.11")
+
+
+def test_bootstrap_runs_at_the_entry_point_on_a_python_repository(tmp_path: Path) -> None:
+    """Pins the guard to a real call through `run_bootstrap`, not just through `plan_for`.
+
+    Every other bootstrap test drives `build_plan` via `plan_for`, which hands `diagnose` a
+    hard-coded Python roster and never reaches `run_bootstrap` at all — so an inverted guard
+    condition would still pass the whole suite if this test did not call the entry point.
+    """
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    assert run_bootstrap(tmp_path, dry_run=True, python_version="3.11")
