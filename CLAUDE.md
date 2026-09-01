@@ -15,7 +15,8 @@ checklist cannot express belongs in a skill.
 
 - `src/ebpy/models.py` — every shared value. Frozen dataclasses; `State` is the one mutable one.
 - Decisions are **pure functions over facts**. `repo/` does the disk reading (`repo/facts.py`,
-  `repo/git.py`, `repo/fan_in.py`, `repo/detect/`); `decide/` turns those facts into verdicts
+  `repo/git.py`, `repo/fan_in.py`, `repo/detect/`, including `repo/detect/language.py` for which
+  languages a repository contains); `decide/` turns those facts into verdicts
   (`decide/diagnose.py`, `decide/analysis_report.py`, `decide/drain_order.py`,
   `decide/bootstrap_plan.py`, `decide/freshness.py`), and everything under `render/` turns a
   verdict into text. None of these touch the filesystem, so all are testable without one.
