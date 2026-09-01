@@ -1,4 +1,4 @@
-"""Classifying the baseline/state pair, and reconciling the configured analyzers against the roster."""
+"""Classifying the baseline/state pair."""
 
 from __future__ import annotations
 
@@ -6,64 +6,17 @@ import json
 from typing import TYPE_CHECKING
 
 from ebpy.cell_key import analyzer_of
-from ebpy.models import RuleBaseline, State
+from ebpy.models import RuleBaseline
 from ebpy.store.baseline import write_cells
 from ebpy.store.ceiling_artifacts import (
     align_all_analyzer_rules_to_cells,
     align_analyzer_rules_to_cells,
     read_ceiling_artifacts,
-    reconcile_scope,
 )
-from ebpy.store.config import EbpyConfig
 from ebpy.store.state import empty_state, state_path, write_state
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-
-def _state(*analyzers: str) -> State:
-    s = empty_state()
-    s.frozen_analyzers = tuple(analyzers)
-    return s
-
-
-def test_absent_config_skips_reconciliation() -> None:
-    """No config means no reconciliation gate; existing behavior is preserved."""
-    assert reconcile_scope(None, _state("ruff")) is None
-
-
-def test_matching_sets_reconcile() -> None:
-    """Declared and frozen analyzer sets that are equal produce no error."""
-    assert reconcile_scope(EbpyConfig(("mypy", "ruff")), _state("ruff", "mypy")) is None
-
-
-def test_declared_but_unfrozen_analyzer_is_flagged() -> None:
-    """An analyzer in config but absent from the frozen roster surfaces in the error message."""
-    msg = reconcile_scope(EbpyConfig(("ruff", "mypy")), _state("ruff"))
-    assert msg is not None
-    assert "mypy" in msg
-    assert "freeze --analyzer" in msg
-
-
-def test_frozen_but_undeclared_analyzer_is_flagged() -> None:
-    """An analyzer in the frozen roster but absent from config surfaces in the error message."""
-    msg = reconcile_scope(EbpyConfig(("ruff",)), _state("ruff", "mypy"))
-    assert msg is not None
-    assert "mypy" in msg
-    assert "--force" in msg
-
-
-def test_config_adding_and_dropping_simultaneously_reports_both_directions() -> None:
-    """When config both adds an analyzer and drops another, both directions appear in the message."""
-    # Frozen roster: {ruff, mypy}; config declares {ruff, vulture}.
-    msg = reconcile_scope(EbpyConfig(("ruff", "vulture")), _state("ruff", "mypy"))
-    assert msg is not None
-    # vulture is declared but not yet frozen — needs freeze --analyzer
-    assert "vulture" in msg
-    assert "freeze --analyzer" in msg
-    # mypy is frozen but not declared — needs --force to drop
-    assert "mypy" in msg
-    assert "--force" in msg
 
 
 def frozen_state(

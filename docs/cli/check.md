@@ -20,6 +20,8 @@ Exit 0 when nothing rose; exit 1 with the reason when something did.
 | Ruff could not parse a file | the syntax errors, named |
 | there is no baseline at all | run `ebpy freeze` and commit the result |
 | the baseline and ledger are incomplete, malformed or inconsistent | restore the matching pair, or deliberately replace it with `ebpy freeze --force` |
+| the frozen contract and this run's detected or declared scope disagree | which analyzers are unfrozen, undeclared, or no longer evidenced, and how to reconcile |
+| no analyzer applies here at all | nothing to measure — declare one in `.ebpy/config.json`, or run from the repository root |
 
 ## The ratchet is per file and per rule, for every analyzer
 
@@ -78,6 +80,21 @@ unrun analyzer look like an unverified ceiling.
 If ebpy knows an analyzer (it is in `ebpy`'s built-in list) but the contract was frozen before that
 analyzer could be measured, `check` names it in the output as a note — not a gate failure. Use
 `ebpy freeze --analyzer NAME` to add it to the contract once the toolchain is complete.
+
+## The contract and this run's scope must agree
+
+`check` reconciles three authorities before measuring: what `.ebpy/config.json` declares, what
+language detection finds in the repository, and what the frozen contract already covers. Any
+disagreement — an analyzer declared but not frozen, frozen but no longer declared, or frozen but no
+longer evidenced by the repository's files — fails the gate outright, before any tool runs, and
+names exactly what disagrees and how to reconcile it: freeze the missing analyzer, re-declare it, or
+run `ebpy freeze --force` to accept the narrower contract deliberately. `report` renders the same
+disagreement as a `scope-mismatch` status instead of refusing; `check` is stricter because a
+contract nobody is verifying is exactly the accumulation the gate exists to stop.
+
+If no analyzer applies at all — no declaration and no evidenced language, or a declaration that
+names none — `check` fails the same way: there is nothing to gate, and gating nothing is not the
+same as gating zero.
 
 ## What it writes
 

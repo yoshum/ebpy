@@ -5,17 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
 from ebpy.errors import CommandError
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
+from ebpy.repo.detect.language import detect_languages
 from ebpy.store.baseline import cells_for, finding_total, merge_cells, prune_cells, write_cells
 from ebpy.store.ceiling_artifacts import (
     align_analyzer_rules_to_cells,
     invalid_artifacts_message,
     read_ceiling_artifacts,
 )
+from ebpy.store.config import read_config
 from ebpy.store.state import copy_state, total_violations, write_state
-from ebpy.tools import ANALYZER_NAMES, measure_repository
+from ebpy.tools import measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -189,9 +192,16 @@ def run_prune(cwd: Path) -> str:
     previous = artifacts.ledger.state
     assert previous is not None
 
+    scope = scope_decision(read_config(cwd), detect_languages(cwd), previous)
+    mismatch = scope.mismatch()
+    if mismatch is not None:
+        raise CommandError(mismatch)
+    if not scope.to_measure:
+        raise CommandError(empty_scope_message(scope))
+
     # Compare with the baseline file, not the ledger: check may already have lowered
     # the ledger's current values, which would make every prune look like a no-op.
-    decision = prune_measurement(previous, artifacts.cells, measure_repository(cwd, ANALYZER_NAMES))
+    decision = prune_measurement(previous, artifacts.cells, measure_repository(cwd, scope.to_measure))
     write_cells(cwd, decision.cells)
     write_state(cwd, decision.state)
     write_quality_file(cwd, decision.state)

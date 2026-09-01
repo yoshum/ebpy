@@ -249,6 +249,43 @@ def test_a_contract_analyzer_with_no_runner_is_named_in_a_banner() -> None:
     assert "no runner" in rendered
 
 
+def test_an_analyzer_outside_the_scope_is_a_scope_mismatch_not_a_missing_runner() -> None:
+    """`no-runner` means this build ships no runner; saying it of a skipped analyzer is a lie."""
+    report = report_from_measurement({}, ("ruff", "mypy"), Measurement({}), frozenset({"mypy"}))
+    summaries = dict(report.analyzers)
+    assert summaries["mypy"].status == "scope-mismatch"
+
+
+def test_an_unregistered_contract_analyzer_is_still_a_missing_runner() -> None:
+    report = report_from_measurement({}, ("pylint",), Measurement({}), frozenset())
+    assert dict(report.analyzers)["pylint"].status == "no-runner"
+
+
+def test_a_scope_mismatched_analyzer_keeps_its_failure_detail() -> None:
+    """One status can only say one thing, but the detail is a separate fact worth keeping."""
+    measurement = Measurement({"mypy": Failed(tool="mypy", failure_kind="execution-failed", detail="boom")})
+    report = report_from_measurement({}, ("ruff",), measurement, frozenset({"mypy"}))
+    summary = dict(report.analyzers)["mypy"]
+    assert summary.status == "scope-mismatch"
+    assert summary.failure == "boom"
+
+
+def test_the_unparsed_file_banner_survives_a_scope_mismatch() -> None:
+    """The banner keys on the unattributed findings themselves, not on a status that got replaced."""
+    measurement = Measurement(
+        {
+            "mypy": Measured(
+                tool="mypy",
+                value=AnalysisMeasurement(
+                    cells={}, unattributed=(UnattributedFinding(file="a.py", line=1, message="x"),)
+                ),
+            )
+        }
+    )
+    report = report_from_measurement({}, ("ruff",), measurement, frozenset({"mypy"}))
+    assert "could not lint every file" in render_analysis_report(report)
+
+
 def test_a_non_contract_analyzer_appears_only_under_unratcheted_analyzers() -> None:
     """A complete non-contract analyzer is excluded from new/backlog but shown as unratcheted."""
     measurement = Measurement(

@@ -2,19 +2,40 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
+
+import pytest
 
 from ebpy.commands import report as report_command
 from ebpy.commands.report import run_report
 from ebpy.decide.analysis_report import report_from_measurement
+from ebpy.errors import CommandError
 from ebpy.measurement import Failed, Measured, Measurement, Unavailable
-from ebpy.models import AnalysisMeasurement
+from ebpy.models import AnalysisMeasurement, CellCounts, RuleBaseline, State
 from ebpy.render.analysis_report import render_analysis_report
+from ebpy.store.baseline import write_cells
+from ebpy.store.state import write_state
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import pytest
+
+def _write_frozen_pair(
+    cwd: Path,
+    *,
+    frozen_analyzers: tuple[str, ...],
+    cells: CellCounts,
+    rules: dict[str, RuleBaseline] | None = None,
+) -> None:
+    # A pyproject.toml so language detection evidences Python here — without it, an
+    # unconfigured repository has no analyzer scope no matter what the ledger records.
+    (cwd / "pyproject.toml").touch()
+    write_cells(cwd, cells)
+    state = State(
+        frozen_analyzers=frozen_analyzers, rules=rules or {}, frozen_at="2026-08-19T00:00:00Z", phase="drain"
+    )
+    write_state(cwd, state)
 
 
 def test_report_keeps_contract_backlog_when_one_analyzer_fails() -> None:
@@ -75,6 +96,7 @@ def test_report_compares_measured_cells_with_the_ceiling() -> None:
 
 
 def test_report_shell_gathers_once_then_renders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "pyproject.toml").touch()
     calls: list[Path] = []
     measurement = Measurement(
         analyzers={
@@ -140,6 +162,7 @@ def test_report_exits_zero_when_every_analyzer_failed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """run_report exits 0 even when every analyzer failed; only invalid artifacts raise."""
+    (tmp_path / "pyproject.toml").touch()
     measurement = Measurement(
         analyzers={
             "ruff": Failed(tool="ruff", failure_kind="execution-failed", detail="ruff gone"),
@@ -153,3 +176,27 @@ def test_report_exits_zero_when_every_analyzer_failed(
     result = run_report(tmp_path, as_json=False)
     assert isinstance(result, str)
     assert "# Analysis report" in result
+
+
+def test_report_does_not_refuse_when_the_contract_and_the_scope_disagree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Report is the window a reader opens because something is wrong; it stays open."""
+    # config.json declares only ruff while mypy is also frozen — the `declared ^ frozen`
+    # branch of ScopeDecision.scope_mismatches, a genuine disagreement rather than one
+    # that only looks like it because the analyzer has no runner in this build.
+    _write_frozen_pair(tmp_path, frozen_analyzers=("ruff", "mypy"), cells={})
+    (tmp_path / ".ebpy" / "config.json").write_text(
+        json.dumps({"version": 1, "analyzers": ["ruff"]}), encoding="utf-8"
+    )
+    monkeypatch.setattr(report_command, "measure_repository", lambda _cwd, _scope: Measurement({}))
+
+    output = json.loads(run_report(tmp_path, as_json=True))
+
+    assert output["analyzers"]["mypy"]["status"] == "scope-mismatch"
+
+
+def test_report_refuses_on_a_fresh_repository_with_nothing_to_measure(tmp_path: Path) -> None:
+    """With no contract and no analyzer there is no standing for the report to show."""
+    with pytest.raises(CommandError):
+        run_report(tmp_path, as_json=False)

@@ -7,10 +7,14 @@ import os
 from typing import TYPE_CHECKING
 
 from ebpy.decide.analysis_report import report_from_measurement
+from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
 from ebpy.errors import CommandError
 from ebpy.render.analysis_report import render_analysis_report
+from ebpy.repo.detect.language import detect_languages
 from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
-from ebpy.tools import ANALYZER_NAMES, measure_repository
+from ebpy.store.config import read_config
+from ebpy.store.state import empty_state
+from ebpy.tools import measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,13 +47,25 @@ def run_report(cwd: Path, as_json: bool) -> str:
     # A fresh (unfrozen) repository has no contract yet; every analyzer is unratcheted.
     if artifacts.kind == "fresh":
         frozen_analyzers: tuple[str, ...] = ()
+        previous = empty_state()
     else:
         state = artifacts.ledger.state
         assert state is not None
         frozen_analyzers = state.frozen_analyzers
+        previous = state
+
+    scope = scope_decision(read_config(cwd), detect_languages(cwd), previous)
+    # A mismatch is what a reader ran `report` to see, so it is rendered rather than raised.
+    # An empty scope only refuses when there is also no contract: with nothing measured and
+    # nothing frozen there is no standing left to show.
+    if not scope.to_measure and not frozen_analyzers:
+        raise CommandError(empty_scope_message(scope))
 
     report = report_from_measurement(
-        artifacts.cells, frozen_analyzers, measure_repository(cwd, ANALYZER_NAMES)
+        artifacts.cells,
+        frozen_analyzers,
+        measure_repository(cwd, scope.to_measure),
+        scope.scope_mismatches,
     )
 
     if as_json:

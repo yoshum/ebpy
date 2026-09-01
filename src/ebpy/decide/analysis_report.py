@@ -7,7 +7,7 @@ this repository's lint debt actually look like".
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from ebpy.measurement import AnalyzerStatus, Measured, Measurement, classify
 from ebpy.store.baseline import (
@@ -21,6 +21,11 @@ from ebpy.store.baseline import (
 
 if TYPE_CHECKING:
     from ebpy.models import CellCounts, CellCountsView, UnattributedFinding
+
+# report's own widening of the seam's vocabulary. `AnalyzerStatus` itself is not widened:
+# check, freeze and prune reconcile before measuring, so they never reach this state, and a
+# value unreachable in the seam is a value every caller has to handle for nothing.
+ReportAnalyzerStatus = AnalyzerStatus | Literal["scope-mismatch"]
 
 # A file at the repository root belongs to no directory, and "" reads as missing data.
 ROOT_AREA = "(root)"
@@ -63,7 +68,7 @@ class AnalyzerSummary:
     """One analyzer's state in the report: its findings, files, and any failure or unattributed detail."""
 
     in_contract: bool
-    status: AnalyzerStatus
+    status: ReportAnalyzerStatus
     # Attributed cell total for a Measured observation; None when unavailable or failed.
     findings: int | None
     files_with_findings: int | None
@@ -159,9 +164,11 @@ def _section_of(title: str, matrix: Matrix) -> list[ReportSection]:
     return [ReportSection(title=title, total=total, areas=areas, rows=rows)]
 
 
-def _analyzer_summary(analyzer: str, in_contract: bool, measurement: Measurement) -> AnalyzerSummary:
+def _analyzer_summary(
+    analyzer: str, in_contract: bool, measurement: Measurement, mismatched: bool
+) -> AnalyzerSummary:
     observation = measurement.analyzers.get(analyzer)
-    status = classify(observation)
+    status: ReportAnalyzerStatus = "scope-mismatch" if mismatched else classify(observation)
     if not isinstance(observation, Measured):
         detail = observation.detail if observation is not None else None
         return AnalyzerSummary(
@@ -201,14 +208,24 @@ def _backlog_cells_for(analyzer: str, baseline: CellCounts, measurement: Measure
 
 
 def report_from_measurement(
-    baseline: CellCounts, frozen_analyzers: tuple[str, ...], measurement: Measurement
+    baseline: CellCounts,
+    frozen_analyzers: tuple[str, ...],
+    measurement: Measurement,
+    scope_mismatches: frozenset[str] = frozenset(),
 ) -> AnalysisReport:
-    """Build a report from facts; tool failure changes its detail, never its exit status."""
+    """Build a report from facts; tool failure changes its detail, never its exit status.
+
+    `scope_mismatches` is computed by `ScopeDecision`, which is the only value that knows all
+    three authorities. Deriving it here from `frozen - measurement.analyzers` would miss the
+    config-declared-but-unfrozen direction entirely, since a declared analyzer is always
+    measured.
+    """
     contract_set = set(frozen_analyzers)
     all_analyzers = sorted(set(measurement.analyzers) | contract_set)
 
     analyzer_summaries = tuple(
-        (a, _analyzer_summary(a, a in contract_set, measurement)) for a in all_analyzers
+        (a, _analyzer_summary(a, a in contract_set, measurement, a in scope_mismatches))
+        for a in all_analyzers
     )
 
     # Accumulate new violations and backlog from every contract analyzer.

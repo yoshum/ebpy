@@ -162,10 +162,22 @@ def test_next_ranks_the_backlog_after_a_freeze(repo: Path, capsys: pytest.Captur
     assert plan["takeFirst"]
 
 
+def test_report_refuses_when_a_fresh_repository_has_no_contract_to_show(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # No detected language and no frozen ceiling leaves nothing to report: printing
+    # "# Analysis report" over that would render absence as zero.
+    assert main(["--cwd", str(tmp_path), "report"]) == 1
+    assert "No analyzer applies here" in capsys.readouterr().out
+
+
 def test_report_survives_a_repository_that_cannot_lint(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # A report is not a gate: no Ruff config and no baseline still produces output.
+    # A report is not a gate: a detected language with no Ruff config and no baseline
+    # still has standing — measuring today's findings against an empty ceiling — so it
+    # still produces output.
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
     assert main(["--cwd", str(tmp_path), "report"]) == 0
     assert "# Analysis report" in capsys.readouterr().out
 

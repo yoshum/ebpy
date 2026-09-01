@@ -68,6 +68,9 @@ def _diagnosis(*, mypy_configured: bool) -> Diagnosis:
 
 
 def _write_frozen_ceiling(cwd: Path, cells: CellCounts, rules: dict[str, RuleBaseline]) -> None:
+    # A pyproject.toml so language detection evidences Python here — without it, the frozen
+    # roster names an analyzer the repository no longer evidences and check refuses first.
+    (cwd / "pyproject.toml").touch()
     write_cells(cwd, cells)
     state = State(frozen_analyzers=("ruff",), rules=rules, frozen_at="2026-08-19T00:00:00Z", phase="drain")
     write_state(cwd, state)
@@ -643,6 +646,7 @@ def test_check_proceeds_normally_when_config_matches_frozen_roster(
 def test_scoped_check_requests_only_the_named_analyzer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    (tmp_path / "pyproject.toml").touch()
     write_cells(
         tmp_path,
         {
@@ -709,3 +713,31 @@ def test_scoped_check_refuses_an_analyzer_outside_the_frozen_contract(
     assert result.ok is False
     assert "mypy is not in the frozen contract" in result.message
     assert measured == []
+
+
+def test_check_refuses_before_measuring_when_the_contract_names_an_undetected_analyzer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reconciling before measuring is what keeps a skipped analyzer from becoming `no-runner`."""
+    # A Cargo.toml and no Python marker: the repository no longer evidences what ruff measures.
+    (tmp_path / "Cargo.toml").touch()
+    write_cells(tmp_path, {"a.py": {"ruff:F401": 1}})
+    write_state(
+        tmp_path,
+        State(
+            frozen_analyzers=("ruff",),
+            rules={"ruff:F401": RuleBaseline(baseline=1, current=1, status="draining")},
+            frozen_at="2026-08-19T00:00:00Z",
+            phase="drain",
+        ),
+    )
+
+    def _never(_cwd: Path, _scope: tuple[str, ...]) -> Measurement:
+        raise AssertionError("check must refuse before measuring")
+
+    monkeypatch.setattr(check_command, "measure_repository", _never)
+
+    result = run_check(tmp_path, write=False)
+
+    assert result.ok is False
+    assert "no longer evidences" in result.message

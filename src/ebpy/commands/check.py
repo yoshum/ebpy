@@ -6,13 +6,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ebpy.cell_key import analyzer_of
+from ebpy.decide.analyzer_scope import empty_scope_message, scope_decision
 from ebpy.measurement import AnalyzerStatus, Failed, Measured, Measurement, Observation, Unavailable, classify
 from ebpy.quality_file import write_quality_file
+from ebpy.repo.detect.language import detect_languages
 from ebpy.store.baseline import cells_for, finding_total, split_against_baseline
-from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts, reconcile_scope
+from ebpy.store.ceiling_artifacts import invalid_artifacts_message, read_ceiling_artifacts
 from ebpy.store.config import read_config
 from ebpy.store.state import apply_analyzer_rule_counts, copy_state, total_violations, write_state
-from ebpy.tools import ANALYZER_NAMES, ANALYZERS_BY_NAME, measure_repository
+from ebpy.tools import ANALYZERS_BY_NAME, measure_repository
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -183,6 +185,18 @@ def check_measurement(
     return CheckDecision(CheckResult(ok=True, message=message), state)
 
 
+def _named_analyzer_refusal(analyzer: str | None, previous: State) -> str | None:
+    """Explain why ``--analyzer <name>`` cannot run here, or None when it can."""
+    if analyzer is None:
+        return None
+    if analyzer not in ANALYZERS_BY_NAME:
+        choices = ", ".join(sorted(ANALYZERS_BY_NAME))
+        return f"Unknown analyzer: {analyzer}. Choose one of: {choices}."
+    if analyzer not in previous.frozen_analyzers:
+        return f"{analyzer} is not in the frozen contract. Run `ebpy freeze --analyzer {analyzer}` first."
+    return None
+
+
 def run_check(cwd: Path, write: bool, analyzer: str | None = None) -> CheckResult:
     """Run ``ebpy check`` for one analyzer or the whole frozen contract."""
     artifacts = read_ceiling_artifacts(cwd)
@@ -193,24 +207,18 @@ def run_check(cwd: Path, write: bool, analyzer: str | None = None) -> CheckResul
     previous = artifacts.ledger.state
     assert previous is not None
 
-    mismatch = reconcile_scope(read_config(cwd), previous)
+    scope = scope_decision(read_config(cwd), detect_languages(cwd), previous)
+    mismatch = scope.mismatch()
     if mismatch is not None:
         return CheckResult(ok=False, message=mismatch)
+    if not scope.to_measure:
+        return CheckResult(ok=False, message=empty_scope_message(scope))
 
-    if analyzer is not None:
-        if analyzer not in ANALYZERS_BY_NAME:
-            choices = ", ".join(sorted(ANALYZERS_BY_NAME))
-            return CheckResult(ok=False, message=f"Unknown analyzer: {analyzer}. Choose one of: {choices}.")
-        if analyzer not in previous.frozen_analyzers:
-            return CheckResult(
-                ok=False,
-                message=(
-                    f"{analyzer} is not in the frozen contract. "
-                    f"Run `ebpy freeze --analyzer {analyzer}` first."
-                ),
-            )
+    named_analyzer_refusal = _named_analyzer_refusal(analyzer, previous)
+    if named_analyzer_refusal is not None:
+        return CheckResult(ok=False, message=named_analyzer_refusal)
 
-    measurement = measure_repository(cwd, (analyzer,) if analyzer is not None else ANALYZER_NAMES)
+    measurement = measure_repository(cwd, (analyzer,) if analyzer is not None else scope.to_measure)
     decision = check_measurement(previous, artifacts.cells, measurement, analyzer)
     if write:
         write_state(cwd, decision.state)
