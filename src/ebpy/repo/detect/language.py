@@ -22,7 +22,11 @@ if TYPE_CHECKING:
 # Deliberately wide. For Python, too wide only means ruff and mypy report "nothing here";
 # too narrow means a repository ebpy gates today silently falls out of scope. `.ipynb` is
 # here because `ruff check .` already walks notebooks, and `.pyi`/`.pyw` because today's
-# unscoped `measure_repository` measures a stub-only repository.
+# unscoped `measure_repository` measures a stub-only repository. The same width is applied
+# to Rust detection below (any non-`target` `Cargo.toml` counts), but there "too wide" is not
+# harmless: clippy fails closed on a manifest that is not a resolvable crate, rather than
+# reporting nothing. `tools/clippy/_runner.py` and `_topology.py` name the recovery —
+# declaring a narrower `analyzers` set in `.ebpy/config.json` — for exactly that case.
 _PYTHON_SUFFIXES = (".py", ".pyi", ".pyw", ".ipynb")
 
 _PYTHON_NAMES = frozenset(
@@ -42,6 +46,13 @@ _PYTHON_NAMES = frozenset(
     }
 )
 
+_CARGO_MANIFEST = "Cargo.toml"
+
+# Excluded by path segment, not by prefix: the claim is "a segment named `target`", which is
+# all the arithmetic supports. A repository that renamed its target directory keeps those
+# manifests as candidates, and `cargo metadata` rejects or de-duplicates them later.
+_RUST_EXCLUDED_SEGMENT = "target"
+
 
 @dataclass(frozen=True)
 class RepoLanguages:
@@ -59,12 +70,19 @@ def _is_python_marker(file: str) -> bool:
     )
 
 
+def _is_rust_marker(file: str) -> bool:
+    parts = PurePosixPath(file).parts
+    return bool(parts) and parts[-1] == _CARGO_MANIFEST and _RUST_EXCLUDED_SEGMENT not in parts[:-1]
+
+
 def languages_from_files(all_files: Iterable[str]) -> RepoLanguages:
     """Return the languages these files evidence. Pure: for callers that already listed the tree."""
     found: set[Language] = set()
     for file in all_files:
         if "python" not in found and _is_python_marker(file):
             found.add("python")
+        if "rust" not in found and _is_rust_marker(file):
+            found.add("rust")
     return RepoLanguages(languages=frozenset(found))
 
 

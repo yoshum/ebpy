@@ -32,14 +32,28 @@ def test_a_lockfile_alone_detects_python() -> None:
     assert languages_from_files(["uv.lock"]).languages == frozenset({"python"})
 
 
+def test_a_cargo_manifest_at_any_depth_detects_rust() -> None:
+    assert languages_from_files(["crates/a/Cargo.toml"]).languages == frozenset({"rust"})
+
+
+def test_a_manifest_under_a_target_segment_does_not_detect_rust() -> None:
+    """`target` is cargo's build directory; a manifest cargo itself wrote there is not the project."""
+    assert languages_from_files(["target/package/foo-0.1.0/Cargo.toml"]).languages == frozenset()
+
+
+def test_a_mixed_repository_detects_both_languages() -> None:
+    files = ["pyproject.toml", "rust/Cargo.toml"]
+    assert languages_from_files(files).languages == frozenset({"python", "rust"})
+
+
 def test_detect_languages_reads_the_working_tree(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
-    assert detect_languages(tmp_path).languages == frozenset({"python"})
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='x'\n", encoding="utf-8")
+    assert detect_languages(tmp_path).languages == frozenset({"python", "rust"})
 
 
-def test_a_tree_with_no_python_markers_detects_nothing(tmp_path: Path) -> None:
-    """Detection must not over-claim: an unrecognised repository evidences no language at all."""
+def test_a_rust_only_tree_does_not_detect_python(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text("[package]\nname='x'\n", encoding="utf-8")
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "lib.rs").write_text("pub fn f() {}\n", encoding="utf-8")
-    assert detect_languages(tmp_path).languages == frozenset()
+    assert detect_languages(tmp_path).languages == frozenset({"rust"})

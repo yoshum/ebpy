@@ -2,7 +2,7 @@
 
 English | [日本語](README.ja.md)
 
-Make an existing Python codebase one that can **only get better**.
+Make an existing codebase one that can **only get better**.
 
 A Python port of [ever-better](https://github.com/isamu/ever-better) — same idea, same phases, but
 built around Ruff, mypy and pytest instead of ESLint and TypeScript.

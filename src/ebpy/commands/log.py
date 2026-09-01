@@ -21,7 +21,9 @@ if TYPE_CHECKING:
 
 LOG_KIND_LIST = " | ".join(LOG_KINDS)
 
-RULE_HINT = "--rule must be a namespaced rule ID, e.g. ruff:C901 or mypy:arg-type"
+RULE_HINT = (
+    "--rule must be a namespaced rule ID, e.g. ruff:C901, mypy:arg-type or clippy:clippy::needless_return"
+)
 
 
 def is_log_kind(value: str) -> bool:

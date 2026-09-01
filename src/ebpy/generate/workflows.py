@@ -113,10 +113,10 @@ def gate_workflow(
 
     Path handling breaks per platform, and only per platform. There is no raw `ruff check`
     or `mypy` step: each demands zero violations and would fail on the grandfathered backlog
-    the moment the repository freezes one. `ebpy check` is the gate — it runs ruff and mypy
-    through the measurement seam and fails only on findings above the ceiling. `report` runs
-    after `check` with `if: always()`: the run where the gate has just failed is the run
-    where the backlog is worth most.
+    the moment the repository freezes one. `ebpy check` is the gate — it measures every
+    in-scope analyzer through the measurement seam and fails only on findings above the
+    ceiling. `report` runs after `check` with `if: always()`: the run where the gate has
+    just failed is the run where the backlog is worth most.
     """
     steps = _steps_for(manager, python_version)
     run = steps.run_prefix

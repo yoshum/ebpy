@@ -74,8 +74,8 @@ nothing — invoke the bootstrap command from its Git source, then let `install`
 or Git ref to the project.
 
 `diagnose` and `bootstrap` read configs rather than run tools, so the throwaway `uvx` form is enough
-for them. `freeze`, `check`, `prune`, `next` and `report` need the repository's own Ruff and mypy on
-the path.
+for them. `freeze`, `check`, `prune`, `next` and `report` need the repository's own in-scope
+analyzers — Ruff and mypy for Python, clippy for Rust — on the path.
 
 ## Where the numbers live
 
